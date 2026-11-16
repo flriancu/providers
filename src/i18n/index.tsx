@@ -1,0 +1,56 @@
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { en, type MessageKey } from './en';
+import { pluralize, type PluralKey } from './plurals';
+import { ro } from './ro';
+
+export type Lang = 'en' | 'ro';
+export type { MessageKey };
+
+export const LANGS: readonly Lang[] = ['en', 'ro'];
+
+const DICTS: Record<Lang, Record<MessageKey, string>> = { en, ro };
+const LOCALES: Record<Lang, string> = { en: 'en-GB', ro: 'ro-RO' };
+
+/** A message with its `{name}` placeholders filled in; an unknown placeholder stays visible. */
+export function translate(lang: Lang, key: MessageKey, params?: Record<string, string | number>): string {
+  return DICTS[lang][key].replace(/\{(\w+)\}/g, (_, p: string) => String(params?.[p] ?? `{${p}}`));
+}
+
+export interface I18n {
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+  t: (key: MessageKey, params?: Record<string, string | number>) => string;
+  /** A counted phrase in the language's plural form: "1 provider", "20 de furnizori". */
+  plural: (key: PluralKey, n: number) => string;
+  /** A calendar day (YYYY-MM-DD) with full day and month names, e.g. "Friday 20 November 2026". */
+  date: (isoDate: string) => string;
+}
+
+const I18nContext = createContext<I18n | null>(null);
+
+export function I18nProvider({ lang, setLang, children }: { lang: Lang; setLang: (lang: Lang) => void; children: ReactNode }) {
+  const value = useMemo<I18n>(() => {
+    // Calendar days are whole UTC days: formatting in UTC keeps the day the user picked.
+    const format = new Intl.DateTimeFormat(LOCALES[lang], {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+    return {
+      lang,
+      setLang,
+      t: (key, params) => translate(lang, key, params),
+      plural: (key, n) => pluralize(lang, key, n),
+      date: (isoDate) => format.format(new Date(`${isoDate}T00:00:00Z`)),
+    };
+  }, [lang, setLang]);
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+export function useI18n(): I18n {
+  const value = useContext(I18nContext);
+  if (!value) throw new Error('useI18n outside I18nProvider');
+  return value;
+}

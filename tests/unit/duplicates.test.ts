@@ -1,0 +1,40 @@
+import { describe, expect, it } from 'vitest';
+import { findDuplicates, linkKey, phoneKey, type Candidate } from '../../src/domain/duplicates';
+import { weddingDirectory } from './fixture';
+
+const candidate = (extra: Partial<Candidate>): Candidate => ({ name: '', phones: [], emails: [], links: [], ...extra });
+
+describe('likely duplicates (FR-23)', () => {
+  const { doc, providers } = weddingDirectory();
+  const found = (c: Candidate, exclude?: string) => findDuplicates(doc, c, exclude).map((d) => [d.provider.id, d.reasons]);
+
+  it('matches a name ignoring case, diacritics and spacing', () => {
+    expect(found(candidate({ name: '  gradina cu  salcii ' }))).toEqual([[providers.gradina, ['name']]]);
+  });
+
+  it('matches the same phone number however it is written', () => {
+    for (const phone of ['+40 721 234 567', '0040721234567', '0721-234-567'])
+      expect(found(candidate({ phones: [phone] }))).toEqual([[providers.gradina, ['phone']]]);
+  });
+
+  it('matches emails ignoring case, and websites ignoring scheme, www and a trailing slash', () => {
+    expect(found(candidate({ emails: ['hello@flashbox.ro'] }))).toEqual([[providers.flashbox, ['email']]]);
+    expect(found(candidate({ links: ['brunophoto.ro'] }))).toEqual([[providers.bruno, ['link']]]);
+  });
+
+  it('tells two profiles on the same site apart', () => {
+    expect(linkKey('https://instagram.com/bruno')).not.toBe(linkKey('https://instagram.com/flashbox'));
+    expect(linkKey('HTTPS://WWW.Instagram.com/Bruno/')).toBe(linkKey('instagram.com/bruno'));
+  });
+
+  it('lists every reason, best match first, and leaves out the provider itself', () => {
+    const c = candidate({ name: 'Flashbox', emails: ['HELLO@flashbox.ro'] });
+    expect(found(c)).toEqual([[providers.flashbox, ['name', 'email']]]);
+    expect(found(c, providers.flashbox)).toEqual([]);
+  });
+
+  it('ignores empty values', () => {
+    expect(found(candidate({ phones: [''], emails: [' '], links: [''] }))).toEqual([]);
+    expect(phoneKey('n/a')).toBe('');
+  });
+});

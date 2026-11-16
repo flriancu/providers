@@ -1,0 +1,56 @@
+.spike section {
+  margin-bottom: var(--space-3);
+}
+
+.spike h2 {
+  font-size: 1.15rem;
+  margin: 0 0 var(--space-1);
+}
+
+.spike li {
+  margin-bottom: var(--space-1);
+}
+
+.spike button {
+  min-height: 2.75rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--surface);
+  font: inherit;
+  cursor: pointer;
+}
+
+.spike button.secondary {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.spike button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spike input {
+  min-height: 2.75rem;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.spike .link,
+.spike .log li {
+  overflow-wrap: anywhere;
+}
+
+.spike .log .ok strong {
+  color: var(--accent);
+}
+
+.spike .log .failed strong {
+  color: #c0392b;
+}

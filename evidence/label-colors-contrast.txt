@@ -1,0 +1,13 @@
+Label chip text contrast (WCAG 1.4.3), 2026-11-16T14:16Z
+Command: node label_contrast.mjs (scratch script; palette as in src/ui/app.css)
+grey    light 8.68:1  dark 8.68:1  PASS
+red     light 6.68:1  dark 7.16:1  PASS
+orange  light 5.87:1  dark 7.76:1  PASS
+yellow  light 6.27:1  dark 8.58:1  PASS
+green   light 6.34:1  dark 8.04:1  PASS
+teal    light 6.58:1  dark 8.86:1  PASS
+blue    light 6.85:1  dark 8.45:1  PASS
+purple  light 7.63:1  dark 7.61:1  PASS
+pink    light 6.53:1  dark 7.95:1  PASS
+brown   light 6.47:1  dark 8.36:1  PASS
+Lowest: 5.87:1 (WCAG 1.4.3 needs 4.5:1 for normal text)

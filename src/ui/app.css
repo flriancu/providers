@@ -1,0 +1,764 @@
+:root {
+  --text: #1d2433;
+  --muted: #4b5468;
+  --page: #f7f7f5;
+  --surface: #ffffff;
+  --accent: #1f5fbf;
+  --on-accent: #ffffff;
+  --selected: #e3ecfa;
+  --border: #c9ced8;
+  --focus: #b36b00;
+  --danger: #b3261e;
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --radius: 0.5rem;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e8eaf0;
+    --muted: #b4bccb;
+    --page: #14171d;
+    --surface: #1d2129;
+    --accent: #7aa7ff;
+    --on-accent: #0b1220;
+    --selected: #26324a;
+    --border: #3a4252;
+    --focus: #f2a900;
+    --danger: #ffb4ab;
+  }
+}
+
+/*
+ * Base text size: 18 px at the browser's default of 16 px (owner's choice, 2026-11-16). A
+ * percentage keeps a reader's own larger default. Everything is sized in rem, so spacing
+ * grows with the text.
+ */
+html {
+  font-size: 112.5%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  margin: 0;
+}
+h1 {
+  font-size: 1.25rem;
+}
+h2 {
+  font-size: 1.4rem;
+}
+h3 {
+  font-size: 1.1rem;
+  margin-top: var(--space-3);
+}
+p {
+  margin: 0 0 var(--space-1);
+}
+a {
+  color: var(--accent);
+}
+
+.page,
+.shell {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: var(--space-2);
+}
+
+.app-header,
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.app-nav {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.app-nav a {
+  padding: var(--space-1) 0;
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 3px solid transparent;
+}
+
+.app-nav a[aria-current='page'] {
+  border-bottom-color: var(--accent);
+}
+
+.demo-note {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.muted,
+.help {
+  color: var(--muted);
+}
+
+.help {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.lang {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Adaptive list-detail (D-29): side by side from 840 px (Material 3 "expanded"), one pane below. */
+.list-detail {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+@media (min-width: 840px) {
+  .list-detail {
+    grid-template-columns: minmax(16rem, 1fr) minmax(0, 2fr);
+    align-items: start;
+  }
+  .list-pane {
+    position: sticky;
+    top: var(--space-1);
+    max-height: calc(100vh - 2 * var(--space-1));
+    overflow-y: auto;
+  }
+  .detail-pane .back {
+    display: none;
+  }
+}
+
+@media (max-width: 839px) {
+  .list-detail[data-showing='list'] .detail-pane,
+  .list-detail[data-showing='detail'] .list-pane {
+    display: none;
+  }
+}
+
+.pane {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  min-width: 0;
+}
+
+.pane-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+.provider-list,
+.plain,
+.label-tree,
+.log-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Compact rows: three short lines (who, labels, first contacts), separated by a rule. */
+.provider-list li + li {
+  border-top: 1px solid var(--border);
+}
+
+.provider-list a {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.4rem var(--space-1);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.provider-list a:hover,
+.provider-list a[aria-current='true'] {
+  background: var(--selected);
+}
+
+.provider-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.row-line {
+  overflow-wrap: anywhere;
+}
+
+.small {
+  font-size: 0.875rem;
+}
+
+.count {
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.placeholder {
+  padding: var(--space-3) 0;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: var(--space-1);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.fields .field-row {
+  display: contents;
+}
+
+.fields dt {
+  color: var(--muted);
+}
+
+.fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .fields dd {
+    margin-bottom: var(--space-1);
+  }
+}
+
+.notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+button,
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button.secondary,
+.button.secondary {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--surface);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Text-style buttons line up with the text around them; the height keeps a full-size tap area. */
+.link-button {
+  min-height: 2.75rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+input,
+select,
+textarea {
+  min-height: 2.75rem;
+  width: 100%;
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+input[type='checkbox'] {
+  width: 1.25rem;
+  min-height: 1.25rem;
+}
+
+.lang select {
+  width: auto;
+}
+
+label {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+label.check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+  margin: 0;
+}
+
+label.check.child,
+li.child {
+  padding-left: var(--space-3);
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0 0 var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  min-width: 0;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 var(--space-1);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.log {
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+/* One column, one left edge: date, text, then the button. */
+.log-form {
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.log-form .error {
+  margin-bottom: var(--space-1);
+}
+
+.field-label {
+  display: block;
+}
+
+.date-field {
+  margin-bottom: var(--space-2);
+}
+
+.date-button {
+  justify-content: space-between;
+  gap: var(--space-1);
+  width: 100%;
+  max-width: 22rem;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.date-button[aria-expanded='true'] {
+  border-color: var(--accent);
+}
+
+.date-panel {
+  display: inline-block;
+  margin-top: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.date-panel .rdp-root {
+  --rdp-accent-color: var(--accent);
+  --rdp-accent-background-color: var(--selected);
+  --rdp-day-height: 2.75rem;
+  --rdp-day-width: 2.75rem;
+  --rdp-day_button-height: 2.6rem;
+  --rdp-day_button-width: 2.6rem;
+}
+
+/* The calendar's day buttons are not the app's filled buttons. */
+.date-panel button {
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+.date-panel .rdp-selected .rdp-day_button {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.log-entries li {
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--border);
+}
+
+.log-date {
+  font-weight: 600;
+  margin: 0;
+}
+
+.danger-zone {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.labels-page {
+  margin-top: var(--space-2);
+}
+
+.facet-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.label-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--space-1);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--border);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+}
+
+.inline-form {
+  padding: var(--space-1) var(--space-2);
+  margin-bottom: var(--space-1);
+  border-left: 3px solid var(--accent);
+}
+
+details.add-label {
+  margin-top: var(--space-2);
+}
+
+details.add-label summary {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* D-31: label colours. Text on background checked for contrast (evidence/label-colors-contrast.txt). */
+.chip {
+  display: inline-block;
+  padding: 0 var(--space-1);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.dot {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--chip-bg);
+  border: 2px solid var(--chip-fg);
+}
+
+[data-color='grey'] {
+  --chip-bg: #e8eaed;
+  --chip-fg: #3c4043;
+}
+[data-color='red'] {
+  --chip-bg: #fce8e6;
+  --chip-fg: #a50e0e;
+}
+[data-color='orange'] {
+  --chip-bg: #feefe3;
+  --chip-fg: #a33b00;
+}
+[data-color='yellow'] {
+  --chip-bg: #fef7e0;
+  --chip-fg: #7a5500;
+}
+[data-color='green'] {
+  --chip-bg: #e6f4ea;
+  --chip-fg: #0d652d;
+}
+[data-color='teal'] {
+  --chip-bg: #e4f7fb;
+  --chip-fg: #00606b;
+}
+[data-color='blue'] {
+  --chip-bg: #e8f0fe;
+  --chip-fg: #174ea6;
+}
+[data-color='purple'] {
+  --chip-bg: #f3e8fd;
+  --chip-fg: #681da8;
+}
+[data-color='pink'] {
+  --chip-bg: #fde7f3;
+  --chip-fg: #9c166b;
+}
+[data-color='brown'] {
+  --chip-bg: #f4ebe4;
+  --chip-fg: #6d4c41;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-color='grey'] {
+    --chip-bg: #3c4043;
+    --chip-fg: #e8eaed;
+  }
+  [data-color='red'] {
+    --chip-bg: #5c1a14;
+    --chip-fg: #f6aea9;
+  }
+  [data-color='orange'] {
+    --chip-bg: #5a2a0a;
+    --chip-fg: #fdc69c;
+  }
+  [data-color='yellow'] {
+    --chip-bg: #4d3a00;
+    --chip-fg: #fde293;
+  }
+  [data-color='green'] {
+    --chip-bg: #0d3b1f;
+    --chip-fg: #a8dab5;
+  }
+  [data-color='teal'] {
+    --chip-bg: #003a40;
+    --chip-fg: #a1e4f0;
+  }
+  [data-color='blue'] {
+    --chip-bg: #0f2a5c;
+    --chip-fg: #aecbfa;
+  }
+  [data-color='purple'] {
+    --chip-bg: #3d1466;
+    --chip-fg: #d7aefb;
+  }
+  [data-color='pink'] {
+    --chip-bg: #5c0d3f;
+    --chip-fg: #fbb3dd;
+  }
+  [data-color='brown'] {
+    --chip-bg: #3e2a22;
+    --chip-fg: #e0c7b8;
+  }
+}
+
+.color-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+}
+
+/* The rarer label actions (merge, delete), set apart below the main fields. */
+.editor-more {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.editor-more label {
+  margin-bottom: var(--space-1);
+}
+
+/* Labels page, compact: facets side by side when there is room, rows without rules. */
+.facets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--space-2);
+  align-items: start;
+  margin-top: var(--space-2);
+}
+
+.facets-grid .facet-section {
+  margin-top: 0;
+  padding: var(--space-1) var(--space-2);
+}
+
+.facet-section .pane-header {
+  align-items: center;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.facet-section h3 {
+  margin: 0;
+}
+
+.facet-section .label-row {
+  padding: 0;
+  border-top: none;
+  min-height: 2.25rem;
+}
+
+/* 36 px tap areas in these dense rows: above WCAG 2.5.8's 24 px minimum. */
+.facet-section .link-button,
+.facet-section details.add-label summary {
+  min-height: 2.25rem;
+}
+
+.facet-section details.add-label {
+  margin-top: 0.25rem;
+}
+
+/* Dense chrome: one header row, a one-line demo notice, tighter page margins. */
+.shell {
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.app-header {
+  gap: 0 var(--space-2);
+  margin-bottom: 0;
+}
+
+.app-title {
+  font-size: 1.1rem;
+}
+
+.app-nav {
+  gap: var(--space-2);
+}
+
+.lang select {
+  min-height: 2.25rem;
+  padding: 0 var(--space-1);
+}
+
+.demo-note {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.875rem;
+}
+
+.list-detail,
+.labels-page {
+  margin-top: var(--space-1);
+}
+
+.labels-page > p {
+  margin-bottom: 0;
+}
+
+/* Shown to screen readers only. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Phones: the tabs and the language share one row; the title stays for screen readers only. */
+@media (max-width: 480px) {
+  .app-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .pane,
+  .facets-grid .facet-section {
+    padding: var(--space-1) 0.75rem;
+  }
+}
