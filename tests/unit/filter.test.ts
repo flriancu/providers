@@ -69,3 +69,17 @@ describe('counts next to each value (FR-11)', () => {
     }
   });
 });
+
+describe('selections that outlive their labels', () => {
+  it('drops values whose label or facet is gone, keeping "none" and live labels', async () => {
+    const { liveSelection } = await import('../../src/domain/filter');
+    const { doc, labels } = weddingDirectory();
+    expect(
+      liveSelection(doc, {
+        [FACET_IDS.category]: [labels.photo, 'deleted-label', NO_LABEL, labels.cluj],
+        'facet-gone': [labels.photo],
+        [FACET_IDS.area]: ['also-gone'],
+      }),
+    ).toEqual({ [FACET_IDS.category]: [labels.photo, NO_LABEL] });
+  });
+});

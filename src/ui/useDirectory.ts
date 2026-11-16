@@ -20,7 +20,11 @@ export function useDirectory() {
       new DocumentSync<DirectoryDoc, DirectoryNotice>({
         storage: new MemoryStorage<DirectoryDoc>(),
         model: directoryModel,
-        init: () => demoDirectory(DEMO_OWNER, { by: DEMO_OWNER, now: () => new Date(), newId: () => crypto.randomUUID() }),
+        // Fixed ids for the sample, so a reload keeps a filter in the address pointing at it.
+        init: () => {
+          let n = 0;
+          return demoDirectory(DEMO_OWNER, { by: DEMO_OWNER, now: () => new Date(), newId: () => `demo-${++n}` });
+        },
         saveDelayMs: 0,
       }),
     [],

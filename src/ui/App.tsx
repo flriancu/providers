@@ -58,7 +58,7 @@ function Shell() {
       <header className="app-header">
         <h1 className="app-title">{t('app.title')}</h1>
         <nav aria-label={t('nav.label')} className="app-nav">
-          <a href={href({ page: 'list' })} aria-current={onLabels ? undefined : 'page'}>
+          <a href={href({ page: 'list' }, route.query)} aria-current={onLabels ? undefined : 'page'}>
             {t('nav.providers')}
           </a>
           <a href={href({ page: 'labels' })} aria-current={onLabels ? 'page' : undefined}>

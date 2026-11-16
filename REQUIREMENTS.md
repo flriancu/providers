@@ -119,6 +119,10 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-34 Answers Q-02. Below 1200 px the filters open over the page (full screen on a phone,
+  a side panel on a tablet) and each tick changes the list at once; the button says how many
+  providers will show and closes the panel. From 1200 px the filters have their own column.
+  Both behaviours were built and tried live before the choice. (2026-11-16, owner: "instant")
 - D-33 Amends FR-09 and D-15. There is no Unsorted label: a provider without a category simply
   has none, and only the owner's labels exist. Each facet's filter has a "none" value for the
   providers with no label in it. (2026-11-16, owner: "'unsorted' is not a label, is it?")
@@ -265,8 +269,7 @@ interaction log; language switch; CSV import and export; phone browser.
 ## Open questions
 
 - Q-01 Closed 2026-11-16: yes, see D-20.
-- Q-02 Mobile filter interaction: instant tray or sheet with an Apply button. To be decided;
-  both get prototyped side by side.
+- Q-02 Closed 2026-11-16: instant, see D-34.
 - Q-03 Closed 2026-11-16 by D-21: no AWS compute needed. (Earlier answer: S3; S3 serves static
   files only ([S3 website hosting](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html)).)
   DNS for the subdomain stays with the owner's existing provider.

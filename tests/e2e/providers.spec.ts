@@ -18,7 +18,7 @@ async function addProvider(page: Page, name: string, labels: string[] = []) {
   await page.getByRole('link', { name: 'Providers' }).click();
   await page.getByRole('link', { name: 'Add a provider' }).click();
   await page.getByLabel('Name', { exact: true }).fill(name);
-  for (const l of labels) await page.getByRole('checkbox', { name: l, exact: true }).check();
+  for (const l of labels) await page.locator('form.provider-form').getByRole('checkbox', { name: l, exact: true }).check();
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
 }
@@ -42,8 +42,10 @@ test('adds a provider with contact details and labels, then edits it (FR-01, FR-
   await page.getByLabel('Name', { exact: true }).fill('Grădina cu Sălcii');
   await page.getByLabel('Phone numbers').fill('0721 234 567\n\n+40 31 000 0000');
   await page.getByLabel('Website and social profiles').fill('gradinacusalcii.ro');
-  await page.getByRole('checkbox', { name: 'Video', exact: true }).check();
-  await page.getByRole('checkbox', { name: 'Cluj' }).check();
+  // The provider form's labels, not the filter column's.
+  const form = page.locator('form.provider-form');
+  await form.getByRole('checkbox', { name: 'Video', exact: true }).check();
+  await form.getByRole('checkbox', { name: 'Cluj', exact: true }).check();
   await page.getByRole('button', { name: 'Save' }).click();
 
   const detail = page.getByRole('article');

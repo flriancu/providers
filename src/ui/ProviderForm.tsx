@@ -5,7 +5,7 @@ import { FACET_IDS, type DirectoryDoc, type Provider } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { ColorDot } from './LabelChip';
 import { facetName, facetTree, labelName, labelPath, orderedFacets } from './labelText';
-import { go, href } from './route';
+import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
 
 const lines = (text: string) => text.split('\n');
@@ -37,7 +37,8 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
   }));
   const [error, setError] = useState<EditErrorCode | null>(null);
   const ids = useId();
-  const cancel = id ? href({ page: 'provider', id }) : href({ page: 'list' });
+  const query = useListQuery();
+  const cancel = id ? href({ page: 'provider', id }, query) : href({ page: 'list' }, query);
 
   if (id && !existing) return <p>{t('detail.notFound')}</p>;
 
@@ -57,7 +58,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
       return created.doc;
     });
     setError(code);
-    if (!code && target) go({ page: 'provider', id: target });
+    if (!code && target) go({ page: 'provider', id: target }, query);
   };
 
   const textField = (key: 'name' | 'contactPerson' | 'address', label: string, required = false) => (

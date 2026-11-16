@@ -6,7 +6,7 @@ import { useI18n } from '../i18n';
 import { LabelChip } from './LabelChip';
 import { facetName, labelPath, orderedFacets } from './labelText';
 import { LogSection } from './LogSection';
-import { go, href } from './route';
+import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
 
 /** Opens a link from someone else's data safely: only web addresses become links. */
@@ -14,13 +14,14 @@ const webUrl = (link: string) => (/^https?:\/\//i.test(link) ? link : `https://$
 
 export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: Apply; id: string }) {
   const { t } = useI18n();
+  const query = useListQuery();
   const [confirming, setConfirming] = useState(false);
   const provider = Object.hasOwn(doc.providers, id) ? doc.providers[id] : undefined;
 
   if (!provider || provider.deleted) {
     return (
       <div>
-        <a className="back" href={href({ page: 'list' })}>
+        <a className="back" href={href({ page: 'list' }, query)}>
           {t('detail.back')}
         </a>
         <p>{t('detail.notFound')}</p>
@@ -43,12 +44,12 @@ export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: A
 
   return (
     <article aria-labelledby="provider-heading">
-      <a className="back" href={href({ page: 'list' })}>
+      <a className="back" href={href({ page: 'list' }, query)}>
         {t('detail.back')}
       </a>
       <div className="pane-header">
         <h2 id="provider-heading">{provider.name}</h2>
-        <a className="button" href={href({ page: 'edit', id })}>
+        <a className="button" href={href({ page: 'edit', id }, query)}>
           {t('detail.edit')}
         </a>
       </div>
@@ -112,7 +113,7 @@ export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: A
               type="button"
               className="danger"
               onClick={() => {
-                if (!apply((d, ctx) => deleteProvider(d, id, ctx))) go({ page: 'list' });
+                if (!apply((d, ctx) => deleteProvider(d, id, ctx))) go({ page: 'list' }, query);
               }}
             >
               {t('detail.deleteYes')}

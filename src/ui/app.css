@@ -138,19 +138,27 @@ a {
   gap: var(--space-1);
 }
 
-/* Adaptive list-detail (D-29): side by side from 840 px (Material 3 "expanded"), one pane below. */
-.list-detail {
+/*
+ * Adaptive layout (D-29): from 1200 px, filters, list and provider side by side; from 840 px,
+ * list and provider (filters open from a button); below, one pane at a time.
+ */
+.browse {
   display: grid;
   gap: var(--space-2);
   margin-top: var(--space-2);
 }
 
+.filter-pane {
+  display: none;
+}
+
 @media (min-width: 840px) {
-  .list-detail {
+  .browse {
     grid-template-columns: minmax(16rem, 1fr) minmax(0, 2fr);
     align-items: start;
   }
-  .list-pane {
+  .list-pane,
+  .filter-pane {
     position: sticky;
     top: var(--space-1);
     max-height: calc(100vh - 2 * var(--space-1));
@@ -161,9 +169,21 @@ a {
   }
 }
 
+@media (min-width: 1200px) {
+  .browse {
+    grid-template-columns: 15rem minmax(18rem, 1fr) minmax(0, 1.6fr);
+  }
+  .filter-pane {
+    display: block;
+  }
+  .filter-button {
+    display: none;
+  }
+}
+
 @media (max-width: 839px) {
-  .list-detail[data-showing='list'] .detail-pane,
-  .list-detail[data-showing='detail'] .list-pane {
+  .browse[data-showing='list'] .detail-pane,
+  .browse[data-showing='detail'] .list-pane {
     display: none;
   }
 }
@@ -725,7 +745,7 @@ details.add-label summary {
   font-size: 0.875rem;
 }
 
-.list-detail,
+.browse,
 .labels-page {
   margin-top: var(--space-1);
 }
@@ -761,4 +781,136 @@ details.add-label summary {
   .facets-grid .facet-section {
     padding: var(--space-1) 0.75rem;
   }
+}
+
+/* Search and filters above the list. */
+.search {
+  margin-bottom: var(--space-1);
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+.filter-bar:has(.active-filters) .filter-button,
+.filter-button {
+  min-height: 2.25rem;
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem var(--space-1);
+}
+
+.chip-button {
+  min-height: 2.25rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+.filter-pane h2 {
+  font-size: 1.1rem;
+  margin-bottom: var(--space-1);
+}
+
+.facet-filter {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-2);
+}
+
+.facet-filter legend {
+  padding: 0;
+  margin-bottom: 0.25rem;
+}
+
+.filter-value {
+  min-height: 2.25rem;
+}
+
+.filter-value .value-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.filter-value .value-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.filter-value.empty {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.dot.none {
+  background: none;
+  border: 2px dashed var(--muted);
+}
+
+/* The filters over the page: full screen on a phone, a side panel from 600 px. */
+.sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.4);
+}
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+@media (min-width: 600px) {
+  .sheet {
+    left: auto;
+    width: 26rem;
+    box-shadow: -4px 0 16px rgb(0 0 0 / 0.2);
+  }
+}
+
+.sheet-header,
+.sheet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+}
+
+.sheet-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.sheet-header .link-button {
+  font-size: 1.3rem;
+  text-decoration: none;
+  min-width: 2.75rem;
+  justify-content: center;
+}
+
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.sheet-footer {
+  border-top: 1px solid var(--border);
 }

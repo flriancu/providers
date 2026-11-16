@@ -13,7 +13,7 @@ Phase 0 was not run or committed.
 | 1 | Seed names from the board photo | Done 2026-11-16, approved by the owner |
 | 2 | Domain core | Done 2026-11-16 |
 | 3 | Provider and label pages (in-memory demo) | Done 2026-11-16 |
-| 4 | Browse, filter, search | Not started |
+| 4 | Browse, filter, search | Done 2026-11-16 |
 | 5 | Drive storage, sync, device copy | Not started |
 | 6 | Import, export, duplicates, seed import | Not started |
 | 7 | Sharing | Not started |
@@ -164,6 +164,22 @@ Result 2026-11-16:
 - Two mobile filter variants shown side by side at real phone size; owner picks one (Q-02).
 
 Deliverable: the browse view on desktop and phone. Verifies: FR-10..13, NFR-06, NFR-07.
+
+Result 2026-11-16:
+
+- Filters, list and provider side by side from 1200 px; list and provider from 840 px with the
+  filters opening over the page; one pane at a time on a phone (D-29, D-34).
+- Filter panel: one group per facet, values with counts (spoken as "Photo, 2 providers"),
+  sub-labels indented, "No <facet>" (D-33), 8 values then "Show all", values that would empty
+  the list greyed out and not tickable; chosen values as removable chips with "Clear all".
+- Search above the list, within the filters, best match first (FR-13).
+- Filters and search in the address: reload, bookmarks, Back and opening a provider keep them;
+  values whose label no longer exists are ignored rather than emptying the list.
+- Q-02: both phone behaviours were built and tried live; the owner chose instant (D-34).
+- 82 unit tests and 29 end-to-end tests pass (7 skipped: each layout test runs on its own
+  screen size only).
+- Possible later: named saved queries on top of the address ("photographers in Bucharest");
+  not in the requirements yet.
 
 ## Phase 5: Drive storage, sync, device copy
 

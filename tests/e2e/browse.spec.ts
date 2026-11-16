@@ -1,0 +1,117 @@
+import { expect, test, type Page } from '@playwright/test';
+
+/**
+ * Browse (FR-10..13): with the demo's Sample Photo Studio (Wedding > Photo, Bucharest), plus
+ * Lagoo (Cluj, no category) and Flashbox (Photo, Cluj).
+ */
+async function addLabel(page: Page, facet: string, name: string) {
+  await page.getByRole('link', { name: 'Labels' }).click();
+  const form = page.getByRole('region', { name: facet, exact: true }).locator('details.add-label');
+  if ((await form.getAttribute('open')) === null) await form.locator('summary').click();
+  await form.getByLabel('Name', { exact: true }).fill(name);
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
+}
+
+async function addProvider(page: Page, name: string, labels: string[]) {
+  await page.getByRole('link', { name: 'Providers' }).click();
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  const form = page.locator('form.provider-form');
+  await form.getByLabel('Name', { exact: true }).fill(name);
+  for (const l of labels) await form.getByRole('checkbox', { name: l, exact: true }).check();
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
+}
+
+async function setUp(page: Page) {
+  await page.goto('./');
+  await page.getByLabel('Language').selectOption('en');
+  await addLabel(page, 'Area', 'Cluj');
+  await addProvider(page, 'Lagoo', ['Cluj']);
+  await addProvider(page, 'Flashbox', ['Photo', 'Cluj']);
+  await page.getByRole('link', { name: 'Providers' }).click();
+}
+
+const names = (page: Page) => page.locator('.provider-list .provider-name');
+
+test.describe('wide screens: filters in their own column', () => {
+  test.skip(({ isMobile }) => isMobile, 'wide screens');
+
+  test('finds category x in area y, with counts, chips and the address keeping it (FR-10..12)', async ({ page }) => {
+    await setUp(page);
+    const filters = page.getByRole('complementary', { name: 'Filters' });
+    await expect(names(page)).toHaveText(['Flashbox', 'Lagoo', 'Sample Photo Studio']);
+
+    // Counts before ticking: Photo has 2 providers, Bucharest 1.
+    await expect(filters.getByRole('checkbox', { name: 'Photo, 2 providers' })).toBeVisible();
+    await filters.getByRole('checkbox', { name: /^Photo,/ }).check();
+    await expect(names(page)).toHaveText(['Flashbox', 'Sample Photo Studio']);
+    // Within Photo, Bucharest now has 1 and Cluj 1; ticking Bucharest leaves the sample.
+    await filters.getByRole('checkbox', { name: 'Bucharest, 1 provider' }).check();
+    await expect(names(page)).toHaveText(['Sample Photo Studio']);
+    await expect(page.getByRole('heading', { name: /Providers\s*1 of 3 providers/ })).toBeVisible();
+
+    // Opening a provider and coming back keeps the query.
+    await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
+    await page.getByRole('link', { name: 'Providers' }).click();
+    await expect(names(page)).toHaveText(['Sample Photo Studio']);
+
+    // Each chosen value is a removable chip; Clear all removes every one.
+    await page.getByRole('button', { name: 'Remove filter Bucharest' }).click();
+    await expect(names(page)).toHaveText(['Flashbox', 'Sample Photo Studio']);
+    await page.getByRole('button', { name: 'Clear all' }).click();
+    await expect(names(page)).toHaveText(['Flashbox', 'Lagoo', 'Sample Photo Studio']);
+
+    // The address keeps the query through a reload (the demo itself starts over: only the sample remains).
+    await filters.getByRole('checkbox', { name: /^Bucharest,/ }).check();
+    expect(page.url()).toContain('f=');
+    await page.reload();
+    await expect(names(page)).toHaveText(['Sample Photo Studio']);
+    await expect(page.getByRole('button', { name: 'Remove filter Bucharest' })).toBeVisible();
+  });
+
+  test('offers "No category" for providers without one, and greys out values that would empty the list (D-33, FR-11)', async ({ page }) => {
+    await setUp(page);
+    const filters = page.getByRole('complementary', { name: 'Filters' });
+    await filters.getByRole('checkbox', { name: 'No category, 1 provider' }).check();
+    await expect(names(page)).toHaveText(['Lagoo']);
+    // Lagoo is not in Bucharest: that value would empty the list, so it cannot be ticked.
+    await expect(filters.getByRole('checkbox', { name: 'Bucharest, 0 providers' })).toBeDisabled();
+  });
+
+  test('searches within the filters, tolerating typos (FR-13)', async ({ page }) => {
+    await setUp(page);
+    const search = page.getByRole('searchbox', { name: 'Search providers' });
+    await search.fill('sampel');
+    await expect(names(page)).toHaveText(['Sample Photo Studio']);
+    await search.fill('photo');
+    await expect(names(page)).toHaveText(['Sample Photo Studio', 'Flashbox']); // name first, then label
+    await page
+      .getByRole('complementary', { name: 'Filters' })
+      .getByRole('checkbox', { name: /^Cluj,/ })
+      .check();
+    await expect(names(page)).toHaveText(['Flashbox']);
+    await expect(page.getByRole('heading', { name: /1 of 3 providers/ })).toBeVisible();
+  });
+});
+
+test.describe('phones: filters open over the page (D-34)', () => {
+  test.skip(({ isMobile }) => !isMobile, 'phones');
+
+  test('each tick changes the list at once; the button says how many and closes the panel', async ({ page }) => {
+    await setUp(page);
+    await page.getByRole('button', { name: 'Filters', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await sheet.getByRole('checkbox', { name: /^Cluj,/ }).check();
+    await expect(sheet.getByRole('button', { name: 'Show 2 providers' })).toBeVisible();
+    await sheet.getByRole('button', { name: 'Show 2 providers' }).click();
+    await expect(sheet).toBeHidden();
+    await expect(names(page)).toHaveText(['Flashbox', 'Lagoo']);
+    await expect(page.getByRole('button', { name: 'Filters · 1 chosen' })).toBeFocused();
+
+    // Ticks apply even when the panel is closed with Escape.
+    await page.getByRole('button', { name: 'Filters · 1 chosen' }).click();
+    await sheet.getByRole('checkbox', { name: /^Photo,/ }).check();
+    await page.keyboard.press('Escape');
+    await expect(names(page)).toHaveText(['Flashbox']);
+  });
+});

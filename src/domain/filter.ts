@@ -7,6 +7,21 @@ export type Selection = Record<string, readonly string[]>;
 export const NO_SELECTION: Selection = {};
 
 /**
+ * The selection without values that no longer exist (a label deleted, a facet gone, an old
+ * bookmark): they are ignored rather than emptying the list.
+ */
+export function liveSelection(doc: DirectoryDoc, selection: Selection): Selection {
+  const out: Record<string, string[]> = {};
+  for (const [facetId, ids] of Object.entries(selection)) {
+    const facet = Object.hasOwn(doc.facets, facetId) ? doc.facets[facetId] : undefined;
+    if (!facet || facet.deleted) continue;
+    const kept = ids.filter((id) => id === NO_LABEL || labelById(doc, id)?.facetId === facetId);
+    if (kept.length) out[facetId] = kept;
+  }
+  return out;
+}
+
+/**
  * D-33: a value every facet offers, for the providers with no label in it ("No category",
  * "No area"). Selected and counted like a label; no record stands behind it.
  */
