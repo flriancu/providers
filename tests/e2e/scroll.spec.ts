@@ -33,3 +33,13 @@ test('back to the list returns to where the list was scrolled, and a provider op
   await expect(row).toBeVisible();
   expect(await page.evaluate(() => window.scrollY)).toBe(listScroll);
 });
+
+test('the Labels page opens at its top, however far down the page before was scrolled', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
+  await page.goto('./#/new');
+  await page.getByRole('button', { name: 'Save' }).scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
+  await page.getByRole('link', { name: 'Labels' }).click();
+  await expect(page.getByRole('region', { name: 'Category', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});

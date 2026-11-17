@@ -1,14 +1,14 @@
 import { useId, useState } from 'react';
-import { createProvider, emptyProvider, saveProvider, type EditErrorCode, type ProviderInput } from '../domain/edits';
+import { createLabel, createProvider, emptyProvider, saveProvider, type EditErrorCode, type ProviderInput } from '../domain/edits';
 import { labelById } from '../domain/labels';
 import { FACET_IDS, type DirectoryDoc, type Provider } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { ColorDot } from './LabelChip';
+import { LabelPicker } from './LabelPicker';
+import { ListField } from './ListField';
 import { facetLabels, facetName, labelName, labelNameById, orderedFacets } from './labelText';
 import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
-
-const lines = (text: string) => text.split('\n');
 
 /** The fields the form edits, without the record's id and stamps. */
 function toInput(p: Provider): ProviderInput {
@@ -25,16 +25,11 @@ function toInput(p: Provider): ProviderInput {
   };
 }
 
-/** Create (no `id`) or edit a provider. Lists are edited one item per line. */
+/** Create (no `id`) or edit a provider. Lists have one field per value (ListField). */
 export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: Apply; id?: string }) {
   const { t } = useI18n();
   const existing = id && Object.hasOwn(doc.providers, id) && !doc.providers[id]!.deleted ? doc.providers[id]! : undefined;
   const [input, setInput] = useState<ProviderInput>(() => (existing ? toInput(existing) : emptyProvider()));
-  const [listText, setListText] = useState(() => ({
-    phones: input.phones.join('\n'),
-    emails: input.emails.join('\n'),
-    links: input.links.join('\n'),
-  }));
   const [error, setError] = useState<EditErrorCode | null>(null);
   const ids = useId();
   const query = useListQuery();
@@ -46,14 +41,24 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
   const toggle = (labelId: string, on: boolean) =>
     set('labelIds', on ? [...input.labelIds, labelId] : input.labelIds.filter((l) => l !== labelId));
   const chosenCategories = input.labelIds.filter((l) => labelById(doc, l)?.facetId === FACET_IDS.category);
+  /** FR-07: a new label, made from the form on the owner's explicit choice, and ticked. */
+  const createAndTick = (facetId: string, name: string) => {
+    let created = '';
+    const code = apply((d, ctx) => {
+      const added = createLabel(d, { facetId, name }, ctx);
+      created = added.id;
+      return added.doc;
+    });
+    if (code) setError(code);
+    else if (created) toggle(created, true);
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const full: ProviderInput = { ...input, phones: lines(listText.phones), emails: lines(listText.emails), links: lines(listText.links) };
     let target = id;
     const code = apply((d, ctx) => {
-      if (id) return saveProvider(d, id, full, ctx);
-      const created = createProvider(d, full, ctx);
+      if (id) return saveProvider(d, id, input, ctx);
+      const created = createProvider(d, input, ctx);
       target = created.id;
       return created.doc;
     });
@@ -73,24 +78,18 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
       />
     </label>
   );
-  const listField = (key: 'phones' | 'emails' | 'links', label: string, type: string) => (
-    <label>
-      {label}
-      <span className="help">{t('field.onePerLine')}</span>
-      <textarea
-        rows={2}
-        inputMode={type === 'tel' ? 'tel' : type === 'email' ? 'email' : 'url'}
-        value={listText[key]}
-        onChange={(e) => setListText((l) => ({ ...l, [key]: e.target.value }))}
-      />
-    </label>
-  );
+  const listField = (key: 'phones' | 'emails' | 'links', type: 'tel' | 'email' | 'url') => {
+    const words = {
+      phones: ['field.phones', 'field.phone', 'field.addPhone'],
+      emails: ['field.emails', 'field.email', 'field.addEmail'],
+      links: ['field.links', 'field.link', 'field.addLink'],
+    } as const;
+    const [legend, item, add] = words[key];
+    return <ListField legend={t(legend)} item={t(item)} add={t(add)} type={type} values={input[key]} set={(v) => set(key, v)} />;
+  };
 
   return (
     <form className="provider-form" onSubmit={submit} noValidate aria-labelledby={`${ids}-heading`}>
-      <a className="back" href={cancel}>
-        {t('form.cancel')}
-      </a>
       <h2 id={`${ids}-heading`}>{existing ? t('form.editHeading', { name: existing.name }) : t('form.newHeading')}</h2>
       {textField('name', t('field.name'), true)}
       {error && (
@@ -99,9 +98,9 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
         </p>
       )}
       {textField('contactPerson', t('field.contactPerson'))}
-      {listField('phones', t('field.phones'), 'tel')}
-      {listField('emails', t('field.emails'), 'email')}
-      {listField('links', t('field.links'), 'url')}
+      {listField('phones', 'tel')}
+      {listField('emails', 'email')}
+      {listField('links', 'url')}
       {textField('address', t('field.address'))}
       <fieldset>
         <legend>{t('field.labels')}</legend>
@@ -110,7 +109,6 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
           return (
             <fieldset key={facet.id} className="facet-choices">
               <legend>{facetName(facet, t)}</legend>
-              {labels.length === 0 && <p className="muted">{t('form.noLabels')}</p>}
               {labels.map((label) => (
                 <label key={label.id} className="check">
                   <input type="checkbox" checked={input.labelIds.includes(label.id)} onChange={(e) => toggle(label.id, e.target.checked)} />
@@ -118,6 +116,14 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
                   {labelName(label)}
                 </label>
               ))}
+              <LabelPicker
+                doc={doc}
+                facetId={facet.id}
+                groupName={facetName(facet, t)}
+                chosen={input.labelIds}
+                choose={(labelId) => toggle(labelId, true)}
+                create={(name) => createAndTick(facet.id, name)}
+              />
             </fieldset>
           );
         })}

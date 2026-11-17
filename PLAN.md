@@ -231,6 +231,11 @@ Result 2026-11-16:
   theme (D-36); "label group" instead of "facet" on screen (D-37); helper text in one smaller
   size. 84 unit tests and 39 end-to-end tests pass (13 skipped: each layout test runs on its own
   screen size); the end-to-end suite passed three runs in a row.
+- Then, 2026-11-17: the provider form has one field per phone, email address and link, with
+  "+ Add" and a remove button; each label group in the form finds labels as you type and offers
+  to create one when none has the typed name (FR-07; Downshift 9.4.1 combobox); no Cancel above
+  the form; the Labels page has no big heading and opens at its top; header texts share one
+  centre line. 84 unit tests and 43 end-to-end tests pass.
 
 ## Phase 6: Import, export, duplicates, seed import
 

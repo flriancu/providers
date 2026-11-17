@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useLayoutEffect, useState } from 'react';
 import {
   createFacet,
   createLabel,
@@ -29,9 +29,15 @@ export function LabelsPage({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) 
   const [editing, setEditing] = useState<string | null>(null);
   const rare = rarelyUsedLabels(doc);
 
+  // Opens at its top, not as far down as the page before (a long provider form) was scrolled.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0); // a block: scrollTo returns a Promise in current browsers, never an effect's result
+  }, []);
+
   return (
     <div className="labels-page">
-      <h2>{t('labels.heading')}</h2>
+      {/* The underlined Labels tab names the page; the heading stays for screen readers' outline. */}
+      <h2 className="sr-only">{t('labels.heading')}</h2>
       <p className="help">{t('labels.intro')}</p>
       <div className="facets-grid">
         {orderedFacets(doc).map((facet) => (

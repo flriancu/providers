@@ -36,8 +36,17 @@ test('adds a provider with contact details and labels, then edits it (FR-01, FR-
   await expect(page.getByRole('alert')).toHaveText('Fill in a name.');
 
   await page.getByLabel('Name', { exact: true }).fill('Grădina cu Sălcii');
-  await page.getByLabel('Phone numbers').fill('0721 234 567\n\n+40 31 000 0000');
-  await page.getByLabel('Website and social profiles').fill('gradinacusalcii.ro');
+  // One field per phone: the second comes from "+ Add a phone number"; an empty one is dropped.
+  const field = (name: string) => page.getByRole('textbox', { name, exact: true });
+  await field('Phone number').fill('0721 234 567');
+  await page.getByRole('button', { name: '+ Add a phone number' }).click();
+  await expect(field('Phone number 2')).toBeFocused();
+  await field('Phone number 2').fill('+40 31 000 0000');
+  await page.getByRole('button', { name: '+ Add a phone number' }).click();
+  await page.getByRole('button', { name: '+ Add a phone number' }).click();
+  await page.getByRole('button', { name: 'Remove phone number 4' }).click();
+  await expect(page.getByRole('textbox', { name: /^Phone number \d$/ })).toHaveCount(3);
+  await field('Website or social profile').fill('gradinacusalcii.ro');
   // The provider form's labels, not the filter column's.
   const form = page.locator('form.provider-form');
   await form.getByRole('checkbox', { name: 'Video', exact: true }).check();
@@ -58,6 +67,37 @@ test('adds a provider with contact details and labels, then edits it (FR-01, FR-
   await page.getByLabel('Contact person').fill('Ana Popescu');
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByRole('article').getByText('Ana Popescu')).toBeVisible();
+});
+
+test('finds a label in the form by typing, and creates a new one only when chosen (FR-07)', async ({ page }) => {
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  const form = page.locator('form.provider-form');
+  await form.getByLabel('Name', { exact: true }).fill('Lagoo');
+  const area = form.getByRole('group', { name: 'Area' });
+  await area.getByRole('button', { name: '+ Add a label' }).click();
+  const find = area.getByRole('combobox', { name: /Find or add a label/ });
+  await expect(find).toBeFocused();
+
+  // An existing label, found by the start of its name in any case, ticked with Enter.
+  await find.fill('BUCH');
+  await expect(area.getByRole('option', { name: 'Bucharest' })).toBeVisible();
+  await find.press('ArrowDown');
+  await find.press('Enter');
+  await expect(area.getByRole('checkbox', { name: 'Bucharest' })).toBeChecked();
+  await expect(find).toHaveValue('');
+
+  // A name no label has: typing alone creates nothing; choosing the offer does.
+  await find.fill('Cluj');
+  const offer = area.getByRole('option', { name: 'Create the label “Cluj”' });
+  await expect(offer).toBeVisible();
+  await expect(area.getByRole('checkbox', { name: 'Cluj' })).toHaveCount(0);
+  await offer.click();
+  await expect(area.getByRole('checkbox', { name: 'Cluj' })).toBeChecked();
+
+  // A group with no labels shows only the way to add one.
+  await expect(form.getByRole('group', { name: 'Lists' }).getByRole('button', { name: '+ Add a label' })).toBeVisible();
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('article').getByText('Cluj', { exact: true })).toBeVisible();
 });
 
 test('keeps an interaction log, newest first, with full dates (FR-02)', async ({ page }) => {

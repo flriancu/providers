@@ -102,7 +102,13 @@ export const ro: Record<MessageKey, string> = {
   'field.address': 'Adresă',
   'field.notes': 'Note',
   'field.labels': 'Etichete',
-  'field.onePerLine': 'Câte unul pe rând.',
+  'field.phone': 'Număr de telefon',
+  'field.email': 'Adresă de e-mail',
+  'field.link': 'Site sau profil social',
+  'field.addPhone': '+ Adaugă un număr de telefon',
+  'field.addEmail': '+ Adaugă o adresă de e-mail',
+  'field.addLink': '+ Adaugă un site sau profil',
+  'field.remove': 'Șterge {item}',
   'field.primary': 'Categoria principală',
   'field.primaryHelp': 'Categoria afișată prima în listă.',
 
@@ -110,7 +116,9 @@ export const ro: Record<MessageKey, string> = {
   'form.editHeading': 'Modifică {name}',
   'form.save': 'Salvează',
   'form.cancel': 'Renunță',
-  'form.noLabels': 'Acest grup de etichete nu are încă etichete. Le poți adăuga pe pagina Etichete.',
+  'form.addLabel': '+ Adaugă o etichetă',
+  'form.findLabel': 'Caută sau adaugă o etichetă',
+  'form.createLabel': 'Creează eticheta „{name}”',
 
   'log.heading': 'Discuții și note',
   'log.empty': 'Nimic notat încă.',
@@ -124,7 +132,8 @@ export const ro: Record<MessageKey, string> = {
   'date.nextMonth': 'Luna următoare',
 
   'labels.heading': 'Etichete',
-  'labels.intro': 'Fiecare casetă este un grup de etichete; un furnizor poate avea oricâte dintre ele.',
+  'labels.intro':
+    'Etichetele sunt împărțite în grupuri, câte o casetă pentru fiecare. Un furnizor poate avea oricâte etichete din fiecare grup.',
   'labels.aliases': 'Se găsește și după: {aliases}',
   'labels.add': '+ Adaugă o etichetă',
   'labels.addButton': 'Adaugă',
