@@ -69,8 +69,10 @@ for (const d of decisions.filter((d) => d.decision === 'drop')) {
   rows = rows.filter((r) => !(key(r) === key(d) && same(r.value) === same(d.value)));
   if (rows.length === before) console.warn(`decision drops nothing: ${key(d)} ${d.value}`);
 }
+// "approve" with column "*": the owner approved every value row on that date (FR-26).
+const approvedAll = decisions.find((d) => d.decision === 'approve' && d.column === '*');
 // Every other decision ("match", "nomatch") is shown with the entry's rows; "match" also confirms them.
-const decided = new Map(decisions.filter((d) => d.decision !== 'drop').map((d) => [key(d), d]));
+const decided = new Map(decisions.filter((d) => ['match', 'nomatch'].includes(d.decision)).map((d) => [key(d), d]));
 
 // One row per value (a later pass may find the same link again); "none" only when nothing else.
 const seen = new Set();
@@ -87,6 +89,7 @@ for (const r of rows) {
     name: names.get(key(r)),
     confidence: confirmed ? 'high' : r.confidence,
     owner_decision: m ? `${m.date}: ${m.note}` : '',
+    approved: approvedAll && r.kind !== 'none' ? approvedAll.date : '',
   });
 }
 out.sort((a, b) => Number(a.column) - Number(b.column) || Number(a.position) - Number(b.position) || a.business.localeCompare(b.business));

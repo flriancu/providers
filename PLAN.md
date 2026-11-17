@@ -21,7 +21,7 @@ reads them as top-level labels. The phase results below describe each phase as i
 | 5 | Drive storage, sync, device copy | Done 2026-11-17; the owner signed in with the real account |
 | 6 | Import, export, duplicates, seed import | Not started |
 | 7 | Sharing | Not started |
-| 8 | One-off contact lookup for the seed vendors | Lookup done 2026-11-17; owner's row approval open |
+| 8 | One-off contact lookup for the seed vendors | Done 2026-11-17, approved by the owner |
 | 9 | Romanian, accessibility, acceptance, deploy | Not started |
 
 ## Phase 0a: Shared package drive-doc-sync, planner moved onto it
@@ -293,7 +293,8 @@ Result 2026-11-17:
   and 6 and one pass were cut short by it and finished through the directory instead.
 - The gathered contacts (`seed/lookup/`, `seed/contacts_review.csv`) stay on the owner's machine and
   out of the public repository (`.gitignore`), as the directory is private (D-01).
-- Open: the owner approves the rows; Phase 6 imports the approved ones through its preview.
+- 2026-11-17: the owner approved every row (753 values; recorded in `decisions.csv`, applied by
+  the merge script). Phase 6 imports them through its preview.
 
 ## Phase 9: Romanian, accessibility, acceptance, deploy
 
