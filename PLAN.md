@@ -242,12 +242,12 @@ Result 2026-11-16:
   header word is no longer read out after every edit); Drive messages say where the data is and
   the next step; buttons name what they act on; empty log says what to do; a deleted log entry
   can be undone; a loading line, and a reload offer if the app cannot load; a wording test for
-  NFR-08. 86 unit tests and 49 end-to-end tests pass.
+  NFR-08. 87 unit tests and 49 end-to-end tests pass.
 - Second batch: what is typed in the provider form is kept as a draft for the tab (leaving the
   form, a click elsewhere or a reload loses nothing; the list or the provider says so, with
   Continue editing; Discard them on return); opening a provider or the form moves focus to its
   heading, and Back to the list to its row; the date field has Choose today and Cancel and
-  closes when focus leaves it. 86 unit tests and 57 end-to-end tests pass, twice in a row.
+  closes when focus leaves it. 87 unit tests and 57 end-to-end tests pass, twice in a row.
 
 ## Phase 6: Import, export, duplicates, seed import
 
