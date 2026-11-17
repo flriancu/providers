@@ -36,6 +36,8 @@ export interface I18n {
   plural: (key: PluralKey, n: number) => string;
   /** A calendar day (YYYY-MM-DD) with full day and month names, e.g. "Friday 20 November 2026". */
   date: (isoDate: string) => string;
+  /** Items joined as the language lists them: "a, b and c", "a, b și c". */
+  list: (items: readonly string[]) => string;
 }
 
 const I18nContext = createContext<I18n | null>(null);
@@ -50,6 +52,7 @@ export function I18nProvider({ lang, setLang, children }: { lang: Lang; setLang:
       year: 'numeric',
       timeZone: 'UTC',
     });
+    const listFormat = new Intl.ListFormat(LOCALES[lang], { type: 'conjunction' });
     return {
       lang,
       setLang,
@@ -57,6 +60,7 @@ export function I18nProvider({ lang, setLang, children }: { lang: Lang; setLang:
       tx: (key, params) => translateParts(lang, key, params),
       plural: (key, n) => pluralize(lang, key, n),
       date: (isoDate) => format.format(new Date(`${isoDate}T00:00:00Z`)),
+      list: (items) => listFormat.format(items),
     };
   }, [lang, setLang]);
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

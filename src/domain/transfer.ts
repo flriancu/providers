@@ -238,6 +238,32 @@ export function mergeInput(
   };
 }
 
+/** What merging a row into a provider would add, for the preview's one-line summary. */
+export interface MergeChanges {
+  /** Labels the provider gains, including those the import creates. */
+  labels: number;
+  phones: number;
+  emails: number;
+  links: number;
+  /** Single fields empty on the provider that the row fills. */
+  filled: SingleField[];
+  /** Single fields where both have a different value: the owner chooses (FR-24). */
+  differ: SingleField[];
+}
+
+/** What `mergeInput` would change on the provider, with the existing single values kept. */
+export function mergeChanges(existing: Provider, row: ImportRow): MergeChanges {
+  const merged = mergeInput(existing, row.input, {});
+  return {
+    labels: merged.labelIds.length - existing.labelIds.length + row.newLabels.length,
+    phones: merged.phones.length - existing.phones.length,
+    emails: merged.emails.length - existing.emails.length,
+    links: merged.links.length - existing.links.length,
+    filled: SINGLE_FIELDS.filter((f) => merged[f] !== existing[f]),
+    differ: conflicts(existing, row.input),
+  };
+}
+
 export interface ImportResult {
   doc: DirectoryDoc;
   added: number;

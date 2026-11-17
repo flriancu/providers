@@ -39,11 +39,22 @@ test('previews an import, waits for a choice on a possible duplicate, then merge
     '3 rows: 1 to add, 1 to decide (they look like a provider already here or an earlier row), 1 without a name.',
   );
   await expect(preview).toContainText('The import creates 2 labels:');
-  await expect(preview.getByText('Looks like Sample Photo Studio, already in the directory (same phone).')).toBeVisible();
+  await expect(preview.locator('.doubt-why')).toContainText(
+    'Looks like Sample Photo Studio, already in the directory (same phone). Merging adds 1 label.',
+  );
   const run = preview.getByRole('button', { name: 'Choose for 1 row first' });
   await expect(run).toBeDisabled();
 
-  await preview.getByRole('radio', { name: 'Merge into Sample Photo Studio' }).check();
+  // The row's full contents wait behind Details.
+  const details = preview.getByRole('button', { name: 'Details of Sample Studio' });
+  await expect(preview.getByText('Met at the fair')).toBeHidden();
+  await details.click();
+  await expect(details).toHaveAttribute('aria-expanded', 'true');
+  await expect(preview.getByText('Met at the fair')).toBeVisible();
+
+  const choice = preview.getByRole('group', { name: 'What to do with Sample Studio' });
+  await expect(choice.getByRole('radio')).toHaveCount(3);
+  await choice.getByRole('radio', { name: 'Merge' }).check();
   await preview.getByRole('radio', { name: /Use “Met at the fair” from the file/ }).check();
   await preview.getByRole('button', { name: 'Import 2 providers' }).click();
   await expect(page.getByText('Imported: 1 provider added, 1 provider merged, 1 row left out; 2 labels created.')).toBeVisible();
@@ -62,7 +73,22 @@ test('updates several providers from a file in one click: rows merged into the p
   await page.getByRole('button', { name: 'Import 1 provider' }).click();
   await chooseCsv(page, 'Name,Main category,Category\nSample Photo Studio,Foto,Foto\nLagoo,Locatii,Locatii\n');
   const preview = page.getByLabel('What importing vendors.csv would do');
+  await expect(preview.locator('.doubt-why').first()).toHaveText('Already in the directory (same name). Merging adds 1 label. ▸ Details');
   await preview.getByRole('button', { name: 'Merge 2 rows into the provider with the same name' }).click();
+
+  // The decided rows fold into one line, which takes the focus from the button that went away.
+  const fold = preview.locator('.import-fold > summary');
+  await expect(fold).toHaveText('2 rows to merge into the provider with the same name');
+  await expect(fold).toBeFocused();
+  await expect(preview.getByRole('radio', { name: 'Merge' }).first()).toBeHidden();
+
+  // Opened, a row can still be changed, and it stays in the folded group.
+  await fold.click();
+  await preview.getByRole('group', { name: 'What to do with Lagoo' }).getByRole('radio', { name: 'Leave out' }).check();
+  await expect(fold).toHaveText('1 row to merge into the provider with the same name and 1 row to leave out');
+  await expect(preview.getByRole('group', { name: 'What to do with Lagoo' })).toBeVisible();
+  await preview.getByRole('group', { name: 'What to do with Lagoo' }).getByRole('radio', { name: 'Merge' }).check();
+
   await preview.getByRole('button', { name: 'Import 2 providers' }).click();
   await expect(page.getByText('Imported: 0 providers added, 2 providers merged, 0 rows left out; 2 labels created.')).toBeVisible();
   await page.getByRole('link', { name: 'Back to the list' }).click();

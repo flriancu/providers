@@ -10,11 +10,17 @@ const PLURALS = {
     providers: { one: '{n} provider', other: '{n} providers' },
     rows: { one: '{n} row', other: '{n} rows' },
     labels: { one: '{n} label', other: '{n} labels' },
+    phones: { one: '{n} phone', other: '{n} phones' },
+    emails: { one: '{n} email', other: '{n} emails' },
+    links: { one: '{n} link', other: '{n} links' },
   },
   ro: {
     providers: { one: '{n} furnizor', few: '{n} furnizori', other: '{n} de furnizori' },
     rows: { one: '{n} rând', few: '{n} rânduri', other: '{n} de rânduri' },
     labels: { one: '{n} etichetă', few: '{n} etichete', other: '{n} de etichete' },
+    phones: { one: '{n} telefon', few: '{n} telefoane', other: '{n} de telefoane' },
+    emails: { one: '{n} e-mail', few: '{n} e-mailuri', other: '{n} de e-mailuri' },
+    links: { one: '{n} link', few: '{n} linkuri', other: '{n} de linkuri' },
   },
 } satisfies Record<Lang, Record<string, Partial<Record<Intl.LDMLPluralRule, string>> & { other: string }>>;
 

@@ -1000,8 +1000,10 @@ details.add-label summary {
   outline-offset: 2px;
 }
 
+/* A container: a row lays out by the preview's own width, on any screen or window size. */
 .import-preview {
   margin-top: var(--space-2);
+  container-type: inline-size;
 }
 
 .import-rows {
@@ -1022,8 +1024,134 @@ details.add-label summary {
   margin-top: 0.25rem;
 }
 
-.doubt-row .choice {
-  margin: var(--space-1) 0 0;
+/*
+ * A row to decide: name, labels and one line of why and what a merge adds on the left, the choice
+ * on the right; details and the merge's field choices take the full width under them.
+ */
+.import-rows > li.doubt-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem var(--space-1);
+}
+
+.doubt-what {
+  flex: 1;
+  min-width: 0;
+}
+
+.doubt-head,
+.doubt-why {
+  margin: 0;
+}
+
+.doubt-head strong {
+  margin-right: 0.25rem;
+  overflow-wrap: anywhere;
+}
+
+.doubt-why {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* A toggle inside a sentence: WCAG 2.5.8 exempts inline targets from the minimum size. */
+.link-button.inline-toggle {
+  display: inline;
+  min-height: 0;
+  font-size: inherit;
+  text-decoration: none;
+}
+
+.doubt-row > .row-details,
+.doubt-row > .merge-picks {
+  flex-basis: 100%;
+}
+
+.row-details p {
+  margin: 0.15rem 0;
+  overflow-wrap: anywhere;
+}
+
+/* Radio buttons drawn as one segmented control; each segment is a full-size tap target. */
+.segmented {
+  display: inline-flex;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.segmented label {
+  position: relative;
+  display: flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0.25rem 0.75rem;
+  background: var(--surface);
+  font-size: 0.9rem;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.segmented label + label {
+  border-left: 1px solid var(--border);
+}
+
+/* The real radio button covers its segment, transparent: a click or tap always lands on it. */
+.segmented input[type='radio'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmented label:has(:checked) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.segmented label:has(:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}
+
+@media (hover: hover) {
+  .segmented label:not(:has(:checked)):hover {
+    background: var(--selected);
+  }
+}
+
+/* A narrow preview: the choice goes under the row's text, across the full width. */
+@container (max-width: 34rem) {
+  .doubt-what,
+  .segmented {
+    flex-basis: 100%;
+  }
+  /* Equal thirds; a long choice ("Păstrează-le pe amândouă") wraps inside its segment. */
+  .segmented label {
+    flex: 1 1 0;
+    white-space: normal;
+  }
+}
+
+.import-fold {
+  margin: var(--space-1) 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.import-fold summary {
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .merge-picks {

@@ -5,7 +5,16 @@ import { parseCsv, toCsv } from '../../src/domain/csv';
 import { createProvider, emptyProvider } from '../../src/domain/edits';
 import { labelById } from '../../src/domain/labels';
 import { FACET_IDS, live, newDirectory, type DirectoryDoc, type Facet } from '../../src/domain/schema';
-import { applyImport, conflicts, defaultChoice, exportRows, mergeInput, planImport, type ImportChoice } from '../../src/domain/transfer';
+import {
+  applyImport,
+  conflicts,
+  defaultChoice,
+  exportRows,
+  mergeChanges,
+  mergeInput,
+  planImport,
+  type ImportChoice,
+} from '../../src/domain/transfer';
 import { OWNER, testContext, weddingDirectory } from './fixture';
 
 const WORDS = {
@@ -137,6 +146,28 @@ describe('duplicates on import (FR-23, FR-24, D-12)', () => {
     expect(p.notes).toBe('new note');
     expect(p.labelIds.map((id) => labelById(after, id)!.name)).toEqual(['Cluj']);
     expect(names(after)).toHaveLength(6); // nothing added
+  });
+
+  it('says what a merge adds: new labels, contacts not there yet, empty fields filled, fields that differ', () => {
+    let { doc } = weddingDirectory();
+    const ctx = testContext();
+    const made = createProvider(doc, { ...emptyProvider(), name: 'Studio', notes: 'old note', phones: ['0721 000 000'] }, ctx);
+    doc = made.doc;
+    const plan = planImport(
+      doc,
+      parseCsv(
+        'Name,Contact person,Phones,Emails,Notes,Area,Source\nStudio,Ana,+40 721 000 000; 0722 111 111,a@b.ro,new note,Cluj,Fair 2030\n',
+      ),
+      WORDS,
+    );
+    expect(mergeChanges(doc.providers[made.id]!, plan.rows[0]!)).toEqual({
+      labels: 2, // Cluj exists, Fair 2030 is created
+      phones: 1, // the same number in another form is not new
+      emails: 1,
+      links: 0,
+      filled: ['contactPerson'],
+      differ: ['notes'],
+    });
   });
 
   it('keeps the existing single values unless told otherwise, and fills empty ones', () => {
