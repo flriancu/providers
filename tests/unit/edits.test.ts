@@ -140,13 +140,17 @@ describe('labels (FR-04..08)', () => {
 });
 
 describe('label colours (D-31)', () => {
-  it('gives a new label the colour least used in its facet, in palette order, unless one is chosen', () => {
+  it('gives a new label the colour least used over all groups, in palette order, never grey unless chosen (D-41)', () => {
     const { doc, ctx } = weddingDirectory();
-    // Area has two blue labels: grey is the first of the unused colours.
-    expect(nextColor(doc, FACET_IDS.area)).toBe('grey');
+    // Every label is blue: red is the first unused colour; grey, first in the palette, is skipped.
+    expect(nextColor(doc)).toBe('red');
     const { doc: next, id } = createLabel(doc, { facetId: FACET_IDS.area, name: 'Iasi' }, ctx);
-    expect(next.labels[id]!.color).toBe('grey');
-    expect(nextColor(next, FACET_IDS.area)).toBe('red');
+    expect(next.labels[id]!.color).toBe('red');
+    // Counted over all groups: a new category does not get the red the new area took.
+    const { doc: after, id: dj } = createLabel(next, { facetId: FACET_IDS.category, name: 'DJ' }, ctx);
+    expect(after.labels[dj]!.color).toBe('orange');
+    const chosen = createLabel(after, { facetId: FACET_IDS.lists, name: 'Maybe', color: 'grey' }, ctx);
+    expect(chosen.doc.labels[chosen.id]!.color).toBe('grey');
   });
 });
 

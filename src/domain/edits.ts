@@ -135,12 +135,18 @@ function assertNameFree(doc: DirectoryDoc, facetId: string, name: string, except
   if (clash) throw new EditError('labelNameTaken');
 }
 
-/** D-31: a new label's colour when none is chosen: the one least used in its facet, in palette order. */
-export function nextColor(doc: DirectoryDoc, facetId: string): LabelColor {
-  const used = new Map<LabelColor, number>(LABEL_COLORS.map((c) => [c, 0]));
-  for (const l of live(doc.labels)) if (l.facetId === facetId) used.set(l.color, used.get(l.color)! + 1);
+/** Colours a new label can get without a choice: grey only when chosen, as it marks labels still to create. */
+const AUTO_COLORS = LABEL_COLORS.filter((c) => c !== 'grey');
+
+/**
+ * D-31: a new label's colour when none is chosen: the one least used over all labels, in palette
+ * order, so labels of different groups on one provider seldom match.
+ */
+export function nextColor(doc: DirectoryDoc): LabelColor {
+  const used = new Map<LabelColor, number>(AUTO_COLORS.map((c) => [c, 0]));
+  for (const l of live(doc.labels)) if (used.has(l.color)) used.set(l.color, used.get(l.color)! + 1);
   const fewest = Math.min(...used.values());
-  return LABEL_COLORS.find((c) => used.get(c) === fewest)!;
+  return AUTO_COLORS.find((c) => used.get(c) === fewest)!;
 }
 
 const cleanAliases = (aliases: string[]) => cleanList(aliases);
@@ -160,7 +166,7 @@ export function createLabel(
     {
       facetId: input.facetId,
       name,
-      color: input.color ?? nextColor(doc, input.facetId),
+      color: input.color ?? nextColor(doc),
       aliases: cleanAliases(input.aliases ?? []),
     },
     ctx,

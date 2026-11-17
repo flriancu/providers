@@ -123,6 +123,11 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-41 Amends D-31. A new label without a chosen colour gets the colour least used over all
+  labels, of every group, so labels of different groups on one provider seldom match; grey is
+  never given automatically. Grey stays in the palette as a quiet colour the owner chooses, for
+  example for a label on nearly every provider; the import preview also shows labels it would
+  create in grey. Existing labels keep their colours. (2026-11-17, owner: "proceed per your rec")
 - D-40 Amends FR-25. The seed import gives each exhibitor a Category label from its section in
   the AllWeddings directory (Foto, Video, Locatii and so on, in Romanian as the sections are
   named), where it has a profile; exhibitors without one get no category. The owner renames or

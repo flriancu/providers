@@ -264,7 +264,7 @@ function LabelEditor({ doc, apply, label, done }: { doc: DirectoryDoc; apply: Ap
 function AddLabel({ doc, apply, facet }: { doc: DirectoryDoc; apply: Apply; facet: Facet }) {
   const { t } = useI18n();
   const [name, setName] = useState('');
-  const [color, setColor] = useState<LabelColor>(() => nextColor(doc, facet.id));
+  const [color, setColor] = useState<LabelColor>(() => nextColor(doc));
   const [aliases, setAliases] = useState('');
   const [error, setError] = useState<EditErrorCode | null>(null);
   return (
@@ -284,7 +284,7 @@ function AddLabel({ doc, apply, facet }: { doc: DirectoryDoc; apply: Apply; face
             setName('');
             setAliases('');
             // The next label starts with the next least-used colour.
-            setColor(nextColor(added, facet.id));
+            setColor(nextColor(added));
           }
         }}
       >
