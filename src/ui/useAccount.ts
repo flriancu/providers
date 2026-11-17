@@ -16,6 +16,7 @@ import { demoCarry } from '../domain/carry';
 import { directoryModel } from '../domain/document';
 import { newDirectory, type DirectoryDoc } from '../domain/schema';
 import { DEMO_OWNER, sampleDirectory } from './demoDirectory';
+import { clearDrafts } from './drafts';
 
 const auth = new GoogleAuth(GOOGLE_CLIENT_ID, GOOGLE_SCOPES, DRIVE_FILE_SCOPE, SESSION_KEY);
 
@@ -171,6 +172,7 @@ export function useAccount(): Connection {
       // A copy holding changes that never reached Drive stays, however the sign-out came.
       const keep = keepDeviceCopy || !!replica?.hasUnsaved();
       if (!keep) replica?.clear();
+      if (sub) clearDrafts(sub);
       auth.signOut();
       if (!keep) {
         writeHint(null);
@@ -178,7 +180,7 @@ export function useAccount(): Connection {
       }
       setSession(null);
     },
-    [replica],
+    [replica, sub],
   );
 
   /** What the visitor added in the demo, once, right after signing in; the demo starts over. */

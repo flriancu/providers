@@ -894,6 +894,14 @@ details.add-label summary {
   font-size: 1.4rem;
 }
 
+/* The date field's footer: Today, then Cancel. */
+.date-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-1) var(--space-1);
+}
+
 .app-header .lang {
   margin: 0;
 }

@@ -102,6 +102,9 @@ export const ro: Record<MessageKey, string> = {
   'detail.deleteConfirm': 'Ștergi {name} și jurnalul lui? Nu se poate anula.',
   'detail.deleteYes': 'Șterge {name}',
   'detail.deleteNo': 'Păstrează',
+  'detail.draft': 'Acest furnizor are modificări care nu sunt încă salvate.',
+  'detail.draftContinue': 'Continuă editarea',
+  'list.draft': 'Ai început un furnizor nou și nu l-ai salvat încă.',
   'detail.notFound': 'Acest furnizor nu este în catalog. Poate a fost șters.',
   'detail.nothing': 'Necompletat.',
 
@@ -127,6 +130,8 @@ export const ro: Record<MessageKey, string> = {
   'form.editHeading': 'Modifică {name}',
   'form.save': 'Salvează furnizorul',
   'form.cancel': 'Renunță',
+  'form.draftRestored': 'Modificările nesalvate de mai devreme au revenit.',
+  'form.draftDiscard': 'Renunță la ele',
   'form.addLabel': '+ Adaugă o etichetă',
   'form.findLabel': 'Caută sau adaugă o etichetă',
   'form.createLabel': 'Creează eticheta „{name}”',
@@ -141,6 +146,7 @@ export const ro: Record<MessageKey, string> = {
   'log.undo': 'Anulează',
   'log.by': 'de {who}',
   'date.choose': 'Alege o zi',
+  'date.today': 'Alege ziua de azi',
   'date.prevMonth': 'Luna anterioară',
   'date.nextMonth': 'Luna următoare',
 

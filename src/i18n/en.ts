@@ -97,6 +97,9 @@ export const en = {
   'detail.deleteConfirm': 'Delete {name} and their log? This cannot be undone.',
   'detail.deleteYes': 'Delete {name}',
   'detail.deleteNo': 'Keep',
+  'detail.draft': 'This provider has changes that are not saved yet.',
+  'detail.draftContinue': 'Continue editing',
+  'list.draft': 'You started a new provider and have not saved it yet.',
   'detail.notFound': 'This provider is not in the directory. It may have been deleted.',
   'detail.nothing': 'Not filled in.',
 
@@ -122,6 +125,8 @@ export const en = {
   'form.editHeading': 'Edit {name}',
   'form.save': 'Save the provider',
   'form.cancel': 'Cancel',
+  'form.draftRestored': 'Your unsaved changes from before are back.',
+  'form.draftDiscard': 'Discard them',
   'form.addLabel': '+ Add a label',
   'form.findLabel': 'Find or add a label',
   'form.createLabel': 'Create the label “{name}”',
@@ -136,6 +141,7 @@ export const en = {
   'log.undo': 'Undo',
   'log.by': 'by {who}',
   'date.choose': 'Choose a day',
+  'date.today': 'Choose today',
   'date.prevMonth': 'Previous month',
   'date.nextMonth': 'Next month',
 

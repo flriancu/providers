@@ -3,6 +3,7 @@ import { deleteProvider } from '../domain/edits';
 import { effectiveLabels, labelById } from '../domain/labels';
 import type { DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
+import { hasDraft } from './drafts';
 import { LabelChip } from './LabelChip';
 import { facetName, labelNameById, orderedFacets } from './labelText';
 import { LogSection } from './LogSection';
@@ -44,11 +45,19 @@ export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: A
 
   return (
     <article aria-labelledby="provider-heading">
+      {hasDraft(doc.owner.googleSub, provider.id) && (
+        <div className="notice" role="status">
+          <p>{t('detail.draft')}</p>
+          <a href={href({ page: 'edit', id: provider.id }, query)}>{t('detail.draftContinue')}</a>
+        </div>
+      )}
       <a className="back" href={href({ page: 'list' }, query)}>
         {t('detail.back')}
       </a>
       <div className="pane-header">
-        <h2 id="provider-heading">{provider.name}</h2>
+        <h2 id="provider-heading" tabIndex={-1}>
+          {provider.name}
+        </h2>
         <a className="button" href={href({ page: 'edit', id }, query)}>
           {t('detail.edit')}
         </a>

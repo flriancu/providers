@@ -3,14 +3,8 @@ import { addLogEntry, providerLog, type EditErrorCode } from '../domain/edits';
 import { deleteRecord, restoreRecord } from '../domain/records';
 import type { DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
-import { DateField } from './DateField';
+import { DateField, todayIso } from './DateField';
 import type { Apply } from './types';
-
-/** Today's date on this device, as a calendar day. */
-function today(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 /**
  * FR-02: the provider's interaction log, newest first, with a form to add to it. Deleting an
@@ -18,7 +12,7 @@ function today(): string {
  */
 export function LogSection({ doc, apply, providerId }: { doc: DirectoryDoc; apply: Apply; providerId: string }) {
   const { t, date } = useI18n();
-  const [day, setDay] = useState(today);
+  const [day, setDay] = useState(todayIso);
   const [text, setText] = useState('');
   const [error, setError] = useState<EditErrorCode | null>(null);
   /** The entry just deleted, while its Undo is offered. */

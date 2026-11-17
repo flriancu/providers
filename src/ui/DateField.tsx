@@ -14,10 +14,14 @@ function toIso(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+/** Today on this device, as a calendar day. */
+export const todayIso = () => toIso(new Date());
+
 /**
  * One calendar day, shown in words ("Monday, 16 November 2026") on a button that opens a month
  * calendar below it. Replaces the browser's date input, which shows the operating system's short
- * format ("16-Nov-2026"). The calendar is inline, so no container clips it.
+ * format ("16-Nov-2026"). The calendar is inline, so no container clips it. Below the month:
+ * Today and Cancel. It closes on a pick, Cancel, Escape, or when focus leaves the field.
  */
 export function DateField({ label, value, onChange }: { label: string; value: string; onChange: (iso: string) => void }) {
   const { t, lang, date } = useI18n();
@@ -56,7 +60,13 @@ export function DateField({ label, value, onChange }: { label: string; value: st
   }, [open]);
 
   return (
-    <div className="date-field">
+    <div
+      className="date-field"
+      onBlur={(e) => {
+        // Focus moved outside the field (Tab past it, a click elsewhere): close, keeping the day.
+        if (open && !e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+    >
       <span className="field-label" id={`${ids}-label`}>
         {label}
       </span>
@@ -87,6 +97,21 @@ export function DateField({ label, value, onChange }: { label: string; value: st
             }}
             labels={{ labelPrevious: () => t('date.prevMonth'), labelNext: () => t('date.nextMonth') }}
           />
+          <div className="date-footer">
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => {
+                onChange(todayIso());
+                close();
+              }}
+            >
+              {t('date.today')}
+            </button>
+            <button type="button" className="link-button" onClick={close}>
+              {t('form.cancel')}
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -1,8 +1,9 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { createLabel, createProvider, emptyProvider, saveProvider, type EditErrorCode, type ProviderInput } from '../domain/edits';
 import { labelById } from '../domain/labels';
 import { FACET_IDS, type DirectoryDoc, type Provider } from '../domain/schema';
 import { useI18n } from '../i18n';
+import { clearDraft, readDraft, sameInput, writeDraft } from './drafts';
 import { ColorDot } from './LabelChip';
 import { LabelPicker } from './LabelPicker';
 import { ListField } from './ListField';
@@ -25,11 +26,33 @@ function toInput(p: Provider): ProviderInput {
   };
 }
 
-/** Create (no `id`) or edit a provider. Lists have one field per value (ListField). */
+/**
+ * Create (no `id`) or edit a provider. Lists have one field per value (ListField). What is typed
+ * is kept as a draft for this tab until it is saved or cancelled (drafts.ts), so leaving the form
+ * by any route loses nothing; coming back brings it back, with a way to discard it.
+ */
 export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: Apply; id?: string }) {
   const { t } = useI18n();
   const existing = id && Object.hasOwn(doc.providers, id) && !doc.providers[id]!.deleted ? doc.providers[id]! : undefined;
-  const [input, setInput] = useState<ProviderInput>(() => (existing ? toInput(existing) : emptyProvider()));
+  const owner = doc.owner.googleSub;
+  const saved = existing ? toInput(existing) : emptyProvider();
+  const [input, setInput] = useState<ProviderInput>(() => readDraft(owner, id) ?? saved);
+  const [restored, setRestored] = useState(() => readDraft(owner, id) !== null);
+  const changed = !sameInput(input, saved);
+
+  // The draft follows every change; back to the saved values, there is nothing to keep.
+  useEffect(() => {
+    if (changed) writeDraft(owner, id, input);
+    else clearDraft(owner, id);
+  }, [changed, owner, id, input]);
+
+  // Closing the tab with unsaved edits asks first (a reload keeps the draft anyway).
+  useEffect(() => {
+    if (!changed) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [changed]);
   const [error, setError] = useState<EditErrorCode | null>(null);
   const ids = useId();
   const query = useListQuery();
@@ -63,7 +86,9 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
       return created.doc;
     });
     setError(code);
-    if (!code && target) go({ page: 'provider', id: target }, query);
+    if (code || !target) return;
+    clearDraft(owner, id);
+    go({ page: 'provider', id: target }, query);
   };
 
   const textField = (key: 'name' | 'contactPerson' | 'address', label: string, required = false) => (
@@ -90,7 +115,24 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
 
   return (
     <form className="provider-form" onSubmit={submit} noValidate aria-labelledby={`${ids}-heading`}>
-      <h2 id={`${ids}-heading`}>{existing ? t('form.editHeading', { name: existing.name }) : t('form.newHeading')}</h2>
+      <h2 id={`${ids}-heading`} tabIndex={-1}>
+        {existing ? t('form.editHeading', { name: existing.name }) : t('form.newHeading')}
+      </h2>
+      {restored && (
+        <div className="notice" role="status">
+          <p>{t('form.draftRestored')}</p>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              setInput(saved);
+              setRestored(false);
+            }}
+          >
+            {t('form.draftDiscard')}
+          </button>
+        </div>
+      )}
       {textField('name', t('field.name'), true)}
       {error && (
         <p className="error" role="alert">
@@ -148,7 +190,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
       </label>
       <div className="actions">
         <button type="submit">{t('form.save')}</button>
-        <a className="button secondary" href={cancel}>
+        <a className="button secondary" href={cancel} onClick={() => clearDraft(owner, id)}>
           {t('form.cancel')}
         </a>
       </div>

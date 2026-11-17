@@ -13,7 +13,9 @@ import { ProviderDetail } from './ProviderDetail';
 import { ProviderForm } from './ProviderForm';
 import { href, ListQueryProvider, replaceQuery, type ListQuery, type Route } from './route';
 import type { Apply } from './types';
+import { hasDraft } from './drafts';
 import { useListScroll } from './useListScroll';
+import { useViewFocus } from './useViewFocus';
 
 /** A provider's labels for its row: the main category first (if any), then the others in facet order. */
 function rowLabels(doc: DirectoryDoc, p: Provider): string[] {
@@ -57,6 +59,9 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
   const selected = route.page === 'provider' || route.page === 'edit' ? route.id : undefined;
   const showing = route.page === 'list' ? 'list' : 'detail';
   useListScroll(route.page === 'list' ? 'list' : `${route.page}:${selected ?? ''}`);
+  useViewFocus(route.page, selected);
+  // A new provider typed and left unsaved: say so, with the way back to it.
+  const newDraft = route.page !== 'new' && hasDraft(doc.owner.googleSub, undefined);
 
   const setQuery = useCallback((next: ListQuery) => replaceQuery(route, next), [route]);
   const setSelection = useCallback((selection: Selection) => setQuery({ ...query, selection }), [query, setQuery]);
@@ -90,6 +95,12 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
               {t('list.add')}
             </a>
           </div>
+          {newDraft && (
+            <div className="notice" role="status">
+              <p>{t('list.draft')}</p>
+              <a href={href({ page: 'new' }, query)}>{t('detail.draftContinue')}</a>
+            </div>
+          )}
           <input
             type="search"
             className="search"
@@ -115,7 +126,11 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
                 const contacts = [p.phones[0], p.emails[0], p.links[0] && shortLink(p.links[0])].filter(Boolean);
                 return (
                   <li key={p.id}>
-                    <a href={href({ page: 'provider', id: p.id }, query)} aria-current={p.id === selected ? 'true' : undefined}>
+                    <a
+                      href={href({ page: 'provider', id: p.id }, query)}
+                      data-id={p.id}
+                      aria-current={p.id === selected ? 'true' : undefined}
+                    >
                       <span className="row-line">
                         <span className="provider-name">{p.name}</span>
                         {p.contactPerson && <span className="muted"> · {p.contactPerson}</span>}

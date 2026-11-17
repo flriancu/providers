@@ -143,6 +143,82 @@ test('closes the calendar with Escape, keeping the day', async ({ page }) => {
   await expect(date).toBeFocused();
 });
 
+test('the calendar has Choose today and Cancel, and closes when focus leaves it', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-20T10:00:00'));
+  await page.reload();
+  await addProvider(page, 'Bedda Band');
+  const log = page.getByRole('region', { name: 'Conversations and notes' });
+  const date = log.getByRole('button', { name: /^Date / });
+  const calendar = log.getByRole('dialog', { name: 'Choose a day' });
+
+  await date.click();
+  await calendar.locator('[data-day="2026-11-18"] button').click();
+  await date.click();
+  await calendar.getByRole('button', { name: 'Choose today' }).click();
+  await expect(calendar).toBeHidden();
+  await expect(date).toHaveText(/Friday,? 20 November 2026/);
+
+  await date.click();
+  await calendar.getByRole('button', { name: 'Cancel' }).click();
+  await expect(calendar).toBeHidden();
+  await expect(date).toBeFocused();
+
+  // Focus leaving the field (to the text box below) closes the calendar.
+  await date.click();
+  await expect(calendar).toBeVisible();
+  await log.getByLabel('What happened').focus();
+  await expect(calendar).toBeHidden();
+});
+
+test('what is typed in the form survives leaving it, and comes back until discarded', async ({ page }) => {
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  await page.locator('form.provider-form').getByLabel('Name', { exact: true }).fill('Lagoo');
+  await page.getByRole('link', { name: 'Labels' }).click();
+  await page.getByRole('link', { name: 'Providers' }).click();
+
+  await expect(page.getByText('You started a new provider and have not saved it yet.')).toBeVisible();
+  await page.getByRole('link', { name: 'Continue editing' }).click();
+  const form = page.locator('form.provider-form');
+  await expect(form.getByLabel('Name', { exact: true })).toHaveValue('Lagoo');
+  await expect(form.getByText('Your unsaved changes from before are back.')).toBeVisible();
+  // A reload keeps it too.
+  await page.reload();
+  await expect(page.locator('form.provider-form').getByLabel('Name', { exact: true })).toHaveValue('Lagoo');
+  await page.getByRole('button', { name: 'Discard them' }).click();
+  await expect(page.locator('form.provider-form').getByLabel('Name', { exact: true })).toHaveValue('');
+  await page.getByRole('link', { name: 'Labels' }).click();
+  await page.getByRole('link', { name: 'Providers' }).click();
+  await expect(page.getByText('You started a new provider and have not saved it yet.')).toBeHidden();
+});
+
+test('edits left unsaved on a provider are flagged on its page, and Save clears them', async ({ page }) => {
+  await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
+  await page.getByRole('article').getByRole('link', { name: 'Edit' }).click();
+  await page.getByLabel('Contact person').fill('Someone else');
+  await page.getByRole('link', { name: 'Labels' }).click();
+  await page.getByRole('link', { name: 'Providers' }).click();
+  await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
+  const article = page.getByRole('article');
+  await expect(article.getByText('This provider has changes that are not saved yet.')).toBeVisible();
+  await article.getByRole('link', { name: 'Continue editing' }).click();
+  await expect(page.getByLabel('Contact person')).toHaveValue('Someone else');
+  await page.getByRole('button', { name: 'Save the provider' }).click();
+  await expect(page.getByRole('article').getByText('Someone else')).toBeVisible();
+  await expect(page.getByText('This provider has changes that are not saved yet.')).toBeHidden();
+});
+
+test('opening a provider moves focus to its name; back on the list, to its row', async ({ page, isMobile }) => {
+  await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Sample Photo Studio' })).toBeFocused();
+  await page.getByRole('article').getByRole('link', { name: 'Edit' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Edit Sample Photo Studio' })).toBeFocused();
+  await page.getByRole('link', { name: 'Cancel' }).click();
+  if (isMobile) {
+    await page.getByRole('link', { name: 'Back to the list' }).click();
+    await expect(page.getByRole('link', { name: /Sample Photo Studio/ })).toBeFocused();
+  }
+});
+
 test('a deleted log entry comes back with Undo', async ({ page }) => {
   await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
   const log = page.getByRole('region', { name: 'Conversations and notes' });
