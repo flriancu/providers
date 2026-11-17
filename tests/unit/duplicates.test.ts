@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { findDuplicates, linkKey, phoneKey, type Candidate } from '../../src/domain/duplicates';
 import { weddingDirectory } from './fixture';
 
+/** A Facebook page without a custom name: only its query tells it apart. */
+const page = (id: number) => `https://www.facebook.com/profile.php?id=${id}`;
+
 const candidate = (extra: Partial<Candidate>): Candidate => ({ name: '', phones: [], emails: [], links: [], ...extra });
 
 describe('likely duplicates (FR-23)', () => {
@@ -25,6 +28,13 @@ describe('likely duplicates (FR-23)', () => {
   it('tells two profiles on the same site apart', () => {
     expect(linkKey('https://instagram.com/bruno')).not.toBe(linkKey('https://instagram.com/flashbox'));
     expect(linkKey('HTTPS://WWW.Instagram.com/Bruno/')).toBe(linkKey('instagram.com/bruno'));
+  });
+
+  it('tells pages apart by their query, and ignores only tracking parameters', () => {
+    expect(linkKey(page(1))).not.toBe(linkKey(page(2)));
+    expect(linkKey(`${page(1)}&fbclid=abc`)).toBe(linkKey(page(1)));
+    expect(linkKey('https://brunophoto.ro/?utm_source=fair&utm_medium=qr')).toBe(linkKey('brunophoto.ro'));
+    expect(linkKey('https://www.instagram.com/bruno/?igsh=xyz')).toBe(linkKey('instagram.com/bruno'));
   });
 
   it('lists every reason, best match first, and leaves out the provider itself', () => {

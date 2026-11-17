@@ -8,9 +8,13 @@ import type { Lang } from './index';
 const PLURALS = {
   en: {
     providers: { one: '{n} provider', other: '{n} providers' },
+    rows: { one: '{n} row', other: '{n} rows' },
+    labels: { one: '{n} label', other: '{n} labels' },
   },
   ro: {
     providers: { one: '{n} furnizor', few: '{n} furnizori', other: '{n} de furnizori' },
+    rows: { one: '{n} rând', few: '{n} rânduri', other: '{n} de rânduri' },
+    labels: { one: '{n} etichetă', few: '{n} etichete', other: '{n} de etichete' },
   },
 } satisfies Record<Lang, Record<string, Partial<Record<Intl.LDMLPluralRule, string>> & { other: string }>>;
 

@@ -894,6 +894,65 @@ details.add-label summary {
   font-size: 1.4rem;
 }
 
+/* Import and export (Phase 6). */
+.pane-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.link-quiet {
+  font-size: 0.9rem;
+}
+
+.data-page section {
+  margin-top: var(--space-3);
+}
+
+/* The file field is a button; the focus ring shows on it while its hidden input has focus. */
+.file-field {
+  display: inline-flex;
+  margin: 0 var(--space-1) 0 0;
+  cursor: pointer;
+}
+
+.file-field:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.import-preview {
+  margin-top: var(--space-2);
+}
+
+.import-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.import-rows > li {
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--border);
+}
+
+.row-summary .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.doubt-row .choice {
+  margin: var(--space-1) 0 0;
+}
+
+.merge-picks {
+  padding-left: var(--space-2);
+  border-left: 3px solid var(--border);
+}
+
 /* The date field's footer: Today, then Cancel. */
 .date-footer {
   display: flex;

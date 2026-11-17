@@ -12,7 +12,12 @@ import type { Selection } from '../domain/filter';
  * back keeps them: ?f=<facet id>~<label id>&f=...&q=<search>.
  */
 export type Page =
-  { page: 'list' } | { page: 'provider'; id: string } | { page: 'edit'; id: string } | { page: 'new' } | { page: 'labels' };
+  | { page: 'list' }
+  | { page: 'provider'; id: string }
+  | { page: 'edit'; id: string }
+  | { page: 'new' }
+  | { page: 'labels' }
+  | { page: 'data' };
 
 export interface ListQuery {
   selection: Selection;
@@ -55,6 +60,7 @@ export function parseRoute(hash: string): Route {
   const parts = path.split('/').map(decodeURIComponent);
   let page: Page = { page: 'list' };
   if (parts[0] === 'labels') page = { page: 'labels' };
+  else if (parts[0] === 'data') page = { page: 'data' };
   else if (parts[0] === 'new') page = { page: 'new' };
   else if (parts[0] === 'p' && parts[1]) page = parts[2] === 'edit' ? { page: 'edit', id: parts[1] } : { page: 'provider', id: parts[1] };
   return { ...page, query };
@@ -66,6 +72,8 @@ function pathOf(page: Page): string {
       return '#/';
     case 'labels':
       return '#/labels';
+    case 'data':
+      return '#/data';
     case 'new':
       return '#/new';
     case 'provider':

@@ -3,6 +3,9 @@
 Phases follow [REQUIREMENTS.md](REQUIREMENTS.md). Each phase is reviewed before the next one
 starts; the plan is adjusted on the way and changes are dated here.
 
+The folders `seed/`, `evidence/` and `docs/research/` are kept on the owner's machine and are
+not in the repository (owner, 2026-11-17); links to them work in the local copy only.
+
 2026-11-16: replanned for the static, Drive-backed architecture (D-21). The earlier Django
 Phase 0 was not run or committed.
 
@@ -19,7 +22,7 @@ reads them as top-level labels. The phase results below describe each phase as i
 | 3 | Provider and label pages (in-memory demo) | Done 2026-11-16 |
 | 4 | Browse, filter, search | Done 2026-11-16 |
 | 5 | Drive storage, sync, device copy | Done 2026-11-17; the owner signed in with the real account |
-| 6 | Import, export, duplicates, seed import | Not started |
+| 6 | Import, export, duplicates, seed import | Built 2026-11-17; the owner's seed import open |
 | 7 | Sharing | Not started |
 | 8 | One-off contact lookup for the seed vendors | Done 2026-11-17, approved by the owner |
 | 9 | Romanian, accessibility, acceptance, deploy | Not started |
@@ -256,6 +259,24 @@ Result 2026-11-16:
 - Import the approved `seed/exhibitors.csv`.
 
 Deliverable: the seed vendors in the owner's directory. Verifies: FR-21..25, D-26, NFR-09.
+
+Result 2026-11-17:
+
+- An "Import and export" page, reached from the providers list ("Import or export").
+- Export: all providers, or those the list shows (filters and search), as a CSV file with every
+  field and one column per label group; a spreadsheet opens its diacritics correctly.
+- Import: the same layout (English or Romanian column names; comma or semicolon separated). A
+  preview shows every row, the labels it would create, columns it ignores and rows without a
+  name. A row like a provider already there, or like an earlier row of the file, waits for the
+  owner: keep both, leave it out, or merge into the provider (phones, emails, links and labels
+  combined; the owner picks between differing single values). Nothing is saved until Import.
+- Found on the way: links were compared without their query, so every Facebook page of the form
+  profile.php?id=... looked the same; now only tracking parameters are ignored.
+- Seed: `seed/build-import.mjs` builds `seed/import.csv` (162 exhibitors, 779 approved values,
+  Source "AllWeddings Fest 2026", 126 with a Category from their AllWeddings section, D-40). Its
+  preview in the demo: 162 rows to add, none waiting for a choice, 17 labels to create.
+- 98 unit tests and 61 end-to-end tests pass.
+- Open: the owner signs in and imports `seed/import.csv` through the preview.
 
 ## Phase 7: Sharing
 

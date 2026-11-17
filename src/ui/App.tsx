@@ -6,6 +6,7 @@ import './app.css';
 import { AccountBar, LoadError, SaveAlert, SaveStatus } from './AccountBar';
 import { signInMessage } from './driveErrors';
 import { ActionErrors, ErrorBoundary } from './ErrorBoundary';
+import { DataPage } from './DataPage';
 import { LabelsPage } from './LabelsPage';
 import { ProvidersPage } from './ProvidersPage';
 import { href, useRoute } from './route';
@@ -118,7 +119,13 @@ function Directory({ connection }: { connection: Connection }) {
         ) : doc ? (
           // A page that fails to draw leaves the header and the other pages working.
           <ErrorBoundary kind="page" resetKey={location.hash}>
-            {onLabels ? <LabelsPage doc={doc} apply={apply} /> : <ProvidersPage doc={doc} apply={apply} route={route} />}
+            {onLabels ? (
+              <LabelsPage doc={doc} apply={apply} />
+            ) : route.page === 'data' ? (
+              <DataPage doc={doc} apply={apply} route={route} />
+            ) : (
+              <ProvidersPage doc={doc} apply={apply} route={route} />
+            )}
           </ErrorBoundary>
         ) : (
           <p className="load-state">{t('load.opening')}</p>

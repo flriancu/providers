@@ -2,6 +2,9 @@
 
 Agreed 2026-11-16. This file is the contract; changes are recorded here with a date.
 
+The folders `seed/`, `evidence/` and `docs/research/` are kept on the owner's machine and are
+not in the repository (owner, 2026-11-17); links to them work in the local copy only.
+
 ## Goal
 
 A private "yellow pages" of product and service providers: contact details, faceted labels for
@@ -120,6 +123,10 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-40 Amends FR-25. The seed import gives each exhibitor a Category label from its section in
+  the AllWeddings directory (Foto, Video, Locatii and so on, in Romanian as the sections are
+  named), where it has a profile; exhibitors without one get no category. The owner renames or
+  merges them like any label. (2026-11-17, owner: "Romanian, as AllWeddings")
 - D-39 Answers Q-04. The seed vendors' contact details come from: the supplier profiles of
   AllWeddings (allweddings.ro, the fair organiser's directory; robots.txt allows it; the owner
   pointed to it), matched to the board's names by a script and confirmed by the owner where
@@ -225,7 +232,8 @@ Import, export, duplicates
 Seed
 
 - FR-25 The board's exhibitor names are transcribed exactly as printed (diacritics kept), and
-  imported with Source = AllWeddings Fest 2026 and Category = Unsorted after owner review.
+  imported with Source = AllWeddings Fest 2026, and a Category from the exhibitor's AllWeddings
+  section where it has one (D-40), after owner review.
   (Changed 2026-11-16: the "500 LEI" badge is not recorded, at the owner's request.)
 - FR-26 Contact details for the seed vendors are gathered from web search results and the
   vendors' own websites only; every value carries its source URL; social networks are linked,

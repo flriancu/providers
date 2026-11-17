@@ -5,6 +5,9 @@ test-results/
 playwright-report/
 *.local
 
-# Gathered vendor contacts: kept on this machine only; the directory is private (D-01).
-seed/contacts_review.csv
-seed/lookup/
+# Seed data and its scripts: kept on this machine only, never versioned (owner, 2026-11-17).
+seed/
+
+# Research notes and evidence files: kept on this machine only, never versioned (owner, 2026-11-17).
+docs/research/
+evidence/

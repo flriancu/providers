@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { facetCounts, filterProviders, liveSelection, type Selection } from '../domain/filter';
-import { fold } from '../domain/fold';
+import { facetCounts, liveSelection, type Selection } from '../domain/filter';
 import { effectiveLabels, labelById } from '../domain/labels';
 import { live, type DirectoryDoc, type Provider } from '../domain/schema';
 import { ProviderSearch } from '../domain/search';
@@ -16,6 +15,7 @@ import type { Apply } from './types';
 import { hasDraft } from './drafts';
 import { useListScroll } from './useListScroll';
 import { useViewFocus } from './useViewFocus';
+import { visibleProviders } from './visible';
 
 /** A provider's labels for its row: the main category first (if any), then the others in facet order. */
 function rowLabels(doc: DirectoryDoc, p: Provider): string[] {
@@ -49,12 +49,7 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
   const all = useMemo(() => live(doc.providers), [doc]);
   const search = useMemo(() => new ProviderSearch(doc), [doc]);
   const counts = useMemo(() => facetCounts(doc, query.selection), [doc, query.selection]);
-  const shown = useMemo(() => {
-    const filtered = filterProviders(doc, query.selection);
-    if (!query.q.trim()) return filtered.sort((a, b) => fold(a.name).localeCompare(fold(b.name)));
-    const byId = new Map(filtered.map((p) => [p.id, p]));
-    return search.search(query.q, new Set(byId.keys())).map((id) => byId.get(id)!);
-  }, [doc, query, search]);
+  const shown = useMemo(() => visibleProviders(doc, query, search), [doc, query, search]);
 
   const selected = route.page === 'provider' || route.page === 'edit' ? route.id : undefined;
   const showing = route.page === 'list' ? 'list' : 'detail';
@@ -91,9 +86,14 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
                   : plural('providers', all.length)}
               </span>
             </h2>
-            <a className="button" href={href({ page: 'new' }, query)}>
-              {t('list.add')}
-            </a>
+            <span className="pane-actions">
+              <a className="button" href={href({ page: 'new' }, query)}>
+                {t('list.add')}
+              </a>
+              <a className="link-quiet" href={href({ page: 'data' }, query)}>
+                {t('data.link')}
+              </a>
+            </span>
           </div>
           {newDraft && (
             <div className="notice" role="status">
