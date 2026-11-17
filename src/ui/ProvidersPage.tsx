@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { facetCounts, liveSelection, type Selection } from '../domain/filter';
 import { effectiveLabels, labelById } from '../domain/labels';
+import { firstLinks } from '../domain/links';
 import { live, type DirectoryDoc, type Provider } from '../domain/schema';
 import { ProviderSearch } from '../domain/search';
 import { useI18n } from '../i18n';
@@ -14,6 +15,7 @@ import { href, ListQueryProvider, replaceQuery, type ListQuery, type Route } fro
 import type { Apply } from './types';
 import { hasDraft } from './drafts';
 import { useListScroll } from './useListScroll';
+import { QuickActions } from './QuickActions';
 import { useViewFocus } from './useViewFocus';
 import { visibleProviders } from './visible';
 
@@ -123,10 +125,12 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
           ) : (
             <ul className="provider-list">
               {shown.map((p) => {
-                const contacts = [p.phones[0], p.emails[0], p.links[0] && shortLink(p.links[0])].filter(Boolean);
+                const site = firstLinks(p.links).website;
+                const contacts = [p.phones[0], p.emails[0], site && shortLink(site)].filter(Boolean);
                 return (
                   <li key={p.id}>
                     <a
+                      className="row-link"
                       href={href({ page: 'provider', id: p.id }, query)}
                       data-id={p.id}
                       aria-current={p.id === selected ? 'true' : undefined}
@@ -144,6 +148,7 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
                       </span>
                       {contacts.length > 0 && <span className="row-line muted small">{contacts.join(' · ')}</span>}
                     </a>
+                    <QuickActions provider={p} />
                   </li>
                 );
               })}

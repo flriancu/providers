@@ -308,7 +308,35 @@ a {
   border-top: 1px solid var(--border);
 }
 
-.provider-list a {
+/*
+ * A row: the provider's link, then its quick actions (call, website, Instagram, TikTok) on the
+ * right. A list too narrow for both puts the actions on their own line under the row.
+ */
+.list-pane {
+  container-type: inline-size;
+}
+
+.provider-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius);
+}
+
+.provider-list li:has(> .row-link[aria-current='true']) {
+  background: var(--selected);
+}
+
+/* Hover only where there is a real pointer: on a touch screen it would stay after a tap. */
+@media (hover: hover) {
+  .provider-list li:hover {
+    background: var(--selected);
+  }
+}
+
+.provider-list .row-link {
+  flex: 1;
+  min-width: 0;
   display: grid;
   gap: 0.2rem;
   padding: 0.4rem var(--space-1);
@@ -317,9 +345,37 @@ a {
   text-decoration: none;
 }
 
-.provider-list a:hover,
-.provider-list a[aria-current='true'] {
-  background: var(--selected);
+.quick-actions {
+  display: flex;
+  flex: none;
+  gap: 0.25rem;
+  padding-right: 0.25rem;
+}
+
+.icon-link {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  color: var(--accent);
+}
+
+.icon-link:hover {
+  background: var(--surface);
+}
+
+@container (max-width: 34rem) {
+  .provider-list li {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .provider-list .row-link {
+    flex-basis: 100%;
+  }
+  .quick-actions {
+    padding: 0 0 0.4rem calc(var(--space-1) - 0.6rem);
+  }
 }
 
 .provider-name {

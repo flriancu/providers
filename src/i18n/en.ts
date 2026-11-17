@@ -236,6 +236,10 @@ export const en = {
   'import.mergeHelp': 'Phones, emails, links and labels are combined. Where both have a different value, choose which one stays.',
   'import.keepExisting': 'Keep “{value}”',
   'import.useIncoming': 'Use “{value}” from the file',
+  'quick.call': 'Call {phone}',
+  'quick.website': 'Open the website {site}',
+  'quick.instagram': 'Open Instagram: {handle}',
+  'quick.tiktok': 'Open TikTok: {handle}',
 } as const;
 
 export type MessageKey = keyof typeof en;

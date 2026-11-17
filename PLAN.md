@@ -277,6 +277,9 @@ Result 2026-11-17:
   preview in the demo: 162 rows to add, none waiting for a choice, 17 labels to create.
 - 98 unit tests and 61 end-to-end tests pass.
 - Open: the owner signs in and imports `seed/import.csv` through the preview.
+- After the owner's review, 2026-11-17: each list row has one-tap actions on the right (call,
+  website, Instagram, TikTok; Lucide and Simple Icons glyphs, each link named in full); in a
+  narrow list they go on their own line under the row.
 
 ## Phase 7: Sharing
 

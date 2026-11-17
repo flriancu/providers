@@ -243,4 +243,8 @@ export const ro: Record<MessageKey, string> = {
   'import.mergeHelp': 'Telefoanele, e-mailurile, linkurile și etichetele se combină. Unde amândoi au valori diferite, alege care rămâne.',
   'import.keepExisting': 'Păstrează „{value}”',
   'import.useIncoming': 'Folosește „{value}” din fișier',
+  'quick.call': 'Sună la {phone}',
+  'quick.website': 'Deschide site-ul {site}',
+  'quick.instagram': 'Deschide Instagram: {handle}',
+  'quick.tiktok': 'Deschide TikTok: {handle}',
 };
