@@ -10,7 +10,6 @@ import {
   emptyProvider,
   mergeLabels,
   nextColor,
-  moveLabel,
   providerLog,
   renameLabel,
   saveProvider,
@@ -94,21 +93,21 @@ describe('the interaction log (FR-02)', () => {
 
 describe('labels (FR-04..08)', () => {
   it('adds a label with one name, its colour and its aliases', () => {
-    const { doc, ctx, labels } = weddingDirectory();
+    const { doc, ctx } = weddingDirectory();
     const { doc: next, id } = createLabel(
       doc,
-      { facetId: FACET_IDS.category, parentId: labels.wedding, name: ' Venue ', color: 'green', aliases: [' Sala ', ''] },
+      { facetId: FACET_IDS.category, name: ' Venue ', color: 'green', aliases: [' Sala ', ''] },
       ctx,
     );
-    expect(next.labels[id]).toMatchObject({ name: 'Venue', color: 'green', parentId: labels.wedding, aliases: ['Sala'] });
+    expect(next.labels[id]).toEqual(expect.objectContaining({ name: 'Venue', color: 'green', aliases: ['Sala'] }));
+    expect(Object.keys(next.labels[id]!)).not.toContain('parentId'); // one level (D-35)
   });
 
-  it('keeps two levels, in tree facets only, with unique names among siblings', () => {
-    const { doc, ctx, labels } = weddingDirectory();
-    fails('tooDeep', () => createLabel(doc, { facetId: FACET_IDS.category, parentId: labels.photo, name: 'Drone' }, ctx));
-    fails('notATreeFacet', () => createLabel(doc, { facetId: FACET_IDS.area, parentId: labels.bucharest, name: 'Sector 1' }, ctx));
-    fails('labelNameTaken', () => createLabel(doc, { facetId: FACET_IDS.category, parentId: labels.wedding, name: 'PHOTO' }, ctx));
-    fails('parentInOtherFacet', () => createLabel(doc, { facetId: FACET_IDS.category, parentId: labels.bucharest, name: 'X' }, ctx));
+  it('keeps label names unique within a facet, ignoring case and diacritics', () => {
+    const { doc, ctx } = weddingDirectory();
+    fails('labelNameTaken', () => createLabel(doc, { facetId: FACET_IDS.category, name: 'PHOTO' }, ctx));
+    fails('labelNameTaken', () => createLabel(doc, { facetId: FACET_IDS.area, name: 'bucuresti' }, ctx));
+    expect(() => createLabel(doc, { facetId: FACET_IDS.area, name: 'Photo' }, ctx)).not.toThrow(); // another facet
   });
 
   it('renames a label without touching the providers that carry it', () => {
@@ -118,15 +117,7 @@ describe('labels (FR-04..08)', () => {
     expect(next.providers[providers.bruno]!.labelIds).toContain(labels.photo);
   });
 
-  it('moves a label to the top or under another top-level label, never deeper', () => {
-    const { doc, ctx, labels } = weddingDirectory();
-    const top = moveLabel(doc, labels.photo, undefined, ctx);
-    expect(top.labels[labels.photo]!.parentId).toBeUndefined();
-    expect(moveLabel(top, labels.photo, labels.home, ctx).labels[labels.photo]!.parentId).toBe(labels.home);
-    fails('tooDeep', () => moveLabel(doc, labels.wedding, labels.home, ctx)); // Wedding has sub-labels
-  });
-
-  it('merges one label into another: providers, sub-labels, shares and names follow', () => {
+  it('merges one label into another: providers, shares and names follow', () => {
     const { doc: base, ctx, labels, providers } = weddingDirectory();
     const shared = addRecord(base, 'shares', { labelId: labels.video, kind: 'link', role: 'reader' }, ctx);
     const next = mergeLabels(shared.doc, labels.video, labels.photo, ctx);
@@ -136,16 +127,15 @@ describe('labels (FR-04..08)', () => {
     expect(next.shares[shared.id]!.labelId).toBe(labels.photo);
     expect(next.labels[labels.photo]!.aliases).toEqual(['Foto', 'Video']);
     fails('otherFacet', () => mergeLabels(base, labels.cluj, labels.photo, ctx));
-    fails('tooDeep', () => mergeLabels(base, labels.wedding, labels.photo, ctx));
+    fails('sameLabel', () => mergeLabels(base, labels.photo, labels.photo, ctx));
   });
 
-  it('deletes a label without sub-labels: it leaves its providers and its shares end', () => {
+  it('deletes a label: it leaves its providers and its shares end', () => {
     const { doc: base, ctx, labels, providers } = weddingDirectory();
     const shared = addRecord(base, 'shares', { labelId: labels.cluj, kind: 'person', email: 'a@x', role: 'reader' }, ctx);
     const next = deleteLabel(shared.doc, labels.cluj, ctx);
     expect(next.providers[providers.bruno]!.labelIds).not.toContain(labels.cluj);
     expect(next.shares[shared.id]!.deleted).toBe(true);
-    fails('hasSubLabels', () => deleteLabel(base, labels.wedding, ctx));
   });
 });
 
@@ -164,7 +154,7 @@ describe('facets', () => {
   it('adds a flat facet after the others, with a unique name', () => {
     const { doc, ctx } = weddingDirectory();
     const { doc: next, id } = createFacet(doc, 'Price band', ctx);
-    expect(next.facets[id]).toMatchObject({ kind: 'flat', order: 5 });
+    expect(next.facets[id]).toMatchObject({ name: 'Price band', order: 5 });
     fails('labelNameTaken', () => createFacet(next, 'price BAND', ctx));
     fails('labelNameTaken', () => createFacet(next, 'Area', ctx)); // a starting facet's word
   });

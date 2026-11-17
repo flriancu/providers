@@ -14,10 +14,6 @@ describe('facet filtering (FR-10)', () => {
     expect(filterProviders(doc, NO_SELECTION)).toHaveLength(5);
   });
 
-  it('includes everything under a selected parent label', () => {
-    expect(select({ [FACET_IDS.category]: [labels.wedding] })).toEqual(['BRUNO PHOTOGRAPHY', 'FLASHBOX', 'GRĂDINA CU SĂLCII']);
-  });
-
   it('combines values of one facet with OR, and facets with AND', () => {
     expect(select({ [FACET_IDS.category]: [labels.photo, labels.plumber] })).toEqual([
       'Ana Instalații',
@@ -40,10 +36,10 @@ describe('facet filtering (FR-10)', () => {
 describe('counts next to each value (FR-11)', () => {
   const { doc, labels } = weddingDirectory();
 
-  it('counts a parent label by the providers under its children', () => {
+  it('counts the providers carrying each label, and those with none in the facet', () => {
     const counts = facetCounts(doc, NO_SELECTION);
-    expect(count(counts, FACET_IDS.category, labels.wedding)).toBe(3);
     expect(count(counts, FACET_IDS.category, labels.photo)).toBe(2);
+    expect(count(counts, FACET_IDS.category, labels.video)).toBe(1);
     expect(count(counts, FACET_IDS.category, NO_LABEL)).toBe(1);
     expect(count(counts, FACET_IDS.lists, NO_LABEL)).toBe(4);
   });

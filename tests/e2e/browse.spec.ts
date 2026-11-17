@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Browse (FR-10..13): with the demo's Sample Photo Studio (Wedding > Photo, Bucharest), plus
+ * Browse (FR-10..13): with the demo's Sample Photo Studio (Photo, Bucharest), plus
  * Lagoo (Cluj, no category) and Flashbox (Photo, Cluj).
  */
 async function addLabel(page: Page, facet: string, name: string) {
@@ -24,7 +24,6 @@ async function addProvider(page: Page, name: string, labels: string[]) {
 
 async function setUp(page: Page) {
   await page.goto('./');
-  await page.getByLabel('Language').selectOption('en');
   await addLabel(page, 'Area', 'Cluj');
   await addProvider(page, 'Lagoo', ['Cluj']);
   await addProvider(page, 'Flashbox', ['Photo', 'Cluj']);

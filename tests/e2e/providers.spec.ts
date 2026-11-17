@@ -1,15 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { PATH_SEPARATOR } from '../../src/ui/labelText';
 
-/** Adds a label on the Labels page; `under` puts it below a top-level category. */
-async function addLabel(page: Page, facet: string, en: string, under?: string) {
+/** Adds a label on the Labels page. */
+async function addLabel(page: Page, facet: string, en: string) {
   await page.getByRole('link', { name: 'Labels' }).click();
   const section = page.getByRole('region', { name: facet, exact: true });
   // The form stays open after adding, for adding several: open it only when it is closed.
   const form = section.locator('details.add-label');
   if ((await form.getAttribute('open')) === null) await form.locator('summary').click();
   await form.getByLabel('Name', { exact: true }).fill(en);
-  if (under) await form.getByLabel('Under').selectOption({ label: under });
   await form.getByRole('button', { name: 'Add', exact: true }).click();
   await expect(section.locator('.label-row strong').getByText(en, { exact: true })).toBeVisible();
 }
@@ -25,13 +23,11 @@ async function addProvider(page: Page, name: string, labels: string[] = []) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto('./');
-  await page.getByLabel('Language').selectOption('en');
 });
 
 test('adds a provider with contact details and labels, then edits it (FR-01, FR-05)', async ({ page, isMobile }) => {
   // Names the demo's sample does not use, so each label is really added here.
-  await addLabel(page, 'Category', 'Events');
-  await addLabel(page, 'Category', 'Video', 'Events');
+  await addLabel(page, 'Category', 'Video');
   await addLabel(page, 'Area', 'Cluj');
 
   await page.getByRole('link', { name: 'Providers' }).click();
@@ -52,10 +48,10 @@ test('adds a provider with contact details and labels, then edits it (FR-01, FR-
   await expect(detail.getByRole('heading', { name: 'Grădina cu Sălcii' })).toBeVisible();
   await expect(detail.getByRole('link', { name: '0721 234 567' })).toHaveAttribute('href', 'tel:0721234567');
   await expect(detail.getByRole('link', { name: 'gradinacusalcii.ro' })).toHaveAttribute('href', 'https://gradinacusalcii.ro');
-  await expect(detail.getByText(`Events${PATH_SEPARATOR}Video`)).toBeVisible();
+  await expect(detail.getByText('Video', { exact: true })).toBeVisible();
   // The list shows the main category and status; on a phone it is one step back.
   if (isMobile) await page.getByRole('link', { name: 'Back to the list' }).click();
-  await expect(page.getByRole('link', { name: new RegExp(`Grădina cu Sălcii.*Events${PATH_SEPARATOR}Video`) })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Grădina cu Sălcii.*Video/ })).toBeVisible();
   if (isMobile) await page.getByRole('link', { name: /Grădina cu Sălcii/ }).click();
 
   await detail.getByRole('link', { name: 'Edit' }).click();
@@ -68,7 +64,6 @@ test('keeps an interaction log, newest first, with full dates (FR-02)', async ({
   // A fixed day, so the calendar shows the same month whenever the test runs.
   await page.clock.setFixedTime(new Date('2026-11-20T10:00:00'));
   await page.reload();
-  await page.getByLabel('Language').selectOption('en');
   await addProvider(page, 'Flashbox');
   const log = page.getByRole('region', { name: 'Conversations and notes' });
   const date = log.getByRole('button', { name: /^Date / });

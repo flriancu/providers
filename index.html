@@ -16,6 +16,16 @@
           window.top.location = window.location.href;
         } catch {}
       }
+      // The theme before the first paint (D-36), as src/ui/theme.ts applies it: the stored
+      // choice, else the device's setting. Without this, a dark page would flash light first.
+      (function () {
+        var chosen = null;
+        try {
+          chosen = localStorage.getItem('providers-directory.theme');
+        } catch {}
+        var dark = chosen === 'dark' || (chosen !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      })();
     </script>
   </head>
   <body>

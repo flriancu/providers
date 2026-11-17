@@ -7,7 +7,6 @@ import {
   SCHEMA_VERSION,
   type Collections,
   type DirectoryDoc,
-  type FacetKind,
   type Settings,
 } from './schema';
 
@@ -30,13 +29,8 @@ function isMeta(r: Raw, id: string): boolean {
 
 /** What each collection's records must look like; anything else is set aside, not dropped. */
 const VALID: Record<keyof Collections, (r: Raw) => boolean> = {
-  facets: (r) =>
-    optional(r.key, oneOf(BUILT_IN_FACETS)) &&
-    isString(r.name) &&
-    (['tree', 'flat'] as FacetKind[]).includes(r.kind as FacetKind) &&
-    typeof r.order === 'number',
-  labels: (r) =>
-    isString(r.facetId) && optional(r.parentId, isString) && isString(r.name) && oneOf(LABEL_COLORS)(r.color) && isStringList(r.aliases),
+  facets: (r) => optional(r.key, oneOf(BUILT_IN_FACETS)) && isString(r.name) && typeof r.order === 'number',
+  labels: (r) => isString(r.facetId) && isString(r.name) && oneOf(LABEL_COLORS)(r.color) && isStringList(r.aliases),
   providers: (r) =>
     isString(r.name) &&
     isString(r.contactPerson) &&
@@ -54,6 +48,21 @@ const VALID: Record<keyof Collections, (r: Raw) => boolean> = {
     optional(r.email, isString) &&
     (r.role === 'reader' || r.role === 'writer'),
 };
+
+/**
+ * Fields earlier versions wrote that mean nothing now: a facet's `kind` (tree or flat) and a
+ * label's `parentId`. Labels have one level (D-35): a label that had a parent keeps its name and
+ * becomes a top-level label, and the next save writes it without the old field.
+ */
+const RETIRED: Partial<Record<keyof Collections, readonly string[]>> = { facets: ['kind'], labels: ['parentId'] };
+
+function withoutRetired(key: keyof Collections, r: Raw): Raw {
+  const retired = RETIRED[key];
+  if (!retired?.some((field) => Object.hasOwn(r, field))) return r;
+  const out = { ...r };
+  for (const field of retired) delete out[field];
+  return out;
+}
 
 /**
  * A directory from a file's parsed content. The file may come from another version of the app
@@ -80,7 +89,7 @@ export function readDirectory(raw: unknown): DirectoryDoc {
     const set: Raw = { ...(isObject(raw.skipped) && isObject(raw.skipped[key]) ? raw.skipped[key] : {}) };
     const source = isObject(raw[key]) ? raw[key] : {};
     for (const [id, r] of Object.entries(source)) {
-      if (isObject(r) && isMeta(r, id) && VALID[key](r)) put<unknown>(records, id, r);
+      if (isObject(r) && isMeta(r, id) && VALID[key](r)) put<unknown>(records, id, withoutRetired(key, r));
       else put<unknown>(set, id, r);
     }
     (out as unknown as Raw)[key] = records;

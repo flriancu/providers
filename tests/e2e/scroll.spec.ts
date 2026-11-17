@@ -7,7 +7,6 @@ import { expect, test } from '@playwright/test';
 test('back to the list returns to where the list was scrolled, and a provider opens at its top', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'phones only: on wide screens the list stays on screen');
   await page.goto('./');
-  await page.getByLabel('Language').selectOption('en');
   for (let i = 1; i <= 30; i++) {
     await page.getByRole('link', { name: 'Add a provider' }).click();
     await page.getByLabel('Name', { exact: true }).fill(`Provider ${String(i).padStart(2, '0')}`);

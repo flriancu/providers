@@ -6,6 +6,10 @@ starts; the plan is adjusted on the way and changes are dated here.
 2026-11-16: replanned for the static, Drive-backed architecture (D-21). The earlier Django
 Phase 0 was not run or committed.
 
+2026-11-16, after Phase 5: labels have one level (D-35). Sub-labels are gone from the data,
+editing, filters, search, sharing and the demo sample; a file with labels under a parent
+reads them as top-level labels. The phase results below describe each phase as it was built.
+
 | Phase | Title | Status |
 |---|---|---|
 | 0a | Shared package drive-doc-sync, planner moved onto it | Done 2026-11-16; planner branch not merged |
@@ -14,7 +18,7 @@ Phase 0 was not run or committed.
 | 2 | Domain core | Done 2026-11-16 |
 | 3 | Provider and label pages (in-memory demo) | Done 2026-11-16 |
 | 4 | Browse, filter, search | Done 2026-11-16 |
-| 5 | Drive storage, sync, device copy | Not started |
+| 5 | Drive storage, sync, device copy | Done 2026-11-17; the owner signed in with the real account |
 | 6 | Import, export, duplicates, seed import | Not started |
 | 7 | Sharing | Not started |
 | 8 | One-off contact lookup for the seed vendors | Not started |
@@ -191,6 +195,43 @@ Result 2026-11-16:
 Deliverable: the directory persists across devices. Verifies: D-24, D-25, NFR-01, NFR-02,
 NFR-10 (refresh part).
 
+Result 2026-11-16:
+
+- Signed out: the demo, as before. "Sign in with Google" (or "Continue as <name>" for the last
+  account on this device) opens the account's directory: one JSON file,
+  `providers-directory.json`, in the account's own Drive, created on first use and marked as
+  this app's (`drive.file`, NFR-01). Changes save 1.5 s after the last edit, when the page is
+  hidden or closed, and when the network returns; the header says "Saved", "Saving..." or "Not
+  saved - Try again", and "Reconnect" when the Google session ran out.
+- Device copy (D-24): drive-doc-sync 0.3.0 records which version of the file the copy holds. A
+  reload shows the copy at once, lists the files (metadata only), and downloads the file only
+  if its version changed; changes made while Drive answers are kept. If Drive does not answer,
+  the copy stays on screen with a note, and edits wait on this device. Signing out deletes the
+  copy unless it holds changes that never reached Drive.
+- Demo at sign-in (D-25): only what the visitor added comes along (their providers and log, the
+  labels those use and their parents, labels and facets they made); never the made-up sample,
+  even if edited. Absorbing a directory matches labels by name, facet and parent, so a carried
+  "Photo" joins the account's "Photo" instead of doubling it.
+- Load problems each say what happened and offer a way on: try again, reconnect, restore from
+  this device's copy, start a new directory (file in the trash or gone), sign out.
+- Tests: 87 unit tests (5 new on carry and absorb) and 37 end-to-end tests (7 new against a fake
+  Drive that counts downloads: sign-in carry, reload without download, another device's change,
+  failed save and retry, sign-out, file in the trash, header at 360 px). Breaking the
+  no-download path makes its test fail. drive-doc-sync: 64 unit tests (6 new).
+- Deviations: the Content Security Policy part of NFR-02 moves to Phase 9: on GitHub Pages it is
+  a `<meta>` tag that needs the final origin and a hash of the page's inline frame guard. The
+  token part of NFR-02 holds (the tab's session lives in sessionStorage only, drive-doc-sync
+  `tests/unit/auth.test.ts`). Saving the search index with the device copy (noted in Phase 2)
+  is not done: the index builds in about 0.3 s on this desktop; revisit if a phone shows a delay.
+- 2026-11-17: the owner signed in on `http://localhost:5173` with the real account. drive-doc-sync
+  0.3.0 is published (tag `v0.3.0`) and the app depends on `^0.3.0`.
+- Changed after the owner's review, 2026-11-17: labels have one level (D-35); a label shows as
+  its chip inside sentences (merge, delete); the header stays one row, with language and theme
+  in the account menu, or in a Settings menu when signed out (D-38); a light, dark or device
+  theme (D-36); "label group" instead of "facet" on screen (D-37); helper text in one smaller
+  size. 84 unit tests and 39 end-to-end tests pass (13 skipped: each layout test runs on its own
+  screen size); the end-to-end suite passed three runs in a row.
+
 ## Phase 6: Import, export, duplicates, seed import
 
 - CSV import with preview and duplicate review (keep both, skip, merge); CSV export of all or of
@@ -204,8 +245,8 @@ Deliverable: the seed vendors in the owner's directory. Verifies: FR-21..25, D-2
 - Snapshot files per shared label, rewritten on change; share by email (reader) and by link;
   revoke; regenerate.
 - Whole-directory sharing for editors.
-- Guards: shared-label markers, "visible to N more people" confirmation, subtree count before
-  sharing a parent; "who can see this" and "what can this person see".
+- Guards: shared-label markers, "visible to N more people" confirmation, the number of
+  providers before sharing a label; "who can see this" and "what can this person see".
 - Viewer side: open by link (signed out) and by email through the Picker; read-only display.
 
 Deliverable: a second Google account sees exactly what was shared. Verifies: FR-14..20, D-22,

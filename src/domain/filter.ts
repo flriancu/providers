@@ -1,4 +1,4 @@
-import { effectiveLabels, labelById, subtree } from './labels';
+import { effectiveLabels, labelById } from './labels';
 import { live, type DirectoryDoc, type Provider } from './schema';
 
 /** What is selected in the filter panel: label ids per facet id. */
@@ -32,13 +32,12 @@ interface Wanted {
   none: boolean;
 }
 
-/** Per facet: the label ids a provider must carry one of (a selected label or any label under it), or none at all. */
+/** Per facet: the label ids a provider must carry one of, or none at all. */
 function wanted(doc: DirectoryDoc, selection: Selection): Map<string, Wanted> {
   const out = new Map<string, Wanted>();
   for (const [facetId, ids] of Object.entries(selection)) {
     if (!ids.length) continue;
-    const labels = new Set<string>();
-    for (const id of ids) if (id !== NO_LABEL) for (const d of subtree(doc, id)) labels.add(d);
+    const labels = new Set(ids.filter((id) => id !== NO_LABEL && labelById(doc, id)));
     out.set(facetId, { labels, none: ids.includes(NO_LABEL) });
   }
   return out;
@@ -86,13 +85,11 @@ export type FacetCounts = Record<string, Record<string, number>>;
 /**
  * FR-11: the count next to each value. A value's count ignores its own facet's selection, so
  * it says how many providers ticking it would add (OR within a facet), and a value showing 0
- * can never lead to an empty list. A parent label counts the providers under any of its
- * children; NO_LABEL counts the providers with no label in the facet.
+ * can never lead to an empty list. NO_LABEL counts the providers with no label in the facet.
  */
 export function facetCounts(doc: DirectoryDoc, selection: Selection): FacetCounts {
   const want = wanted(doc, selection);
   const prepared = prepare(doc);
-  const parents = new Map(live(doc.labels).map((l) => [l.id, l.parentId]));
   const out: FacetCounts = {};
   for (const facet of live(doc.facets)) {
     const counts: Record<string, number> = { [NO_LABEL]: 0 };
@@ -100,16 +97,7 @@ export function facetCounts(doc: DirectoryDoc, selection: Selection): FacetCount
     for (const p of prepared) {
       if (!matches(p, want, facet.id)) continue;
       if (!p.facets.has(facet.id)) counts[NO_LABEL]! += 1;
-      // Each label the provider carries, and its ancestors, once per provider.
-      const seen = new Set<string>();
-      for (const id of p.labels) {
-        let current: string | undefined = id;
-        while (current && !seen.has(current)) {
-          seen.add(current);
-          current = parents.get(current);
-        }
-      }
-      for (const id of seen) if (Object.hasOwn(counts, id)) counts[id]! += 1;
+      for (const id of p.labels) if (Object.hasOwn(counts, id)) counts[id]! += 1;
     }
     out[facet.id] = counts;
   }

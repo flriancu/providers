@@ -8,7 +8,7 @@ import { useI18n } from '../i18n';
 import { ActiveFilters, chosenCount, FilterPanel, toggled } from './FilterPanel';
 import { FilterSheet } from './FilterSheet';
 import { LabelChip } from './LabelChip';
-import { labelPath, mainCategory, orderedFacets } from './labelText';
+import { labelNameById, mainCategory, orderedFacets } from './labelText';
 import { ProviderDetail } from './ProviderDetail';
 import { ProviderForm } from './ProviderForm';
 import { href, ListQueryProvider, replaceQuery, type ListQuery, type Route } from './route';
@@ -123,7 +123,7 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
                       <span className="chips">
                         {rowLabels(doc, p).map((id) => (
                           <LabelChip key={id} color={labelById(doc, id)?.color ?? 'grey'}>
-                            {labelPath(doc, id)}
+                            {labelNameById(doc, id)}
                           </LabelChip>
                         ))}
                       </span>

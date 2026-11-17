@@ -4,7 +4,7 @@ import { labelById } from '../domain/labels';
 import { FACET_IDS, type DirectoryDoc, type Provider } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { ColorDot } from './LabelChip';
-import { facetName, facetTree, labelName, labelPath, orderedFacets } from './labelText';
+import { facetLabels, facetName, labelName, labelNameById, orderedFacets } from './labelText';
 import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
 
@@ -106,30 +106,17 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
       <fieldset>
         <legend>{t('field.labels')}</legend>
         {orderedFacets(doc).map((facet) => {
-          const tree = facetTree(doc, facet.id);
+          const labels = facetLabels(doc, facet.id);
           return (
             <fieldset key={facet.id} className="facet-choices">
               <legend>{facetName(facet, t)}</legend>
-              {tree.length === 0 && <p className="muted">{t('form.noLabels')}</p>}
-              {tree.map(({ label, children }) => (
-                <div key={label.id}>
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      checked={input.labelIds.includes(label.id)}
-                      onChange={(e) => toggle(label.id, e.target.checked)}
-                    />
-                    <ColorDot color={label.color} />
-                    {labelName(label)}
-                  </label>
-                  {children.map((c) => (
-                    <label key={c.id} className="check child">
-                      <input type="checkbox" checked={input.labelIds.includes(c.id)} onChange={(e) => toggle(c.id, e.target.checked)} />
-                      <ColorDot color={c.color} />
-                      {labelName(c)}
-                    </label>
-                  ))}
-                </div>
+              {labels.length === 0 && <p className="muted">{t('form.noLabels')}</p>}
+              {labels.map((label) => (
+                <label key={label.id} className="check">
+                  <input type="checkbox" checked={input.labelIds.includes(label.id)} onChange={(e) => toggle(label.id, e.target.checked)} />
+                  <ColorDot color={label.color} />
+                  {labelName(label)}
+                </label>
               ))}
             </fieldset>
           );
@@ -141,7 +128,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
             <select value={input.primaryCategoryId ?? chosenCategories[0]} onChange={(e) => set('primaryCategoryId', e.target.value)}>
               {chosenCategories.map((c) => (
                 <option key={c} value={c}>
-                  {labelPath(doc, c)}
+                  {labelNameById(doc, c)}
                 </option>
               ))}
             </select>

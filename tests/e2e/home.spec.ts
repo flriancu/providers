@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
+import { chooseLanguage, chooseTheme } from './settings';
 
 test('the page says what it is and that the demo keeps nothing, in the chosen language', async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('heading', { level: 1, name: 'Providers directory' })).toBeVisible();
-  await expect(page.getByRole('note')).toHaveText('Demo: nothing you add here is saved.');
-  await page.getByLabel('Language').selectOption('ro');
+  await expect(page.getByRole('note')).toHaveText(
+    'Demo: nothing you add here is saved. Sign in with Google to keep your directory in your own Google Drive.',
+  );
+  await chooseLanguage(page, 'ro');
   await expect(page.getByRole('heading', { level: 1, name: 'Catalog de furnizori' })).toBeVisible();
   await expect(page).toHaveTitle('Catalog de furnizori');
   await page.reload();
@@ -22,9 +25,29 @@ test('the page fits a narrow phone screen without sideways scrolling', async ({ 
 
 test('the demo starts with one made-up provider, to show what a record looks like', async ({ page }) => {
   await page.goto('./');
-  await page.getByLabel('Language').selectOption('en');
   await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
   const detail = page.getByRole('article');
   await expect(detail.getByRole('link', { name: 'hello@example.com' })).toBeVisible();
   await expect(detail.getByText('Called to ask about dates and prices.')).toBeVisible();
+});
+
+test('the theme is light, dark, or the same as this device, and stays chosen (D-36)', async ({ page }) => {
+  const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('./');
+  const light = await background();
+
+  await chooseTheme(page, 'dark');
+  const dark = await background();
+  expect(dark).not.toBe(light);
+  await page.reload();
+  expect(await background()).toBe(dark); // kept on this device, applied before the first paint
+
+  // "Same as this device" follows the device's setting, which the browser reports as an event.
+  await chooseTheme(page, 'device');
+  expect(await background()).toBe(light);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect.poll(background).toBe(dark);
+  await chooseTheme(page, 'light');
+  expect(await background()).toBe(light);
 });

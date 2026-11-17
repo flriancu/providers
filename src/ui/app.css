@@ -13,22 +13,25 @@
   --space-2: 1rem;
   --space-3: 1.5rem;
   --radius: 0.5rem;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #e8eaf0;
-    --muted: #b4bccb;
-    --page: #14171d;
-    --surface: #1d2129;
-    --accent: #7aa7ff;
-    --on-accent: #0b1220;
-    --selected: #26324a;
-    --border: #3a4252;
-    --focus: #f2a900;
-    --danger: #ffb4ab;
-  }
+/*
+ * Dark theme (D-36): theme.ts sets data-theme on the page from the owner's choice, or from the
+ * device's setting when the choice is "Same as this device".
+ */
+:root[data-theme='dark'] {
+  --text: #e8eaf0;
+  --muted: #b4bccb;
+  --page: #14171d;
+  --surface: #1d2129;
+  --accent: #7aa7ff;
+  --on-accent: #0b1220;
+  --selected: #26324a;
+  --border: #3a4252;
+  --focus: #f2a900;
+  --danger: #ffb4ab;
+  color-scheme: dark;
 }
 
 /*
@@ -127,15 +130,97 @@ a {
   color: var(--muted);
 }
 
+/* Helper text: what a section or field is for, one size everywhere. */
 .help {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .lang {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+}
+
+/* Account, save state, notices and the load screen (Phase 5). */
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-menu summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.account-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-menu .menu-panel {
+  position: absolute;
+  right: 0;
+  z-index: 20;
+  width: min(22rem, calc(100vw - 2 * var(--space-2)));
+  margin-top: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.15);
+}
+
+.menu-panel p {
+  margin: 0 0 var(--space-2);
+}
+
+.save-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--selected);
+}
+
+.notice p {
+  margin: 0;
+}
+
+.load-state {
+  margin: var(--space-3) 0;
+}
+
+.load-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.load-state .detail {
+  margin-top: var(--space-2);
+  color: var(--muted);
 }
 
 /*
@@ -207,7 +292,7 @@ a {
 
 .provider-list,
 .plain,
-.label-tree,
+.label-list,
 .log-entries {
   list-style: none;
   margin: 0;
@@ -371,11 +456,6 @@ label.check {
   gap: var(--space-1);
   min-height: 2.75rem;
   margin: 0;
-}
-
-label.check.child,
-li.child {
-  padding-left: var(--space-3);
 }
 
 fieldset {
@@ -611,47 +691,45 @@ details.add-label summary {
   --chip-fg: #6d4c41;
 }
 
-@media (prefers-color-scheme: dark) {
-  [data-color='grey'] {
-    --chip-bg: #3c4043;
-    --chip-fg: #e8eaed;
-  }
-  [data-color='red'] {
-    --chip-bg: #5c1a14;
-    --chip-fg: #f6aea9;
-  }
-  [data-color='orange'] {
-    --chip-bg: #5a2a0a;
-    --chip-fg: #fdc69c;
-  }
-  [data-color='yellow'] {
-    --chip-bg: #4d3a00;
-    --chip-fg: #fde293;
-  }
-  [data-color='green'] {
-    --chip-bg: #0d3b1f;
-    --chip-fg: #a8dab5;
-  }
-  [data-color='teal'] {
-    --chip-bg: #003a40;
-    --chip-fg: #a1e4f0;
-  }
-  [data-color='blue'] {
-    --chip-bg: #0f2a5c;
-    --chip-fg: #aecbfa;
-  }
-  [data-color='purple'] {
-    --chip-bg: #3d1466;
-    --chip-fg: #d7aefb;
-  }
-  [data-color='pink'] {
-    --chip-bg: #5c0d3f;
-    --chip-fg: #fbb3dd;
-  }
-  [data-color='brown'] {
-    --chip-bg: #3e2a22;
-    --chip-fg: #e0c7b8;
-  }
+:root[data-theme='dark'] [data-color='grey'] {
+  --chip-bg: #3c4043;
+  --chip-fg: #e8eaed;
+}
+:root[data-theme='dark'] [data-color='red'] {
+  --chip-bg: #5c1a14;
+  --chip-fg: #f6aea9;
+}
+:root[data-theme='dark'] [data-color='orange'] {
+  --chip-bg: #5a2a0a;
+  --chip-fg: #fdc69c;
+}
+:root[data-theme='dark'] [data-color='yellow'] {
+  --chip-bg: #4d3a00;
+  --chip-fg: #fde293;
+}
+:root[data-theme='dark'] [data-color='green'] {
+  --chip-bg: #0d3b1f;
+  --chip-fg: #a8dab5;
+}
+:root[data-theme='dark'] [data-color='teal'] {
+  --chip-bg: #003a40;
+  --chip-fg: #a1e4f0;
+}
+:root[data-theme='dark'] [data-color='blue'] {
+  --chip-bg: #0f2a5c;
+  --chip-fg: #aecbfa;
+}
+:root[data-theme='dark'] [data-color='purple'] {
+  --chip-bg: #3d1466;
+  --chip-fg: #d7aefb;
+}
+:root[data-theme='dark'] [data-color='pink'] {
+  --chip-bg: #5c0d3f;
+  --chip-fg: #fbb3dd;
+}
+:root[data-theme='dark'] [data-color='brown'] {
+  --chip-bg: #3e2a22;
+  --chip-fg: #e0c7b8;
 }
 
 .color-choices {
@@ -737,12 +815,32 @@ details.add-label summary {
   padding: 0 var(--space-1);
 }
 
+/* In the header row, the language and account controls line up with the links. */
+.app-header .lang {
+  margin: 0;
+}
+
+/* In the account menu: a labelled field, between the account and Sign out. */
+.menu-panel .lang-shown {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0 0 var(--space-2);
+}
+
+.account-menu summary {
+  min-height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 var(--space-1) 0 var(--space-2);
+}
+
 .demo-note {
   margin: 0;
   padding: 0;
   border: none;
   background: none;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
 }
 
 .browse,
@@ -913,4 +1011,15 @@ details.add-label summary {
 
 .sheet-footer {
   border-top: 1px solid var(--border);
+}
+
+/* A chip inside a sentence sits on the text line; in helper text it takes the text's size. */
+p .chip,
+label .chip,
+.help .chip {
+  vertical-align: baseline;
+}
+
+.help .chip {
+  font-size: 1em;
 }

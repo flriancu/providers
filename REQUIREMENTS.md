@@ -48,7 +48,7 @@ model must work for any provider category.
   infrastructure. The AWS service is chosen at deployment time. (2026-11-16; reversed by D-21)
 - D-05 Label model: faceted labels, any label shareable (Option C of
   [the label research](docs/research/Labels%20and%20facets%20for%20providers.md)). A provider is
-  visible to whoever can see any of its labels or their ancestors. (2026-11-16)
+  visible to whoever can see any of its labels. (2026-11-16; ancestors dropped by D-35)
 - D-06 v1 stores an interaction log; no price, rating or attachments. (2026-11-16)
 - D-07 One owner with guests in v1; every provider, label, share and log entry records its owner
   and every query filters by owner, so a hosted multi-owner version stays possible.
@@ -70,8 +70,9 @@ Defaults taken without a question (change any of them here):
 
 - D-14 Status is a fixed, owner-only field: New, Contacted, Quoted, Booked, Declined, Archived.
   It is filterable like a facet. (2026-11-16; reversed by D-32)
-- D-15 Starting facets: Category (two levels, one primary value plus additional values), Area,
-  Source, Lists. The owner can add, rename, merge and move facets and labels. (2026-11-16)
+- D-15 Starting facets: Category (one primary value plus additional values), Area, Source,
+  Lists. The owner can add, rename and merge facets and labels. (2026-11-16; one level of labels
+  by D-35)
 - D-16 What guests see: the listing part of a provider (name, contact person, phones, emails,
   links, address, the labels shared with them). Notes, status, interaction log and unshared
   labels are owner-only. (2026-11-16)
@@ -119,6 +120,17 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-38 Settings live in header menus, so the header stays one row: signed in, the account menu
+  holds language and theme; signed out, a Settings menu beside "Sign in" holds them. Both
+  placements were rendered at 750 and 390 px before the choice. (2026-11-17, owner)
+- D-37 The interface calls a facet a "label group" ("grup de etichete"); "facet" stays in code and
+  in these documents. (2026-11-17, owner: "'facet' is not a user-friendly term")
+- D-36 Theme: light, dark, or the same as this device (the default, which follows the device when
+  it changes), chosen per device and applied before the page first shows. (2026-11-17, owner)
+- D-35 Amends D-05, D-15, FR-04, FR-10, FR-13, FR-16 and FR-17. Labels have one level: no
+  sub-labels in any facet, Category included; every facet is a flat list of labels. Labels saved
+  under a parent by an earlier version keep their name and become top-level labels.
+  (2026-11-16, owner: "let's only have one level of labels and no nesting")
 - D-34 Answers Q-02. Below 1200 px the filters open over the page (full screen on a phone,
   a side panel on a tablet) and each tick changes the list at once; the button says how many
   providers will show and closes the panel. From 1200 px the filters have their own column.
@@ -158,7 +170,8 @@ Providers and log
 
 Labels and facets
 
-- FR-04 Labels belong to exactly one facet. A facet is a tree (Category, two levels) or flat.
+- FR-04 Labels belong to exactly one facet. Every facet is a flat list of labels, with no
+  sub-labels. (Changed 2026-11-16 by D-35.)
 - FR-05 A provider can carry several labels per facet; in Category one of them is primary.
 - FR-06 Labels have a stable id, one name, and aliases. Renaming keeps shares and links
   working. (Changed 2026-11-16 by D-30: one name, not one per interface language.)
@@ -170,15 +183,14 @@ Labels and facets
 
 Finding
 
-- FR-10 Facet filtering: OR within a facet, AND across facets; selecting a parent includes its
-  children.
+- FR-10 Facet filtering: OR within a facet, AND across facets. (Changed 2026-11-16 by D-35.)
 - FR-11 Each facet value shows its result count; values with zero results cannot lead to an
   empty page.
 - FR-12 Active filters show as removable chips with "Clear all"; filter state lives in the URL.
 - FR-13 Search over name, contact person, address, links, notes, log, and the names and aliases
-  of the provider's labels and their parents, runs within the current filters, with the
-  tolerance of D-23; label matches rank below the provider's own fields. (Changed 2026-11-16 by
-  D-23; labels added 2026-11-16 at the owner's request.)
+  of the provider's labels, runs within the current filters, with the tolerance of D-23; label
+  matches rank below the provider's own fields. (Changed 2026-11-16 by D-23 and D-35; labels
+  added 2026-11-16 at the owner's request.)
 
 Sharing (changed 2026-11-16 by D-22)
 
@@ -186,10 +198,11 @@ Sharing (changed 2026-11-16 by D-22)
   directory for editing with a Google account.
 - FR-15 The owner can create and revoke a view-only link per label (Drive "anyone with the
   link" on the label's snapshot file); "regenerate" creates a new snapshot file and link.
-- FR-16 A label's snapshot holds every provider carrying that label or one of its children, and
-  is rewritten whenever one of those providers or the label changes.
+- FR-16 A label's snapshot holds every provider carrying that label, and is rewritten whenever
+  one of those providers or the label changes. (Changed 2026-11-16 by D-35.)
 - FR-17 Shared labels are marked; applying one asks to confirm how many more people will see the
-  provider; sharing a parent label first shows how many providers it covers.
+  provider; sharing a label first shows how many providers it covers. (Changed 2026-11-16 by
+  D-35.)
 - FR-18 Snapshot files never contain the owner-only fields of D-16.
 - FR-19 The owner can see "who can see this provider" and "what can this person see".
 - FR-20 A person opening a shared label (by link, or by email through Google's file picker) sees
@@ -251,14 +264,14 @@ Language
 | FR-26 | Inspection | `seed/contacts_review.csv` with source URL per value; owner approval recorded in the PLAN |
 | FR-27 | Test | type check: a missing key in either dictionary fails the build |
 | NFR-01 | Test | `tests/e2e/sharing.spec.ts` (a second account reads only what was shared) |
-| NFR-02, 03 | Test, inspection | CSP header test; `tests/unit/auth.test.ts` (token never in localStorage) |
+| NFR-02, 03 | Test, inspection | CSP test (Phase 9); drive-doc-sync `tests/unit/auth.test.ts` (token never in localStorage) |
 | NFR-04 | Analysis | lint rule forbidding React, DOM and Google imports under `src/domain/`; output saved to `evidence/` |
 | NFR-05 | Demonstration | production build served by `vite preview` and by GitHub Pages |
 | NFR-06 | Test, demonstration | e2e suite at 360 px viewport; owner check on a real phone |
 | NFR-07 | Inspection | accessibility audit output in `evidence/` |
 | NFR-08 | Inspection | stranger-read of the interface text |
 | NFR-09 | Test | `tests/e2e/import-export.spec.ts` (preview shows every change) |
-| NFR-10 | Test | `tests/unit/search.perf.test.ts` on 10,000 synthetic providers; refresh test against the fake Drive counts downloads |
+| NFR-10 | Test | `tests/unit/search.perf.test.ts` on 10,000 synthetic providers; `tests/e2e/drive.spec.ts` (a reload with an unchanged file downloads nothing) |
 
 Acceptance for v1: the automated end-to-end suite and a phone check show the ten points agreed
 on 2026-11-16, as changed by D-22 and D-23: seed import; facet filters; tolerant search; a label

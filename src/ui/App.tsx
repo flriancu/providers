@@ -1,10 +1,14 @@
+import { isRetryable } from 'drive-doc-sync';
 import { useCallback, useEffect, useState } from 'react';
 import { STORAGE_PREFIX } from '../config';
-import { I18nProvider, LANGS, useI18n, type Lang } from '../i18n';
+import { I18nProvider, useI18n, type Lang } from '../i18n';
 import './app.css';
+import { AccountBar, LoadError, SaveStatus } from './AccountBar';
+import { signInMessage } from './driveErrors';
 import { LabelsPage } from './LabelsPage';
 import { ProvidersPage } from './ProvidersPage';
 import { href, useRoute } from './route';
+import { useAccount, type Account, type Connection } from './useAccount';
 import { useDirectory } from './useDirectory';
 
 const LANG_KEY = `${STORAGE_PREFIX}.lang`;
@@ -43,11 +47,23 @@ export function App() {
   );
 }
 
+/** The open directory of whoever is here: the demo, or a signed-in Google account. */
 function Shell() {
-  const { t, lang, setLang } = useI18n();
+  const connection = useAccount();
+  return <Directory key={connection.key} connection={connection} />;
+}
+
+function Directory({ connection }: { connection: Connection }) {
+  const { t } = useI18n();
   const route = useRoute();
-  const { doc, apply } = useDirectory();
+  const { doc, apply, saveState, saveError, loadError, notices, sync } = useDirectory(connection);
   const onLabels = route.page === 'labels';
+  // Signing out saves first; what did not reach Drive stays on this device for the next sign-in.
+  const base = connection.account;
+  const account: Account =
+    base.kind === 'google' ? { ...base, signOut: () => void sync.close().then((clean) => base.signOut(!clean)) } : base;
+  // Drive not answering, with this device's copy on screen: keep working on the copy.
+  const offline = !!loadError && !!doc && isRetryable(loadError);
 
   useEffect(() => {
     document.title = t('app.title');
@@ -65,22 +81,44 @@ function Shell() {
             {t('nav.labels')}
           </a>
         </nav>
-        <label className="lang">
-          <span className="sr-only">{t('lang.label')}</span>
-          <select value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
-            {LANGS.map((l) => (
-              <option key={l} value={l}>
-                {t(`lang.${l}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {account.kind === 'google' && doc && <SaveStatus saveState={saveState} saveError={saveError} account={account} sync={sync} />}
+        <AccountBar account={account} />
       </header>
-      <p className="demo-note" role="note">
-        {t('app.demo')}
-      </p>
+      {account.kind === 'demo' && (
+        <p className="demo-note" role="note">
+          {t(account.unsavedOnDevice ? 'auth.unsavedOnDevice' : 'app.demo')}
+        </p>
+      )}
+      {account.kind === 'demo' && account.error && (
+        <p className="error" role="alert">
+          {t(signInMessage(account.error), { email: account.hint?.email ?? '' })}
+        </p>
+      )}
+      {offline && (
+        <p className="demo-note" role="status">
+          {t('load.offline')}
+        </p>
+      )}
+      {notices.map((n) => (
+        <div key={n.kind} className="notice" role="status">
+          <p>{n.kind === 'carried' ? t('notice.carried') : t('notice.skipped', { count: n.count })}</p>
+          <button type="button" className="link-button" onClick={() => sync.dismissNotice(n.kind)}>
+            {t('notice.dismiss')}
+          </button>
+        </div>
+      ))}
       <main className="app-main">
-        {doc && (onLabels ? <LabelsPage doc={doc} apply={apply} /> : <ProvidersPage doc={doc} apply={apply} route={route} />)}
+        {loadError && !offline ? (
+          <LoadError error={loadError} account={account} sync={sync} />
+        ) : doc ? (
+          onLabels ? (
+            <LabelsPage doc={doc} apply={apply} />
+          ) : (
+            <ProvidersPage doc={doc} apply={apply} route={route} />
+          )
+        ) : (
+          <p className="load-state">{t('load.opening')}</p>
+        )}
       </main>
     </div>
   );

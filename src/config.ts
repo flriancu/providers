@@ -17,3 +17,8 @@ export const GOOGLE_SCOPES = ['openid', 'email', 'profile', DRIVE_FILE_SCOPE];
 /** Prefix of what this app keeps in the browser: the tab's session, this device's copy, settings. */
 export const STORAGE_PREFIX = 'providers-directory';
 export const SESSION_KEY = `${STORAGE_PREFIX}.session`;
+/** Who signed in last on this device (email, name, account id), for "Continue as ...". Never a token. */
+export const ACCOUNT_KEY = `${STORAGE_PREFIX}.account`;
+
+/** The directory file in the owner's Drive, and the property that marks files this app made (NFR-01). */
+export const DRIVE_APP = { fileName: 'providers-directory.json', appProperty: { key: 'app', value: 'providers_directory' } };

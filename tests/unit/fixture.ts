@@ -26,7 +26,7 @@ export function provider(doc: DirectoryDoc, ctx: EditContext, name: string, extr
 
 /**
  * A small wedding directory:
- *   Category: Wedding > Photo, Video; Home > Plumber
+ *   Category: Photo, Video, Plumber
  *   Area: București, Cluj    Source: AllWeddings Fest 2026    Lists: Shortlist
  * Providers: Grădina cu Sălcii (Photo, București, fair), Bruno Photography (Photo, Cluj),
  * Flashbox (Video, București, fair, Shortlist), Ana Instalații (Plumber), Lagoo (no category).
@@ -35,11 +35,9 @@ export function weddingDirectory() {
   const ctx = testContext();
   let doc = newDirectory(OWNER);
   const add = (r: { doc: DirectoryDoc; id: string }) => ((doc = r.doc), r.id);
-  const wedding = add(label(doc, ctx, FACET_IDS.category, 'Wedding', { aliases: ['Nunta'], color: 'pink' }));
-  const photo = add(label(doc, ctx, FACET_IDS.category, 'Photo', { parentId: wedding, aliases: ['Foto'] }));
-  const video = add(label(doc, ctx, FACET_IDS.category, 'Video', { parentId: wedding }));
-  const home = add(label(doc, ctx, FACET_IDS.category, 'Home'));
-  const plumber = add(label(doc, ctx, FACET_IDS.category, 'Plumber', { parentId: home, aliases: ['Instalator'] }));
+  const photo = add(label(doc, ctx, FACET_IDS.category, 'Photo', { aliases: ['Foto'] }));
+  const video = add(label(doc, ctx, FACET_IDS.category, 'Video'));
+  const plumber = add(label(doc, ctx, FACET_IDS.category, 'Plumber', { aliases: ['Instalator'] }));
   const bucharest = add(label(doc, ctx, FACET_IDS.area, 'București'));
   const cluj = add(label(doc, ctx, FACET_IDS.area, 'Cluj'));
   const fair = add(label(doc, ctx, FACET_IDS.source, 'AllWeddings Fest 2026'));
@@ -59,7 +57,7 @@ export function weddingDirectory() {
   return {
     doc,
     ctx,
-    labels: { wedding, photo, video, home, plumber, bucharest, cluj, fair, shortlist },
+    labels: { photo, video, plumber, bucharest, cluj, fair, shortlist },
     providers: { gradina, bruno, flashbox, plumberAna, lagoo },
   };
 }

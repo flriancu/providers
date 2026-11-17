@@ -13,6 +13,19 @@ describe('reading and writing the directory file', () => {
     expect(roundTrip(toFile(doc))).toEqual(doc);
   });
 
+  it('reads labels saved under a parent as top-level labels, and writes them without it (D-35)', () => {
+    const { doc, labels } = weddingDirectory();
+    const file = JSON.parse(JSON.stringify(toFile(doc)));
+    file.facets[FACET_IDS.category].kind = 'tree'; // as an earlier version wrote them
+    file.labels[labels.video].parentId = labels.photo;
+    const read = readDirectory(file);
+    expect(skippedCount(read)).toBe(0);
+    expect(read.labels[labels.video]!.name).toBe('Video');
+    expect(Object.keys(read.labels[labels.video]!)).not.toContain('parentId');
+    expect(Object.keys(read.facets[FACET_IDS.category]!)).not.toContain('kind');
+    expect(toFile(read)).toEqual(toFile(doc));
+  });
+
   it('sets aside a record it cannot read, says how many, and writes it back unchanged', () => {
     const { doc, providers } = weddingDirectory();
     const file = JSON.parse(JSON.stringify(toFile(doc)));

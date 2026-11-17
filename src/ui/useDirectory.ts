@@ -1,42 +1,68 @@
-import { DocumentSync, MemoryStorage } from 'drive-doc-sync';
+import { DocumentSync } from 'drive-doc-sync';
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { directoryModel, type DirectoryNotice } from '../domain/document';
 import { EditError } from '../domain/edits';
 import type { EditContext } from '../domain/records';
 import type { DirectoryDoc } from '../domain/schema';
-import { demoDirectory } from './demoDirectory';
+import type { Connection } from './useAccount';
 
-/** The signed-out demo's owner: never a real Google account id. */
-export const DEMO_OWNER = 'demo';
+export type DirectorySync = DocumentSync<DirectoryDoc, DirectoryNotice>;
 
 /**
- * The open directory. Phase 3: the signed-out demo, kept in memory by drive-doc-sync's
- * MemoryStorage and starting with one made-up provider; Phase 5 swaps in Drive storage behind
- * the same hook, and must not carry that sample into an account's directory.
+ * The open directory, kept by drive-doc-sync: in memory for the demo, in Google Drive with a
+ * copy on this device once signed in. This hook connects it to React and to the page: save
+ * when the page is hidden or left, pick up other devices' changes when it comes back, save
+ * when the network returns, and ask before closing the tab while a change is not saved yet.
  */
-export function useDirectory() {
+export function useDirectory(connection: Connection) {
+  const { storage, by } = connection;
   const sync = useMemo(
     () =>
       new DocumentSync<DirectoryDoc, DirectoryNotice>({
-        storage: new MemoryStorage<DirectoryDoc>(),
+        storage,
         model: directoryModel,
-        // Fixed ids for the sample, so a reload keeps a filter in the address pointing at it.
-        init: () => {
-          let n = 0;
-          return demoDirectory(DEMO_OWNER, { by: DEMO_OWNER, now: () => new Date(), newId: () => `demo-${++n}` });
-        },
-        saveDelayMs: 0,
+        init: connection.init,
+        ...(connection.owner && { owner: connection.owner }),
+        ...(connection.replica && { replica: connection.replica }),
+        ...(connection.carry && { carry: connection.carry }),
+        // The demo keeps nothing, so it saves at once; Drive saves after a pause in typing.
+        saveDelayMs: storage.kind === 'memory' ? 0 : 1500,
       }),
-    [],
+    // One sync per storage (a new account means a new storage); the rest is read once.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [storage],
   );
   const snapshot = useSyncExternalStore(sync.subscribe, sync.getSnapshot);
+  const persistent = storage.kind === 'drive';
 
   useEffect(() => {
     void sync.open();
     return () => void sync.close();
   }, [sync]);
 
-  const context = useCallback((): EditContext => ({ by: DEMO_OWNER, now: () => new Date(), newId: () => crypto.randomUUID() }), []);
+  useEffect(() => {
+    if (!persistent) return;
+    const onVisibility = () => void (document.visibilityState === 'hidden' ? sync.flush() : sync.refresh());
+    const onLeave = () => void sync.flush();
+    const onOnline = () => void sync.flush().then(sync.refresh);
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!sync.dirty) return;
+      void sync.flush();
+      e.preventDefault(); // the browser asks "leave the page?"; this device's copy keeps the change either way
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onLeave);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onLeave);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [sync, persistent]);
+
+  const context = useCallback((): EditContext => ({ by, now: () => new Date(), newId: () => crypto.randomUUID() }), [by]);
 
   /**
    * Applies a change; an EditError comes back as its code for the form to show, anything else
@@ -59,5 +85,5 @@ export function useDirectory() {
     [sync, context],
   );
 
-  return { doc: snapshot.doc, apply };
+  return { ...snapshot, apply, sync };
 }

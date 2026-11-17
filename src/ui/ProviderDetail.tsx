@@ -4,7 +4,7 @@ import { effectiveLabels, labelById } from '../domain/labels';
 import type { DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { LabelChip } from './LabelChip';
-import { facetName, labelPath, orderedFacets } from './labelText';
+import { facetName, labelNameById, orderedFacets } from './labelText';
 import { LogSection } from './LogSection';
 import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
@@ -88,7 +88,7 @@ export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: A
                   <span className="chips">
                     {mine.map((l) => (
                       <LabelChip key={l} color={labelById(doc, l)!.color}>
-                        {labelPath(doc, l)}
+                        {labelNameById(doc, l)}
                       </LabelChip>
                     ))}
                   </span>

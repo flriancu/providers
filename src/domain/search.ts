@@ -1,6 +1,6 @@
 import MiniSearch from 'minisearch';
 import { fold } from './fold';
-import { ancestors, effectiveLabels, labelById } from './labels';
+import { effectiveLabels, labelById } from './labels';
 import { live, type DirectoryDoc, type Provider } from './schema';
 
 /**
@@ -24,13 +24,11 @@ interface Indexed {
 const FIELDS = ['name', 'contactPerson', 'address', 'links', 'notes', 'log', 'labels'] as const;
 
 /**
- * The words a provider's labels add: each label's name and aliases, and its parents' names, so
- * "foto" finds a provider labelled Wedding, Photo (alias Foto).
+ * The words a provider's labels add: each label's name and aliases, so "foto" finds a provider
+ * labelled Photo (alias Foto).
  */
 function labelWords(doc: DirectoryDoc, p: Provider): string {
-  const ids = new Set<string>();
-  for (const id of effectiveLabels(doc, p)) for (const l of [id, ...ancestors(doc, id)]) ids.add(l);
-  return [...ids]
+  return effectiveLabels(doc, p)
     .flatMap((id) => {
       const l = labelById(doc, id)!;
       return [l.name, ...l.aliases];

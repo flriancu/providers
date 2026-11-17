@@ -38,9 +38,8 @@ describe('search (FR-13, D-23)', () => {
     expect(find('portfolio')).toEqual([providers.bruno]);
   });
 
-  it("finds providers by their labels' names, aliases and parents", () => {
+  it("finds providers by their labels' names and aliases", () => {
     expect(find('foto').sort()).toEqual([providers.bruno, providers.gradina].sort()); // alias of Photo
-    expect(find('wedding').sort()).toEqual([providers.bruno, providers.flashbox, providers.gradina].sort()); // parent of Photo, Video
     expect(find('instalator')).toEqual([providers.plumberAna]); // alias of Plumber
     expect(find('shortlist')).toEqual([providers.flashbox]);
   });

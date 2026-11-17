@@ -1,4 +1,5 @@
 import type { DocumentModel } from 'drive-doc-sync';
+import { absorb } from './absorb';
 import { hasLocalWins, merge } from './merge';
 import { readDirectory, skippedCount, toFile } from './migrate';
 import { live, type DirectoryDoc } from './schema';
@@ -7,16 +8,16 @@ import { live, type DirectoryDoc } from './schema';
 export type DirectoryNotice = 'skipped';
 
 /**
- * The directory as drive-doc-sync sees it. Pure. The starting facets have fixed ids, so two
- * directories created separately need no id mapping: absorbing one into the other is a merge.
+ * The directory as drive-doc-sync sees it. Pure. The starting facets have fixed ids, and
+ * absorbing another version matches labels by name (absorb.ts), so two directories created
+ * separately come together without a second "Photo".
  */
 export const directoryModel: DocumentModel<DirectoryDoc, DirectoryNotice> = {
   read: readDirectory,
   write: toFile,
   merge,
   hasLocalWins,
-  // Settings come along only from a directory of the same account, never from the demo.
-  absorb: (into, from) => merge({ ...from, settings: from.owner.googleSub === into.owner.googleSub ? from.settings : into.settings }, into),
+  absorb,
   owner: (doc) => doc.owner.googleSub,
   replaces: (doc) => doc.settings.replaces ?? [],
   withReplaces: (doc, fileIds) => ({ ...doc, settings: { ...doc.settings, replaces: [...fileIds] } }),

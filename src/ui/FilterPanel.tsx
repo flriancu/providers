@@ -4,7 +4,7 @@ import { labelById } from '../domain/labels';
 import type { DirectoryDoc, Facet, Label } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { ColorDot, LabelChip } from './LabelChip';
-import { facetName, facetTree, labelName, labelPath, orderedFacets } from './labelText';
+import { facetName, facetLabels, labelName, orderedFacets } from './labelText';
 
 /** Values shown per facet before "Show all": research says about 8 (docs/research, facet UI design). */
 const SHOWN = 8;
@@ -15,8 +15,7 @@ export type Toggle = (facetId: string, labelId: string, on: boolean) => void;
 const isOn = (selection: Selection, facetId: string, labelId: string) => (selection[facetId] ?? []).includes(labelId);
 
 /**
- * FR-10, FR-11: one group per facet; each value with its count, sub-labels indented under their
- * parent, and "No <facet>" (D-33) last. A value that would empty the list is greyed out and
+ * FR-10, FR-11: one group per facet; each value with its count, and "No <facet>" (D-33) last. A value that would empty the list is greyed out and
  * cannot be ticked (it stays tickable while selected, so it can be removed).
  */
 export function FilterPanel({
@@ -55,13 +54,7 @@ function FacetFilter({
   const { t, plural } = useI18n();
   const [all, setAll] = useState(false);
   const ids = useId();
-  const rows: { label?: Label; child: boolean; id: string }[] = [
-    ...facetTree(doc, facet.id).flatMap(({ label, children }) => [
-      { label, child: false, id: label.id },
-      ...children.map((c) => ({ label: c, child: true, id: c.id })),
-    ]),
-    { child: false, id: NO_LABEL },
-  ];
+  const rows: { label?: Label; id: string }[] = [...facetLabels(doc, facet.id).map((label) => ({ label, id: label.id })), { id: NO_LABEL }];
   // Selected values always show; the rest up to the limit, unless "Show all".
   const visible = all || rows.length <= SHOWN + 1 ? rows : rows.filter((r, i) => i < SHOWN || isOn(selection, facet.id, r.id));
   const name = facetName(facet, t);
@@ -74,7 +67,7 @@ function FacetFilter({
         const on = isOn(selection, facet.id, r.id);
         const valueName = r.label ? labelName(r.label) : t('filter.none', { facet: name.toLocaleLowerCase() });
         return (
-          <label key={r.id} className={`check filter-value${r.child ? ' child' : ''}${count === 0 && !on ? ' empty' : ''}`}>
+          <label key={r.id} className={`check filter-value${count === 0 && !on ? ' empty' : ''}`}>
             {/* Spoken as "Photo, 2 providers"; the screen shows the name and the bare number. */}
             <input
               type="checkbox"
@@ -118,11 +111,7 @@ export function ActiveFilters({
       {chosen.map(({ facetId, labelId }) => {
         const label = labelById(doc, labelId);
         const facet = doc.facets[facetId];
-        const text = label
-          ? labelPath(doc, labelId)
-          : facet
-            ? t('filter.none', { facet: facetName(facet, t).toLocaleLowerCase() })
-            : labelId;
+        const text = label ? labelName(label) : facet ? t('filter.none', { facet: facetName(facet, t).toLocaleLowerCase() }) : labelId;
         return (
           <button
             key={`${facetId}-${labelId}`}

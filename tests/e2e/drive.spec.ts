@@ -1,0 +1,150 @@
+import { expect, test, type Page } from '@playwright/test';
+import { FakeDrive, providerNames, USER } from './fakeDrive';
+
+/**
+ * Signed in, against a fake Google Drive (fakeDrive.ts): sign-in, saving, the device copy and
+ * refresh (D-24, D-25, NFR-10), sign-out, and a directory file in the trash.
+ */
+
+async function open(page: Page, drive: FakeDrive, signedIn = true) {
+  await drive.attach(page, { signedIn });
+  page.on('dialog', (d) => void d.accept()); // "leave the page?" while a save is pending
+  await page.goto('./');
+}
+
+async function addProvider(page: Page, name: string, labels: string[] = []) {
+  await page.getByRole('link', { name: 'Providers' }).click();
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  const form = page.locator('form.provider-form');
+  await form.getByLabel('Name', { exact: true }).fill(name);
+  for (const l of labels) await form.getByRole('checkbox', { name: l, exact: true }).check();
+  await form.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
+}
+
+const names = (page: Page) => page.locator('.provider-list .provider-name');
+const saved = (page: Page) => page.getByRole('banner').getByRole('status').getByText('Saved');
+
+test.describe('wide screens', () => {
+  test.skip(({ isMobile }) => isMobile, 'storage, not layout: one screen size is enough');
+
+  test('signing in carries what was added in the demo into Drive, never the made-up sample (D-25)', async ({ page }) => {
+    const drive = new FakeDrive();
+    await open(page, drive, false);
+    await addProvider(page, 'Lagoo', ['Photo']); // a label of the sample's
+    await page.getByRole('button', { name: 'Sign in with Google' }).click();
+
+    await expect(page.getByRole('status').getByText('What you added in the demo is now in your directory.')).toBeVisible();
+    await page.getByRole('link', { name: 'Providers' }).click();
+    await expect(names(page)).toHaveText(['Lagoo']);
+    await expect.poll(() => providerNames(drive.content())).toEqual(['Lagoo']);
+    const labels = Object.values(drive.content().labels).map((l) => l.name);
+    expect(labels).toEqual(['Photo']); // not Bucharest or Sample fair
+    expect(drive.content().owner.googleSub).toBe(USER.sub);
+    await expect(page.getByRole('note')).toBeHidden(); // no demo notice once signed in
+  });
+
+  test('a reload shows the copy on this device and downloads nothing while the file is unchanged (D-24, NFR-10)', async ({ page }) => {
+    const drive = new FakeDrive();
+    await open(page, drive);
+    await addProvider(page, 'Lagoo');
+    await expect.poll(() => providerNames(drive.content())).toEqual(['Lagoo']);
+    await expect(saved(page)).toBeVisible();
+
+    await page.reload();
+    await expect(names(page)).toHaveText(['Lagoo']);
+    // A change after the reload is saved over the same version: the open never downloaded the file.
+    await addProvider(page, 'Flashbox');
+    await expect.poll(() => providerNames(drive.content())).toEqual(['Flashbox', 'Lagoo']);
+    expect(drive.downloads).toBe(0);
+  });
+
+  test("a reload downloads the file when another device saved, and shows that device's change", async ({ page }) => {
+    const drive = new FakeDrive();
+    await open(page, drive);
+    await addProvider(page, 'Lagoo');
+    await expect.poll(() => providerNames(drive.content())).toEqual(['Lagoo']);
+    const lagoo = Object.values(drive.content().providers)[0]!;
+    drive.change((doc) => {
+      doc.providers['from-phone'] = { ...lagoo, id: 'from-phone', name: 'Flashbox', updatedAt: new Date().toISOString() };
+    });
+
+    await page.reload();
+    await expect(names(page)).toHaveText(['Flashbox', 'Lagoo']);
+    expect(drive.downloads).toBe(1);
+  });
+
+  test('a failed save says so and keeps the change; "Try again" saves it', async ({ page }) => {
+    const drive = new FakeDrive();
+    await open(page, drive);
+    await expect(saved(page)).toBeVisible();
+    drive.failWrites = 1000;
+    await addProvider(page, 'Lagoo');
+    const retry = page.getByRole('button', { name: 'Not saved · Try again' });
+    await expect(retry).toBeVisible();
+    drive.failWrites = 0;
+    await retry.click();
+    await expect(saved(page)).toBeVisible();
+    expect(providerNames(drive.content())).toEqual(['Lagoo']);
+  });
+
+  test('signing out removes the copy on this device and goes back to the demo (D-24)', async ({ page }) => {
+    const drive = new FakeDrive();
+    await open(page, drive);
+    await addProvider(page, 'Lagoo');
+    await expect(saved(page)).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('providers-directory.replica.u1'))).toContain('Lagoo');
+
+    const menu = page.getByLabel('Account: ana@example.test');
+    const where = page.getByText('Your directory is the file providers-directory.json in your Google Drive.');
+    await menu.click();
+    await expect(where).toBeVisible();
+    await page.keyboard.press('Escape'); // closes the menu, back on its button
+    await expect(where).toBeHidden();
+    await expect(menu).toBeFocused();
+    await menu.click();
+    // Signed in, the language is chosen in this menu; the header has no language box.
+    await expect(page.getByRole('banner').locator('> .lang')).toHaveCount(0);
+    await page.getByLabel('Language').selectOption('ro');
+    await expect(page.getByRole('button', { name: 'Deconectare' })).toBeVisible(); // the menu stays open
+    await page.getByLabel('Limba').selectOption('en');
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
+    await page.getByRole('link', { name: 'Providers' }).click();
+    await expect(names(page)).toHaveText(['Sample Photo Studio']);
+    expect(await page.evaluate(() => localStorage.getItem('providers-directory.replica.u1'))).toBeNull();
+    expect(await page.evaluate(() => sessionStorage.getItem('providers-directory.session'))).toBeNull();
+  });
+
+  test('a directory file in the Drive trash is not covered over by an empty one, unless asked', async ({ page }) => {
+    const drive = new FakeDrive();
+    drive.seed(
+      {
+        schemaVersion: 1,
+        owner: { googleSub: USER.sub },
+        facets: {},
+        labels: {},
+        providers: {},
+        log: {},
+        shares: {},
+        settings: { updatedAt: '2026-11-01T00:00:00.000Z' },
+      },
+      true,
+    );
+    await open(page, drive);
+    const alert = page.getByRole('alert');
+    await expect(alert).toContainText('Your directory file is in the Google Drive trash.');
+    expect(drive.files.size).toBe(1);
+    await alert.getByRole('button', { name: 'Start a new directory' }).click();
+    await expect(page.getByText('There are no providers yet.')).toBeVisible();
+    expect(drive.files.size).toBe(2);
+  });
+});
+
+test('signed in, the header fits a narrow phone screen', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await open(page, new FakeDrive());
+  await expect(page.getByRole('banner').getByRole('status')).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBe(0);
+});

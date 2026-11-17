@@ -38,13 +38,12 @@ function syntheticDirectory(): DirectoryDoc {
   const pick = <T>(list: readonly T[]) => list[Math.floor(rand() * list.length)]!;
   const sentence = (n: number) => Array.from({ length: n }, () => pick(WORDS)).join(' ');
   const doc = newDirectory('owner');
-  const addLabel = (id: string, facetId: string, parentId?: string) => {
-    const l: Label = { ...meta(id), facetId, name: id, color: 'blue', aliases: [], ...(parentId && { parentId }) };
+  const addLabel = (id: string, facetId: string) => {
+    const l: Label = { ...meta(id), facetId, name: id, color: 'blue', aliases: [] };
     put(doc.labels, id, l);
     return id;
   };
-  const parents = Array.from({ length: 5 }, (_, i) => addLabel(`cat-${i}`, FACET_IDS.category));
-  const leaves = parents.flatMap((p) => Array.from({ length: 4 }, (_, i) => addLabel(`${p}-${i}`, FACET_IDS.category, p)));
+  const categories = Array.from({ length: 25 }, (_, i) => addLabel(`cat-${i}`, FACET_IDS.category));
   const areas = Array.from({ length: 8 }, (_, i) => addLabel(`area-${i}`, FACET_IDS.area));
   const sources = Array.from({ length: 3 }, (_, i) => addLabel(`source-${i}`, FACET_IDS.source));
   for (let i = 0; i < N; i++) {
@@ -57,7 +56,7 @@ function syntheticDirectory(): DirectoryDoc {
       links: [`https://example${i}.ro`, `https://instagram.com/example${i}`],
       address: `Strada ${pick(WORDS)} ${i}`,
       notes: sentence(30),
-      labelIds: [pick(leaves), pick(areas), pick(sources)],
+      labelIds: [pick(categories), pick(areas), pick(sources)],
     };
     put(doc.providers, p.id, p);
   }

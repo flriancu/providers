@@ -9,36 +9,6 @@ export function labelById(doc: DirectoryDoc, id: string): Label | undefined {
   return label && !label.deleted ? label : undefined;
 }
 
-/** The label and every live label under it, at any depth. */
-export function subtree(doc: DirectoryDoc, labelId: string): Set<string> {
-  const out = new Set<string>();
-  if (!labelById(doc, labelId)) return out;
-  out.add(labelId);
-  const all = live(doc.labels);
-  let added = true;
-  while (added) {
-    added = false;
-    for (const l of all) {
-      if (l.parentId && out.has(l.parentId) && !out.has(l.id)) {
-        out.add(l.id);
-        added = true;
-      }
-    }
-  }
-  return out;
-}
-
-/** The label's parents, nearest first; stops at a missing parent or a loop. */
-export function ancestors(doc: DirectoryDoc, labelId: string): string[] {
-  const out: string[] = [];
-  let current = labelById(doc, labelId)?.parentId;
-  while (current && !out.includes(current) && current !== labelId && labelById(doc, current)) {
-    out.push(current);
-    current = labelById(doc, current)?.parentId;
-  }
-  return out;
-}
-
 /**
  * The labels a provider carries: its own, without any deleted since (D-33: a provider without a
  * category simply has none; no placeholder label stands in).
@@ -71,15 +41,12 @@ export function matchLabels(doc: DirectoryDoc, typed: string, facetId?: string):
 }
 
 /**
- * FR-08: labels on no live provider, or on just one, with how many carry each. A parent counts
- * the providers under its children too: it is in use while they are.
+ * FR-08: labels on no live provider, or on just one, with how many carry each.
  */
 export function rarelyUsedLabels(doc: DirectoryDoc): { label: Label; count: number }[] {
   const counts = new Map<string, number>();
   for (const p of live(doc.providers)) {
-    const reached = new Set<string>();
-    for (const id of effectiveLabels(doc, p)) for (const r of [id, ...ancestors(doc, id)]) reached.add(r);
-    for (const id of reached) counts.set(id, (counts.get(id) ?? 0) + 1);
+    for (const id of effectiveLabels(doc, p)) counts.set(id, (counts.get(id) ?? 0) + 1);
   }
   return live(doc.labels)
     .map((label) => ({ label, count: counts.get(label.id) ?? 0 }))

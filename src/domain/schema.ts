@@ -20,10 +20,10 @@ export interface Meta {
   deleted?: true;
 }
 
-/** FR-04: a facet is a tree (Category, two levels) or flat. */
-export type FacetKind = 'tree' | 'flat';
-
-/** The starting facets (D-15); their name is the interface's word until the owner renames them (D-30). */
+/**
+ * The starting facets (D-15); their name is the interface's word until the owner renames them
+ * (D-30). Every facet is a flat list of labels (FR-04, D-35).
+ */
 export const BUILT_IN_FACETS = ['category', 'area', 'source', 'lists'] as const;
 export type BuiltInFacet = (typeof BUILT_IN_FACETS)[number];
 
@@ -32,7 +32,6 @@ export interface Facet extends Meta {
   key?: BuiltInFacet;
   /** The owner's name for it; empty on a starting facet not renamed yet (D-30). */
   name: string;
-  kind: FacetKind;
   /** Order in the filter panel, lowest first. */
   order: number;
 }
@@ -46,9 +45,7 @@ export type LabelColor = (typeof LABEL_COLORS)[number];
 
 export interface Label extends Meta {
   facetId: string;
-  /** Tree facets only: the parent label; at most two levels (D-15). */
-  parentId?: string;
-  /** The owner's name for it, as typed (D-30). */
+  /** The owner's name for it, as typed (D-30). One level: no parent label (D-35). */
   name: string;
   color: LabelColor;
   /** Other words that find this label, e.g. "Foto" for Photographer (FR-06). */
@@ -126,7 +123,6 @@ export function newDirectory(googleSub: string): DirectoryDoc {
     ...meta(FACET_IDS[key]),
     key,
     name: '',
-    kind: key === 'category' ? 'tree' : 'flat',
     order: i + 1,
   }));
   return {

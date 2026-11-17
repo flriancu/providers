@@ -7,18 +7,7 @@ import { labelById } from './labels';
 import { addRecord, deleteRecord, updateRecord, type EditContext } from './records';
 import { FACET_IDS, LABEL_COLORS, live, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
 
-export type EditErrorCode =
-  | 'nameRequired'
-  | 'labelNameTaken'
-  | 'notATreeFacet'
-  | 'parentInOtherFacet'
-  | 'tooDeep'
-  | 'hasSubLabels'
-  | 'sameLabel'
-  | 'otherFacet'
-  | 'logTextRequired'
-  | 'badDate'
-  | 'notFound';
+export type EditErrorCode = 'nameRequired' | 'labelNameTaken' | 'sameLabel' | 'otherFacet' | 'logTextRequired' | 'badDate' | 'notFound';
 
 export class EditError extends Error {
   constructor(readonly code: EditErrorCode) {
@@ -139,12 +128,10 @@ function cleanName(name: string): string {
   return clean;
 }
 
-/** Two labels with the same parent in one facet may not share a name (ignoring case and diacritics). */
-function assertNameFree(doc: DirectoryDoc, facetId: string, parentId: string | undefined, name: string, except?: string) {
+/** Two labels in one facet may not share a name (ignoring case and diacritics). */
+function assertNameFree(doc: DirectoryDoc, facetId: string, name: string, except?: string) {
   const wanted = fold(name);
-  const clash = live(doc.labels).some(
-    (l) => l.id !== except && l.facetId === facetId && l.parentId === parentId && fold(l.name) === wanted,
-  );
+  const clash = live(doc.labels).some((l) => l.id !== except && l.facetId === facetId && fold(l.name) === wanted);
   if (clash) throw new EditError('labelNameTaken');
 }
 
@@ -156,36 +143,22 @@ export function nextColor(doc: DirectoryDoc, facetId: string): LabelColor {
   return LABEL_COLORS.find((c) => used.get(c) === fewest)!;
 }
 
-/** Where a label may hang: in a tree facet, under a top-level label of the same facet (D-15: two levels). */
-function assertParent(doc: DirectoryDoc, facetId: string, parentId: string | undefined, self?: string) {
-  if (parentId === undefined) return;
-  const facet = doc.facets[facetId];
-  if (!facet || facet.kind !== 'tree') throw new EditError('notATreeFacet');
-  const parent = labelById(doc, parentId);
-  if (!parent || parentId === self) throw new EditError('notFound');
-  if (parent.facetId !== facetId) throw new EditError('parentInOtherFacet');
-  if (parent.parentId !== undefined) throw new EditError('tooDeep');
-  if (self && live(doc.labels).some((l) => l.parentId === self)) throw new EditError('tooDeep');
-}
-
 const cleanAliases = (aliases: string[]) => cleanList(aliases);
 
 export function createLabel(
   doc: DirectoryDoc,
-  input: { facetId: string; parentId?: string; name: string; color?: LabelColor; aliases?: string[] },
+  input: { facetId: string; name: string; color?: LabelColor; aliases?: string[] },
   ctx: EditContext,
 ): { doc: DirectoryDoc; id: string } {
   const facet = doc.facets[input.facetId];
   if (!facet || facet.deleted) throw new EditError('notFound');
   const name = cleanName(input.name);
-  assertParent(doc, input.facetId, input.parentId);
-  assertNameFree(doc, input.facetId, input.parentId, name);
+  assertNameFree(doc, input.facetId, name);
   return addRecord(
     doc,
     'labels',
     {
       facetId: input.facetId,
-      ...(input.parentId && { parentId: input.parentId }),
       name,
       color: input.color ?? nextColor(doc, input.facetId),
       aliases: cleanAliases(input.aliases ?? []),
@@ -209,26 +182,14 @@ export function renameLabel(
   const label = labelById(doc, id);
   if (!label) throw new EditError('notFound');
   const clean = cleanName(name);
-  assertNameFree(doc, label.facetId, label.parentId, clean, id);
+  assertNameFree(doc, label.facetId, clean, id);
   return updateRecord(doc, 'labels', id, { name: clean, color, aliases: cleanAliases(aliases) }, ctx);
-}
-
-/** Moves a label under another top-level label of its facet, or to the top (`parentId` undefined). */
-export function moveLabel(doc: DirectoryDoc, id: string, parentId: string | undefined, ctx: EditContext): DirectoryDoc {
-  const label = labelById(doc, id);
-  if (!label) throw new EditError('notFound');
-  assertParent(doc, label.facetId, parentId, id);
-  assertNameFree(doc, label.facetId, parentId, label.name, id);
-  const moved = updateRecord(doc, 'labels', id, parentId ? { parentId } : {}, ctx);
-  if (parentId !== undefined) return moved;
-  const { parentId: _gone, ...rest } = moved.labels[id]!;
-  return { ...moved, labels: { ...moved.labels, [id]: rest } };
 }
 
 /**
  * Merges `fromId` into `intoId` (FR-08): every provider with the first gets the second, the
- * first's names become the second's aliases, its sub-labels move under the second, its shares
- * point at the second, and the first is deleted.
+ * first's names become the second's aliases, its shares point at the second, and the first is
+ * deleted.
  */
 export function mergeLabels(doc: DirectoryDoc, fromId: string, intoId: string, ctx: EditContext): DirectoryDoc {
   const from = labelById(doc, fromId);
@@ -236,10 +197,6 @@ export function mergeLabels(doc: DirectoryDoc, fromId: string, intoId: string, c
   if (!from || !into) throw new EditError('notFound');
   if (fromId === intoId) throw new EditError('sameLabel');
   if (from.facetId !== into.facetId) throw new EditError('otherFacet');
-  // Sub-labels move under the target, which must be top-level to keep two levels (D-15). This
-  // also refuses merging a label into one of its own sub-labels.
-  const children = live(doc.labels).filter((l) => l.parentId === fromId);
-  if (children.length && into.parentId !== undefined) throw new EditError('tooDeep');
 
   let out = doc;
   for (const p of live(doc.providers)) {
@@ -248,7 +205,6 @@ export function mergeLabels(doc: DirectoryDoc, fromId: string, intoId: string, c
     const primary = p.primaryCategoryId === fromId ? intoId : p.primaryCategoryId;
     out = updateRecord(out, 'providers', p.id, { labelIds, ...(primary && { primaryCategoryId: primary }) }, ctx);
   }
-  for (const child of children) out = updateRecord(out, 'labels', child.id, { parentId: intoId }, ctx);
   for (const s of live(doc.shares)) if (s.labelId === fromId) out = updateRecord(out, 'shares', s.id, { labelId: intoId }, ctx);
   const target = labelById(out, intoId)!;
   const aliases = cleanAliases([...target.aliases, from.name, ...from.aliases]).filter((a) => fold(a) !== fold(target.name));
@@ -256,11 +212,10 @@ export function mergeLabels(doc: DirectoryDoc, fromId: string, intoId: string, c
   return deleteRecord(out, 'labels', fromId, ctx);
 }
 
-/** Deletes a label without sub-labels: it leaves every provider and its shares end (owner decides, D-22). */
+/** Deletes a label: it leaves every provider, and its shares end (owner decides, D-22). */
 export function deleteLabel(doc: DirectoryDoc, id: string, ctx: EditContext): DirectoryDoc {
   const label = labelById(doc, id);
   if (!label) throw new EditError('notFound');
-  if (live(doc.labels).some((l) => l.parentId === id)) throw new EditError('hasSubLabels');
   let out = doc;
   for (const p of live(doc.providers)) {
     if (!p.labelIds.includes(id)) continue;
@@ -275,7 +230,6 @@ export function deleteLabel(doc: DirectoryDoc, id: string, ctx: EditContext): Di
   return deleteRecord(out, 'labels', id, ctx);
 }
 
-/** A new flat facet, after the others (D-15: the owner can add facets). */
 /**
  * A new flat facet, after the others (D-15: the owner can add facets). Its name may not repeat
  * another facet's, nor a starting facet's built-in English word (category, area, source, lists).
@@ -285,7 +239,7 @@ export function createFacet(doc: DirectoryDoc, name: string, ctx: EditContext): 
   const taken = live(doc.facets).some((f) => [f.name, f.key ?? ''].some((n) => n !== '' && fold(n) === fold(clean)));
   if (taken) throw new EditError('labelNameTaken');
   const order = Math.max(0, ...live(doc.facets).map((f) => f.order)) + 1;
-  return addRecord(doc, 'facets', { name: clean, kind: 'flat', order }, ctx);
+  return addRecord(doc, 'facets', { name: clean, order }, ctx);
 }
 
 /** Renames a facet; a starting facet renamed shows the owner's name from then on (D-30). */
