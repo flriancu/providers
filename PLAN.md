@@ -21,7 +21,7 @@ reads them as top-level labels. The phase results below describe each phase as i
 | 5 | Drive storage, sync, device copy | Done 2026-11-17; the owner signed in with the real account |
 | 6 | Import, export, duplicates, seed import | Not started |
 | 7 | Sharing | Not started |
-| 8 | One-off contact lookup for the seed vendors | Not started |
+| 8 | One-off contact lookup for the seed vendors | Lookup done 2026-11-17; owner's row approval open |
 | 9 | Romanian, accessibility, acceptance, deploy | Not started |
 
 ## Phase 0a: Shared package drive-doc-sync, planner moved onto it
@@ -277,6 +277,23 @@ NFR-01, NFR-03.
 - Owner approves rows; approved values are imported through the Phase 6 preview.
 
 Deliverable: contact details on the seed vendors. Verifies: FR-26, D-08.
+
+Result 2026-11-17:
+
+- Route (D-39): a pilot of 10 vendors with standard web search found 1; extended search found 6
+  of 10. The fair organiser's directory (allweddings.ro) then gave the best source: an index of
+  its 438 supplier profiles (`seed/lookup/allweddings-index.csv`), matched to the board's names
+  by `seed/match-allweddings.mjs` (78 exact, 47 likely), the unclear ones confirmed by the owner.
+- Results: 146 of 162 board entries have at least one value (125 websites, 86 phones, 60
+  emails, 136 Instagram, 57 TikTok, 100 AllWeddings profiles); 16 have nothing found.
+- The owner settled every unclear match (`seed/lookup/decisions.csv`, 34 decisions);
+  `seed/merge-contacts.mjs` builds `seed/contacts_review.csv` from the lookup batches and the
+  decisions, with the names as printed on the board and an `approved` column.
+- Limits met: the web search tool allows 200 searches per turn shared by all agents; batches 5
+  and 6 and one pass were cut short by it and finished through the directory instead.
+- The gathered contacts (`seed/lookup/`, `seed/contacts_review.csv`) stay on the owner's machine and
+  out of the public repository (`.gitignore`), as the directory is private (D-01).
+- Open: the owner approves the rows; Phase 6 imports the approved ones through its preview.
 
 ## Phase 9: Romanian, accessibility, acceptance, deploy
 

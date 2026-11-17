@@ -4,3 +4,7 @@ coverage/
 test-results/
 playwright-report/
 *.local
+
+# Gathered vendor contacts: kept on this machine only; the directory is private (D-01).
+seed/contacts_review.csv
+seed/lookup/

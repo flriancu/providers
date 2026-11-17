@@ -120,6 +120,12 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-39 Answers Q-04. The seed vendors' contact details come from: the supplier profiles of
+  AllWeddings (allweddings.ro, the fair organiser's directory; robots.txt allows it; the owner
+  pointed to it), matched to the board's names by a script and confirmed by the owner where
+  unclear; the vendors' own websites; and the results of this environment's web search tool
+  (not automated Google queries). Social networks and other directories are linked, never
+  fetched. (2026-11-17, owner)
 - D-38 Settings live in header menus, so the header stays one row: signed in, the account menu
   holds language and theme; signed out, a Settings menu beside "Sign in" holds them. Both
   placements were rendered at 750 and 390 px before the choice. (2026-11-17, owner)
@@ -286,7 +292,7 @@ interaction log; language switch; CSV import and export; phone browser.
 - Q-03 Closed 2026-11-16 by D-21: no AWS compute needed. (Earlier answer: S3; S3 serves static
   files only ([S3 website hosting](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html)).)
   DNS for the subdomain stays with the owner's existing provider.
-- Q-04 Contact lookup source. Owner answer 2026-11-16: Google, then the vendors' own links where
+- Q-04 Closed 2026-11-17 by D-39. Contact lookup source. Owner answer 2026-11-16: Google, then the vendors' own links where
   needed. Constraint: automated queries to Google Search without express permission violate
   Google's spam policies
   ([Spam policies](https://support.google.com/webmasters/answer/66357?hl=en)), and the Custom
