@@ -352,13 +352,31 @@ a {
   padding-right: 0.25rem;
 }
 
-.icon-link {
+/* Quiet next to the coloured label chips; the link colour on hover and keyboard focus. */
+.icon-link,
+.icon-slot {
   display: inline-grid;
   place-items: center;
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
+}
+
+.icon-link {
+  color: var(--muted);
+}
+
+.icon-link:hover,
+.icon-link:focus-visible {
   color: var(--accent);
+}
+
+/*
+ * An action the provider lacks keeps its place, drawn barely visible: it does nothing, and the
+ * gap still says "no email" at a glance. WCAG 1.4.11 exempts it: it is not a control.
+ */
+.icon-slot {
+  color: var(--border);
 }
 
 .icon-link:hover {

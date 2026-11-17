@@ -279,7 +279,9 @@ Result 2026-11-17:
 - Open: the owner signs in and imports `seed/import.csv` through the preview.
 - After the owner's review, 2026-11-17: each list row has one-tap actions on the right (call,
   website, Instagram, TikTok; Lucide and Simple Icons glyphs, each link named in full); in a
-  narrow list they go on their own line under the row.
+  narrow list they go on their own line under the row. Then: no contact text line (the icons replace it),
+  an email action, fixed slots per kind so the icons line up in columns (a missing one drawn
+  barely visible), muted grey icons, the link colour on hover (owner's choices from renders).
 
 ## Phase 7: Sharing
 

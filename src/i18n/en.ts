@@ -237,6 +237,7 @@ export const en = {
   'import.keepExisting': 'Keep “{value}”',
   'import.useIncoming': 'Use “{value}” from the file',
   'quick.call': 'Call {phone}',
+  'quick.email': 'Write to {email}',
   'quick.website': 'Open the website {site}',
   'quick.instagram': 'Open Instagram: {handle}',
   'quick.tiktok': 'Open TikTok: {handle}',

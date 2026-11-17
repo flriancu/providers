@@ -2,7 +2,7 @@
  * Icons for a provider's quick actions, drawn in the text colour and hidden from screen readers
  * (the link around each one carries its name).
  *
- * Phone and globe: Lucide 1.67.0 (lucide-static), ISC License, Copyright (c) 2026 Lucide Icons and
+ * Phone, mail and globe: Lucide 1.67.0 (lucide-static), ISC License, Copyright (c) 2026 Lucide Icons and
  * Contributors; permission to use, copy, modify and distribute is granted provided this notice
  * is kept. Instagram and TikTok: Simple Icons 16.36.0, CC0 1.0; the marks themselves belong to
  * their owners and are used only to link to the provider's profile on that network.
@@ -29,6 +29,13 @@ function Svg({ children, filled = false }: { children: React.ReactNode; filled?:
 export const PhoneIcon = () => (
   <Svg>
     <path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384" />
+  </Svg>
+);
+
+export const MailIcon = () => (
+  <Svg>
+    <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+    <rect x="2" y="4" width="20" height="16" rx="2" />
   </Svg>
 );
 

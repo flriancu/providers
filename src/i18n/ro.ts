@@ -244,6 +244,7 @@ export const ro: Record<MessageKey, string> = {
   'import.keepExisting': 'Păstrează „{value}”',
   'import.useIncoming': 'Folosește „{value}” din fișier',
   'quick.call': 'Sună la {phone}',
+  'quick.email': 'Scrie la {email}',
   'quick.website': 'Deschide site-ul {site}',
   'quick.instagram': 'Deschide Instagram: {handle}',
   'quick.tiktok': 'Deschide TikTok: {handle}',

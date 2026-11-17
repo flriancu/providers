@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { facetCounts, liveSelection, type Selection } from '../domain/filter';
 import { effectiveLabels, labelById } from '../domain/labels';
-import { firstLinks } from '../domain/links';
 import { live, type DirectoryDoc, type Provider } from '../domain/schema';
 import { ProviderSearch } from '../domain/search';
 import { useI18n } from '../i18n';
@@ -27,14 +26,6 @@ function rowLabels(doc: DirectoryDoc, p: Provider): string[] {
     .filter((id) => id !== main)
     .sort((a, b) => (order.get(labelById(doc, a)!.facetId) ?? 99) - (order.get(labelById(doc, b)!.facetId) ?? 99));
   return main ? [main, ...rest] : rest;
-}
-
-/** A web address without its scheme and "www.", short enough for a list row. */
-function shortLink(link: string): string {
-  return link
-    .replace(/^https?:\/\//i, '')
-    .replace(/^www\./i, '')
-    .replace(/\/$/, '');
 }
 
 /**
@@ -125,8 +116,6 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
           ) : (
             <ul className="provider-list">
               {shown.map((p) => {
-                const site = firstLinks(p.links).website;
-                const contacts = [p.phones[0], p.emails[0], site && shortLink(site)].filter(Boolean);
                 return (
                   <li key={p.id}>
                     <a
@@ -146,7 +135,6 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
                           </LabelChip>
                         ))}
                       </span>
-                      {contacts.length > 0 && <span className="row-line muted small">{contacts.join(' · ')}</span>}
                     </a>
                     <QuickActions provider={p} />
                   </li>

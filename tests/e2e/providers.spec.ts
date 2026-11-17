@@ -260,10 +260,11 @@ test('on a phone, the list and a provider take turns, and Back returns to the li
   await expect(page.getByRole('region', { name: 'Providers' })).toBeVisible();
 });
 
-test('each row offers a call and its website, named in full, opening the site apart from the app', async ({ page }) => {
+test('each row offers a call, an email and its website, named in full, opening the site apart from the app', async ({ page }) => {
   const row = page.locator('.provider-list li').filter({ hasText: 'Sample Photo Studio' });
   const call = row.getByRole('link', { name: 'Call +40 000 000 000' });
   await expect(call).toHaveAttribute('href', 'tel:+40000000000');
+  await expect(row.getByRole('link', { name: 'Write to hello@example.com' })).toHaveAttribute('href', 'mailto:hello@example.com');
   const site = row.getByRole('link', { name: 'Open the website https://www.example.com' });
   await expect(site).toHaveAttribute('href', 'https://www.example.com');
   await expect(site).toHaveAttribute('target', '_blank');
