@@ -3,7 +3,7 @@ import { NO_LABEL, type FacetCounts, type Selection } from '../domain/filter';
 import { labelById } from '../domain/labels';
 import type { DirectoryDoc, Facet, Label } from '../domain/schema';
 import { useI18n } from '../i18n';
-import { ColorDot, LabelChip } from './LabelChip';
+import { LabelChip } from './LabelChip';
 import { facetName, facetLabels, labelName, orderedFacets } from './labelText';
 
 /** Values shown per facet before "Show all": research says about 8 (docs/research, facet UI design). */
@@ -76,8 +76,8 @@ function FacetFilter({
               aria-label={`${valueName}, ${plural('providers', count)}`}
               onChange={(e) => toggle(facet.id, r.id, e.target.checked)}
             />
-            {r.label ? <ColorDot color={r.label.color} /> : <span className="dot none" aria-hidden="true" />}
-            <span className="value-name">{valueName}</span>
+            {/* A label shows as its chip, as in the list; "No <group>" is plain text. */}
+            <span className="value-name">{r.label ? <LabelChip color={r.label.color}>{valueName}</LabelChip> : valueName}</span>
             <span className="value-count">{count}</span>
           </label>
         );

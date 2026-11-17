@@ -233,6 +233,7 @@ export const en = {
   'import.keepBoth': 'Keep both',
   'import.skip': 'Leave this row out',
   'import.mergeInto': 'Merge into {name}',
+  'import.mergeAllSameName': 'Merge {rows} into the provider with the same name',
   'import.mergeHelp': 'Phones, emails, links and labels are combined. Where both have a different value, choose which one stays.',
   'import.keepExisting': 'Keep “{value}”',
   'import.useIncoming': 'Use “{value}” from the file',

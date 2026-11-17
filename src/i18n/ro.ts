@@ -240,6 +240,7 @@ export const ro: Record<MessageKey, string> = {
   'import.keepBoth': 'Păstrează-le pe amândouă',
   'import.skip': 'Lasă deoparte acest rând',
   'import.mergeInto': 'Unește cu {name}',
+  'import.mergeAllSameName': 'Unește {rows} cu furnizorul cu același nume',
   'import.mergeHelp': 'Telefoanele, e-mailurile, linkurile și etichetele se combină. Unde amândoi au valori diferite, alege care rămâne.',
   'import.keepExisting': 'Păstrează „{value}”',
   'import.useIncoming': 'Folosește „{value}” din fișier',

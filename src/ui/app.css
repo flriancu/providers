@@ -1168,11 +1168,6 @@ details.add-label summary {
   opacity: 0.6;
 }
 
-.dot.none {
-  background: none;
-  border: 2px dashed var(--muted);
-}
-
 /* The filters over the page: full screen on a phone, a side panel from 600 px. */
 .sheet-layer {
   position: fixed;

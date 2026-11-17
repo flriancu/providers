@@ -55,3 +55,17 @@ test('previews an import, waits for a choice on a possible duplicate, then merge
   await expect(detail.getByText('Met at the fair')).toBeVisible();
   await expect(detail.getByText('AllWeddings Fest 2026', { exact: true })).toBeVisible();
 });
+
+test('updates several providers from a file in one click: rows merged into the providers with the same name', async ({ page }) => {
+  await openData(page);
+  await chooseCsv(page, 'Name\nLagoo\n'); // no category yet, as the exhibitors without one
+  await page.getByRole('button', { name: 'Import 1 provider' }).click();
+  await chooseCsv(page, 'Name,Main category,Category\nSample Photo Studio,Foto,Foto\nLagoo,Locatii,Locatii\n');
+  const preview = page.getByLabel('What importing vendors.csv would do');
+  await preview.getByRole('button', { name: 'Merge 2 rows into the provider with the same name' }).click();
+  await preview.getByRole('button', { name: 'Import 2 providers' }).click();
+  await expect(page.getByText('Imported: 0 providers added, 2 providers merged, 0 rows left out; 2 labels created.')).toBeVisible();
+  await page.getByRole('link', { name: 'Back to the list' }).click();
+  const lagoo = page.locator('.provider-list li').filter({ hasText: 'Lagoo' });
+  await expect(lagoo.locator('.chip').first()).toHaveText('Locatii'); // the main category first
+});

@@ -97,6 +97,21 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
     setChoices(next.rows.map(defaultChoice));
   };
   const choose = (i: number, c: ImportChoice) => setChoices((cs) => cs.map((x, j) => (j === i ? c : x)));
+  /**
+   * Rows still waiting whose only look-alike is one provider with the same name, and not an
+   * earlier row: updating providers from a file (new labels, more contacts) is then one click.
+   */
+  const sameName = plan
+    ? plan.rows.flatMap((r, i) =>
+        choices[i] === null && !r.sameAsRow && r.duplicates.length === 1 && r.duplicates[0]!.reasons.includes('name')
+          ? [{ i, into: r.duplicates[0]!.provider.id }]
+          : [],
+      )
+    : [];
+  const mergeSameName = () =>
+    setChoices((cs) =>
+      cs.map((c, i) => (sameName.find((s) => s.i === i) ? { kind: 'merge', into: sameName.find((s) => s.i === i)!.into, keep: {} } : c)),
+    );
   const open = choices.filter((c) => c === null).length;
   const kept = plan ? plan.rows.filter((r, i) => !r.problem && choices[i] && choices[i]!.kind !== 'skip').length : 0;
 
@@ -196,6 +211,13 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
               {groups.doubt.length > 0 && (
                 <>
                   <h4>{t('import.doubtHeading', { rows: plural('rows', groups.doubt.length) })}</h4>
+                  {sameName.length > 1 && (
+                    <p>
+                      <button type="button" className="secondary" onClick={mergeSameName}>
+                        {t('import.mergeAllSameName', { rows: plural('rows', sameName.length) })}
+                      </button>
+                    </p>
+                  )}
                   <ol className="import-rows">
                     {groups.doubt.map(([row, i]) => (
                       <DoubtRow key={row.line} doc={doc} row={row} choice={choices[i] ?? null} choose={(c) => choose(i, c)} />
