@@ -463,6 +463,8 @@ button,
 .button {
   display: inline-flex;
   align-items: center;
+  /* A button wider than its content (a fixed-size icon button) keeps the content centred. */
+  justify-content: center;
   min-height: 2.75rem;
   padding: 0 var(--space-2);
   border: 1px solid var(--accent);
