@@ -10,7 +10,7 @@ test('back to the list returns to where the list was scrolled, and a provider op
   for (let i = 1; i <= 30; i++) {
     await page.getByRole('link', { name: 'Add a provider' }).click();
     await page.getByLabel('Name', { exact: true }).fill(`Provider ${String(i).padStart(2, '0')}`);
-    await page.getByRole('button', { name: 'Save' }).click();
+    await page.getByRole('button', { name: 'Save the provider' }).click();
     await page.getByRole('link', { name: 'Back to the list' }).click();
   }
 
@@ -37,7 +37,7 @@ test('back to the list returns to where the list was scrolled, and a provider op
 test('the Labels page opens at its top, however far down the page before was scrolled', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 600 });
   await page.goto('./#/new');
-  await page.getByRole('button', { name: 'Save' }).scrollIntoViewIfNeeded();
+  await page.getByRole('button', { name: 'Save the provider' }).scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
   await page.getByRole('link', { name: 'Labels' }).click();
   await expect(page.getByRole('region', { name: 'Category', exact: true })).toBeVisible();

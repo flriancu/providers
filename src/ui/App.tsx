@@ -3,8 +3,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { STORAGE_PREFIX } from '../config';
 import { I18nProvider, useI18n, type Lang } from '../i18n';
 import './app.css';
-import { AccountBar, LoadError, SaveStatus } from './AccountBar';
+import { AccountBar, LoadError, SaveAlert, SaveStatus } from './AccountBar';
 import { signInMessage } from './driveErrors';
+import { ActionErrors, ErrorBoundary } from './ErrorBoundary';
 import { LabelsPage } from './LabelsPage';
 import { ProvidersPage } from './ProvidersPage';
 import { href, useRoute } from './route';
@@ -42,7 +43,9 @@ export function App() {
 
   return (
     <I18nProvider lang={lang} setLang={setLang}>
-      <Shell />
+      <ErrorBoundary kind="app">
+        <Shell />
+      </ErrorBoundary>
     </I18nProvider>
   );
 }
@@ -81,9 +84,11 @@ function Directory({ connection }: { connection: Connection }) {
             {t('nav.labels')}
           </a>
         </nav>
-        {account.kind === 'google' && doc && <SaveStatus saveState={saveState} saveError={saveError} account={account} sync={sync} />}
+        {account.kind === 'google' && doc && <SaveStatus saveState={saveState} />}
         <AccountBar account={account} />
       </header>
+      {account.kind === 'google' && doc && <SaveAlert saveState={saveState} saveError={saveError} account={account} sync={sync} />}
+      <ActionErrors />
       {account.kind === 'demo' && (
         <p className="demo-note" role="note">
           {t(account.unsavedOnDevice ? 'auth.unsavedOnDevice' : 'app.demo')}
@@ -111,11 +116,10 @@ function Directory({ connection }: { connection: Connection }) {
         {loadError && !offline ? (
           <LoadError error={loadError} account={account} sync={sync} />
         ) : doc ? (
-          onLabels ? (
-            <LabelsPage doc={doc} apply={apply} />
-          ) : (
-            <ProvidersPage doc={doc} apply={apply} route={route} />
-          )
+          // A page that fails to draw leaves the header and the other pages working.
+          <ErrorBoundary kind="page" resetKey={location.hash}>
+            {onLabels ? <LabelsPage doc={doc} apply={apply} /> : <ProvidersPage doc={doc} apply={apply} route={route} />}
+          </ErrorBoundary>
         ) : (
           <p className="load-state">{t('load.opening')}</p>
         )}

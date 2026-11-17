@@ -49,6 +49,8 @@ html {
 
 body {
   margin: 0;
+  /* A long word or address breaks rather than overflowing (only when it would overflow). */
+  overflow-wrap: break-word;
   background: var(--page);
   color: var(--text);
   font-family:
@@ -784,7 +786,7 @@ details.add-label summary {
   min-height: 2.25rem;
 }
 
-/* 36 px tap areas in these dense rows: above WCAG 2.5.8's 24 px minimum. */
+/* tap areas of about 40 px (2.25rem on the 18 px base) in these dense rows: above WCAG 2.5.8's 24 px minimum. */
 .facet-section .link-button,
 .facet-section details.add-label summary {
   min-height: 2.25rem;
@@ -875,6 +877,21 @@ details.add-label summary {
 
 .add-in-form {
   margin-top: var(--space-1);
+}
+
+/* A save that failed, and an error from an action: the danger colour, beside the notice style. */
+.notice-error {
+  border-color: var(--danger);
+  background: var(--surface);
+}
+
+.notice-error .detail {
+  flex-basis: 100%;
+  color: var(--muted);
+}
+
+.crash h1 {
+  font-size: 1.4rem;
 }
 
 .app-header .lang {

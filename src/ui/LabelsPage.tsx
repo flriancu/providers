@@ -210,7 +210,7 @@ function LabelEditor({ doc, apply, label, done }: { doc: DirectoryDoc; apply: Ap
         <AliasesField value={aliases} set={setAliases} />
         <ErrorText code={error} />
         <div className="actions">
-          <button type="submit">{t('form.save')}</button>
+          <button type="submit">{t('labels.saveLabel')}</button>
           <button type="button" className="secondary" onClick={done}>
             {t('form.cancel')}
           </button>
@@ -315,7 +315,7 @@ function RenameFacet({ apply, facet, done }: { apply: Apply; facet: Facet; done:
       <NameField value={name} set={setName} label={t('labels.facetName')} />
       <ErrorText code={error} />
       <div className="actions">
-        <button type="submit">{t('form.save')}</button>
+        <button type="submit">{t('labels.saveName')}</button>
         <button type="button" className="secondary" onClick={done}>
           {t('form.cancel')}
         </button>

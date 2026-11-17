@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hasLocalWins, merge } from '../../src/domain/merge';
-import { deleteRecord, nextStamp, updateRecord } from '../../src/domain/records';
+import { deleteRecord, nextStamp, restoreRecord, updateRecord } from '../../src/domain/records';
 import { newDirectory } from '../../src/domain/schema';
 import { OWNER, provider, testContext, weddingDirectory } from './fixture';
 
@@ -30,6 +30,16 @@ describe('edits', () => {
     const laptop = deleteRecord(doc, 'providers', providers.lagoo, testContext(OWNER, Date.UTC(2026, 10, 18)));
     expect(merge(phone, laptop).providers[providers.lagoo]!.deleted).toBe(true);
     expect(merge(laptop, phone).providers[providers.lagoo]!.deleted).toBe(true);
+  });
+
+  it('brings back a deleted record with a newer stamp, so the undo reaches other devices too', () => {
+    const { doc, providers } = weddingDirectory();
+    const deleted = deleteRecord(doc, 'providers', providers.lagoo, testContext(OWNER, Date.UTC(2026, 10, 18)));
+    const back = restoreRecord(deleted, 'providers', providers.lagoo, testContext(OWNER, Date.UTC(2026, 10, 19)));
+    expect(back.providers[providers.lagoo]!.deleted).toBeUndefined();
+    expect(back.providers[providers.lagoo]!.updatedAt > deleted.providers[providers.lagoo]!.updatedAt).toBe(true);
+    expect(merge(deleted, back).providers[providers.lagoo]!.deleted).toBeUndefined();
+    expect(restoreRecord(doc, 'providers', providers.lagoo, testContext())).toBe(doc); // not deleted: unchanged
   });
 
   it('refuses to update a record that is not there', () => {

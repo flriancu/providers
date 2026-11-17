@@ -10,7 +10,7 @@ async function addLabel(section: Locator, en: string, extra: { color?: string; a
   await form.getByLabel('Name', { exact: true }).fill(en);
   if (extra.color) await form.getByRole('radio', { name: extra.color }).check();
   if (extra.aliases) await form.getByLabel('Other words that find it').fill(extra.aliases);
-  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await form.getByRole('button', { name: 'Add the label', exact: true }).click();
 }
 
 /** A label's name as shown in its row (not the same word in a drop-down list). */
@@ -57,7 +57,7 @@ test('one editor renames, recolours, merges and deletes a label (FR-06, FR-08)',
   await edit(categories, 'Portrait');
   await editor(categories, 'Portrait').getByLabel('Name', { exact: true }).fill('Photographer');
   await editor(categories, 'Portrait').getByRole('radio', { name: 'Teal' }).check();
-  await editor(categories, 'Portrait').getByRole('button', { name: 'Save' }).click();
+  await editor(categories, 'Portrait').getByRole('button', { name: 'Save the label' }).click();
   await expect(categories.locator('.chip[data-color="teal"]', { hasText: 'Photographer' })).toBeVisible();
 
   await edit(categories, 'Video');

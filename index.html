@@ -7,6 +7,22 @@
     <!-- Private pages: never listed by search engines (NFR-02). -->
     <meta name="robots" content="noindex, nofollow" />
     <title>Providers directory</title>
+    <!-- Before the app runs: the opening line in the language chosen on this device, else the browser's. -->
+    <style>
+      .boot {
+        margin: 2rem 1rem;
+        font:
+          1.1rem system-ui,
+          sans-serif;
+      }
+      .boot-ro,
+      html.ro .boot-en {
+        display: none;
+      }
+      html.ro .boot-ro {
+        display: block;
+      }
+    </style>
     <script>
       // Never inside another site's frame (clickjacking): a static host can't send
       // X-Frame-Options, so the page leaves the frame, or stays blank if the frame forbids that.
@@ -16,6 +32,37 @@
           window.top.location = window.location.href;
         } catch {}
       }
+      // If the app's own code fails to load, say so with a way on (the page would stay blank). In
+      // the language chosen on this device, else the browser's. Other sites' scripts (Google's
+      // sign-in, blocked by an extension, say) are not the app: the app handles those itself.
+      window.addEventListener(
+        'error',
+        function (e) {
+          var el = e.target;
+          if (!el || el.tagName !== 'SCRIPT' || el.src.indexOf(location.origin + '/') !== 0) return;
+          var ro = false;
+          try {
+            ro = (localStorage.getItem('providers-directory.lang') || navigator.language).toLowerCase().indexOf('ro') === 0;
+          } catch {}
+          var root = document.getElementById('root');
+          if (!root) return;
+          root.innerHTML =
+            '<p style="margin: 2rem 1rem 1rem; font: 1.1rem system-ui, sans-serif"></p><button type="button" style="margin: 0 1rem; font: 1.1rem system-ui, sans-serif; padding: 0.5rem 1rem"></button>';
+          root.querySelector('p').textContent = ro
+            ? 'Aplicația nu s-a putut încărca. Verifică legătura la internet, apoi reîncarcă pagina.'
+            : 'The app could not load. Check the internet connection, then reload the page.';
+          var button = root.querySelector('button');
+          button.textContent = ro ? 'Reîncarcă pagina' : 'Reload the page';
+          button.addEventListener('click', function () {
+            location.reload();
+          });
+        },
+        true,
+      );
+      try {
+        if ((localStorage.getItem('providers-directory.lang') || navigator.language).toLowerCase().indexOf('ro') === 0)
+          document.documentElement.classList.add('ro');
+      } catch {}
       // The theme before the first paint (D-36), as src/ui/theme.ts applies it: the stored
       // choice, else the device's setting. Without this, a dark page would flash light first.
       (function () {
@@ -29,7 +76,10 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <p class="boot boot-en" lang="en">Opening the providers directory…</p>
+      <p class="boot boot-ro" lang="ro">Se deschide catalogul de furnizori…</p>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

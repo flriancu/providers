@@ -62,8 +62,22 @@ function SettingsMenu() {
   );
 }
 
-/** Whether the latest change is in Google Drive, with the way on when it is not. */
-export function SaveStatus({
+/**
+ * The header's quiet word on saving: "Saving..." or "Saved". It is not a live region, which
+ * would read it out after every edit. A failure shows as SaveAlert, just below the header,
+ * which says it in full; the header stays one row on a phone.
+ */
+export function SaveStatus({ saveState }: { saveState: SaveState }) {
+  const { t } = useI18n();
+  if (saveState === 'error' || saveState === 'signin') return null;
+  return <span className="save-status muted">{t(saveState === 'saving' ? 'save.saving' : 'save.saved')}</span>;
+}
+
+/**
+ * A save that failed, under the header: what happened, where the changes are, and the one thing
+ * to do (try again, or reconnect when the Google session ran out).
+ */
+export function SaveAlert({
   saveState,
   saveError,
   account,
@@ -76,26 +90,32 @@ export function SaveStatus({
 }) {
   const { t } = useI18n();
   const [failed, setFailed] = useState<SignInFailure | null>(null);
+  if (saveState !== 'error' && saveState !== 'signin') return null;
   const reconnect = () =>
     void account.reconnect().then((reason) => {
       setFailed(reason);
       if (!reason) void sync.flush();
     });
   return (
-    <div className="save-status" role="status">
-      {saveState === 'saved' && <span className="muted">{t('save.saved')}</span>}
-      {saveState === 'saving' && <span className="muted">{t('save.saving')}</span>}
-      {saveState === 'error' && (
-        <button type="button" className="secondary" title={t(driveMessage(saveError))} onClick={() => void sync.flush()}>
-          {t('save.retry')}
-        </button>
+    <div className="notice notice-error" role="alert">
+      {saveState === 'error' ? (
+        <>
+          <p>
+            <strong>{t('save.failed')}</strong> {t(driveMessage(saveError))}
+          </p>
+          <button type="button" className="secondary" onClick={() => void sync.flush()}>
+            {t('load.retry')}
+          </button>
+        </>
+      ) : (
+        <>
+          <p>{t('save.expired')}</p>
+          <button type="button" onClick={reconnect}>
+            {t('auth.reconnect')}
+          </button>
+          {failed && <p className="error">{t(signInMessage(failed), { email: account.email })}</p>}
+        </>
       )}
-      {saveState === 'signin' && (
-        <button type="button" onClick={reconnect}>
-          {t('save.signin')}
-        </button>
-      )}
-      {saveState === 'signin' && failed && <span className="error">{t(signInMessage(failed), { email: account.email })}</span>}
     </div>
   );
 }

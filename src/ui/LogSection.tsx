@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { addLogEntry, providerLog, type EditErrorCode } from '../domain/edits';
-import { deleteRecord } from '../domain/records';
+import { deleteRecord, restoreRecord } from '../domain/records';
 import type { DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { DateField } from './DateField';
@@ -12,12 +12,17 @@ function today(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** FR-02: the provider's interaction log, newest first, with a form to add to it. */
+/**
+ * FR-02: the provider's interaction log, newest first, with a form to add to it. Deleting an
+ * entry takes one click and can be undone until the next change here.
+ */
 export function LogSection({ doc, apply, providerId }: { doc: DirectoryDoc; apply: Apply; providerId: string }) {
   const { t, date } = useI18n();
   const [day, setDay] = useState(today);
   const [text, setText] = useState('');
   const [error, setError] = useState<EditErrorCode | null>(null);
+  /** The entry just deleted, while its Undo is offered. */
+  const [deleted, setDeleted] = useState<string | null>(null);
   const ids = useId();
   const entries = providerLog(doc, providerId);
 
@@ -30,7 +35,10 @@ export function LogSection({ doc, apply, providerId }: { doc: DirectoryDoc; appl
           e.preventDefault();
           const code = apply((d, ctx) => addLogEntry(d, providerId, day, text, ctx).doc);
           setError(code);
-          if (!code) setText('');
+          if (!code) {
+            setText('');
+            setDeleted(null);
+          }
         }}
       >
         <DateField label={t('log.date')} value={day} onChange={setDay} />
@@ -47,6 +55,21 @@ export function LogSection({ doc, apply, providerId }: { doc: DirectoryDoc; appl
           <button type="submit">{t('log.add')}</button>
         </div>
       </form>
+      {deleted && (
+        <div className="notice" role="status">
+          <p>{t('log.deleted')}</p>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              apply((d, ctx) => restoreRecord(d, 'log', deleted, ctx));
+              setDeleted(null);
+            }}
+          >
+            {t('log.undo')}
+          </button>
+        </div>
+      )}
       {entries.length === 0 ? (
         <p className="muted">{t('log.empty')}</p>
       ) : (
@@ -55,7 +78,13 @@ export function LogSection({ doc, apply, providerId }: { doc: DirectoryDoc; appl
             <li key={entry.id}>
               <p className="log-date">{date(entry.date)}</p>
               <p className="notes">{entry.text}</p>
-              <button type="button" className="link-button" onClick={() => apply((d, ctx) => deleteRecord(d, 'log', entry.id, ctx))}>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => {
+                  if (!apply((d, ctx) => deleteRecord(d, 'log', entry.id, ctx))) setDeleted(entry.id);
+                }}
+              >
                 {t('log.delete')}
               </button>
             </li>

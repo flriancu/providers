@@ -8,7 +8,7 @@ async function addLabel(page: Page, facet: string, en: string) {
   const form = section.locator('details.add-label');
   if ((await form.getAttribute('open')) === null) await form.locator('summary').click();
   await form.getByLabel('Name', { exact: true }).fill(en);
-  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await form.getByRole('button', { name: 'Add the label', exact: true }).click();
   await expect(section.locator('.label-row strong').getByText(en, { exact: true })).toBeVisible();
 }
 
@@ -17,7 +17,7 @@ async function addProvider(page: Page, name: string, labels: string[] = []) {
   await page.getByRole('link', { name: 'Add a provider' }).click();
   await page.getByLabel('Name', { exact: true }).fill(name);
   for (const l of labels) await page.locator('form.provider-form').getByRole('checkbox', { name: l, exact: true }).check();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save the provider' }).click();
   await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
 }
 
@@ -32,7 +32,7 @@ test('adds a provider with contact details and labels, then edits it (FR-01, FR-
 
   await page.getByRole('link', { name: 'Providers' }).click();
   await page.getByRole('link', { name: 'Add a provider' }).click();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save the provider' }).click();
   await expect(page.getByRole('alert')).toHaveText('Fill in a name.');
 
   await page.getByLabel('Name', { exact: true }).fill('Grădina cu Sălcii');
@@ -51,7 +51,7 @@ test('adds a provider with contact details and labels, then edits it (FR-01, FR-
   const form = page.locator('form.provider-form');
   await form.getByRole('checkbox', { name: 'Video', exact: true }).check();
   await form.getByRole('checkbox', { name: 'Cluj', exact: true }).check();
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save the provider' }).click();
 
   const detail = page.getByRole('article');
   await expect(detail.getByRole('heading', { name: 'Grădina cu Sălcii' })).toBeVisible();
@@ -65,7 +65,7 @@ test('adds a provider with contact details and labels, then edits it (FR-01, FR-
 
   await detail.getByRole('link', { name: 'Edit' }).click();
   await page.getByLabel('Contact person').fill('Ana Popescu');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save the provider' }).click();
   await expect(page.getByRole('article').getByText('Ana Popescu')).toBeVisible();
 });
 
@@ -96,7 +96,7 @@ test('finds a label in the form by typing, and creates a new one only when chose
 
   // A group with no labels shows only the way to add one.
   await expect(form.getByRole('group', { name: 'Lists' }).getByRole('button', { name: '+ Add a label' })).toBeVisible();
-  await form.getByRole('button', { name: 'Save' }).click();
+  await form.getByRole('button', { name: 'Save the provider' }).click();
   await expect(page.getByRole('article').getByText('Cluj', { exact: true })).toBeVisible();
 });
 
@@ -143,11 +143,23 @@ test('closes the calendar with Escape, keeping the day', async ({ page }) => {
   await expect(date).toBeFocused();
 });
 
+test('a deleted log entry comes back with Undo', async ({ page }) => {
+  await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
+  const log = page.getByRole('region', { name: 'Conversations and notes' });
+  await expect(log.getByText('Called to ask about dates and prices.')).toBeVisible();
+  await log.getByRole('button', { name: 'Delete this entry' }).click();
+  await expect(log.getByText('Called to ask about dates and prices.')).toBeHidden();
+  await expect(log.getByText('The entry was deleted.')).toBeVisible();
+  await log.getByRole('button', { name: 'Undo' }).click();
+  await expect(log.getByText('Called to ask about dates and prices.')).toBeVisible();
+  await expect(log.getByRole('button', { name: 'Undo' })).toBeHidden();
+});
+
 test('deletes a provider after asking', async ({ page }) => {
   await addProvider(page, 'Lagoo');
   await page.getByRole('button', { name: 'Delete provider' }).click();
   await expect(page.getByText('Delete Lagoo and their log? This cannot be undone.')).toBeVisible();
-  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete Lagoo', exact: true }).click();
   await expect(page.getByRole('link', { name: /Lagoo/ })).toBeHidden();
   await expect(page.getByRole('link', { name: /Sample Photo Studio/ })).toBeVisible();
 });

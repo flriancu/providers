@@ -136,7 +136,7 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
           )}
         </section>
 
-        <section className="pane detail-pane" aria-live="polite">
+        <section className="pane detail-pane">
           {route.page === 'new' && <ProviderForm doc={doc} apply={apply} />}
           {route.page === 'edit' && <ProviderForm doc={doc} apply={apply} id={route.id} />}
           {route.page === 'provider' && <ProviderDetail doc={doc} apply={apply} id={route.id} />}

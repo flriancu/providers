@@ -236,6 +236,13 @@ Result 2026-11-16:
   to create one when none has the typed name (FR-07; Downshift 9.4.1 combobox); no Cancel above
   the form; the Labels page has no big heading and opens at its top; header texts share one
   centre line. 84 unit tests and 43 end-to-end tests pass.
+- Lessons from the owner's course app (dm), 2026-11-17, first batch: a crash screen for the
+  whole app and a page-level one that keeps the header working; errors from an action shown as a
+  notice; a failed save as an alert that says why, where the change is and what to do (the
+  header word is no longer read out after every edit); Drive messages say where the data is and
+  the next step; buttons name what they act on; empty log says what to do; a deleted log entry
+  can be undone; a loading line, and a reload offer if the app cannot load; a wording test for
+  NFR-08. 86 unit tests and 49 end-to-end tests pass.
 
 ## Phase 6: Import, export, duplicates, seed import
 

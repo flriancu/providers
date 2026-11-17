@@ -56,6 +56,20 @@ export function updateRecord<K extends CollectionKey>(
   return { ...doc, [key]: next };
 }
 
+/**
+ * Brings back a record deleted by mistake (undo): the marker goes, with a new stamp, so the
+ * record returns on every device too. A record that is not deleted is left as it is.
+ */
+export function restoreRecord<K extends CollectionKey>(doc: DirectoryDoc, key: K, id: string, ctx: EditContext): DirectoryDoc {
+  const collection = doc[key] as Record<string, RecordOf<K>>;
+  const before = Object.hasOwn(collection, id) ? collection[id] : undefined;
+  if (!before?.deleted) return doc;
+  const { deleted: _gone, ...rest } = before;
+  const next = { ...collection };
+  put(next, id, { ...rest, updatedAt: nextStamp(doc, ctx.now()), updatedBy: ctx.by } as RecordOf<K>);
+  return { ...doc, [key]: next };
+}
+
 /** Marks a record deleted; the marker merges like any edit, so the delete reaches every device. */
 export function deleteRecord<K extends CollectionKey>(doc: DirectoryDoc, key: K, id: string, ctx: EditContext): DirectoryDoc {
   const collection = doc[key] as Record<string, RecordOf<K>>;

@@ -9,7 +9,7 @@ async function addLabel(page: Page, facet: string, name: string) {
   const form = page.getByRole('region', { name: facet, exact: true }).locator('details.add-label');
   if ((await form.getAttribute('open')) === null) await form.locator('summary').click();
   await form.getByLabel('Name', { exact: true }).fill(name);
-  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await form.getByRole('button', { name: 'Add the label', exact: true }).click();
 }
 
 async function addProvider(page: Page, name: string, labels: string[]) {
@@ -18,7 +18,7 @@ async function addProvider(page: Page, name: string, labels: string[]) {
   const form = page.locator('form.provider-form');
   await form.getByLabel('Name', { exact: true }).fill(name);
   for (const l of labels) await form.getByRole('checkbox', { name: l, exact: true }).check();
-  await form.getByRole('button', { name: 'Save' }).click();
+  await form.getByRole('button', { name: 'Save the provider' }).click();
   await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
 }
 
@@ -105,10 +105,10 @@ test.describe('phones: filters open over the page (D-34)', () => {
     await sheet.getByRole('button', { name: 'Show 2 providers' }).click();
     await expect(sheet).toBeHidden();
     await expect(names(page)).toHaveText(['Flashbox', 'Lagoo']);
-    await expect(page.getByRole('button', { name: 'Filters · 1 chosen' })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Filters (1 chosen)' })).toBeFocused();
 
     // Ticks apply even when the panel is closed with Escape.
-    await page.getByRole('button', { name: 'Filters · 1 chosen' }).click();
+    await page.getByRole('button', { name: 'Filters (1 chosen)' }).click();
     await sheet.getByRole('checkbox', { name: /^Photo,/ }).check();
     await page.keyboard.press('Escape');
     await expect(names(page)).toHaveText(['Flashbox']);

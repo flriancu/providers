@@ -18,12 +18,13 @@ async function addProvider(page: Page, name: string, labels: string[] = []) {
   const form = page.locator('form.provider-form');
   await form.getByLabel('Name', { exact: true }).fill(name);
   for (const l of labels) await form.getByRole('checkbox', { name: l, exact: true }).check();
-  await form.getByRole('button', { name: 'Save' }).click();
+  await form.getByRole('button', { name: 'Save the provider' }).click();
   await expect(page.getByRole('heading', { level: 2, name })).toBeVisible();
 }
 
 const names = (page: Page) => page.locator('.provider-list .provider-name');
-const saved = (page: Page) => page.getByRole('banner').getByRole('status').getByText('Saved');
+/** The header's quiet save word; not a live region, so it is not read out after every edit. */
+const saved = (page: Page) => page.getByRole('banner').getByText('Saved', { exact: true });
 
 test.describe('wide screens', () => {
   test.skip(({ isMobile }) => isMobile, 'storage, not layout: one screen size is enough');
@@ -80,11 +81,16 @@ test.describe('wide screens', () => {
     await expect(saved(page)).toBeVisible();
     drive.failWrites = 1000;
     await addProvider(page, 'Lagoo');
-    const retry = page.getByRole('button', { name: 'Not saved · Try again' });
-    await expect(retry).toBeVisible();
+    // An alert under the header says why, where the change is, and offers to try again.
+    await expect(saved(page)).toBeHidden();
+    const alert = page.getByRole('alert');
+    await expect(alert).toContainText('The last change is not saved in Google Drive yet.');
+    await expect(alert).toContainText('Your changes are kept on this device');
+    const retry = alert.getByRole('button', { name: 'Try again' });
     drive.failWrites = 0;
     await retry.click();
     await expect(saved(page)).toBeVisible();
+    await expect(alert).toBeHidden();
     expect(providerNames(drive.content())).toEqual(['Lagoo']);
   });
 
@@ -144,7 +150,7 @@ test.describe('wide screens', () => {
 test('signed in, the header fits a narrow phone screen', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await open(page, new FakeDrive());
-  await expect(page.getByRole('banner').getByRole('status')).toBeVisible();
+  await expect(saved(page)).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBe(0);
 });

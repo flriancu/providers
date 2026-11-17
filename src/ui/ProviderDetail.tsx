@@ -116,7 +116,7 @@ export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: A
                 if (!apply((d, ctx) => deleteProvider(d, id, ctx))) go({ page: 'list' }, query);
               }}
             >
-              {t('detail.deleteYes')}
+              {t('detail.deleteYes', { name: provider.name })}
             </button>{' '}
             <button type="button" className="secondary" onClick={() => setConfirming(false)}>
               {t('detail.deleteNo')}

@@ -51,3 +51,24 @@ test('the theme is light, dark, or the same as this device, and stays chosen (D-
   await chooseTheme(page, 'light');
   expect(await background()).toBe(light);
 });
+
+test('an error in an action says so and can be dismissed; the page keeps working', async ({ page }) => {
+  await page.goto('./');
+  await page.evaluate(() =>
+    setTimeout(() => {
+      throw new Error('test: a failing click');
+    }),
+  );
+  const alert = page.getByRole('alert');
+  await expect(alert).toContainText('That did not work because of an error in the app.');
+  await alert.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(alert).toBeHidden();
+  await expect(page.getByRole('link', { name: /Sample Photo Studio/ })).toBeVisible();
+});
+
+test('when the app cannot load, the page says so and offers a reload instead of staying blank', async ({ page }) => {
+  await page.route('**/assets/*.js', (route) => route.abort());
+  await page.goto('./');
+  await expect(page.getByText('The app could not load. Check the internet connection, then reload the page.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reload the page' })).toBeVisible();
+});
