@@ -286,6 +286,22 @@ export function mergeLabels(doc: DirectoryDoc, fromId: string, intoId: string, c
   return deleteRecord(out, 'labels', fromId, ctx);
 }
 
+/**
+ * FR-08: a label moved to another facet; its providers keep it. Out of Category, it is no longer
+ * anyone's main category; the facet must not already have a label of that name.
+ */
+export function moveLabel(doc: DirectoryDoc, id: string, facetId: string, ctx: EditContext): DirectoryDoc {
+  const label = labelById(doc, id);
+  const facet = own(doc.facets, facetId);
+  if (!label || !facet || facet.deleted) throw new EditError('notFound');
+  if (facetId === label.facetId) return doc;
+  assertNameFree(doc, facetId, label.name);
+  let out = updateRecord(doc, 'labels', id, { facetId }, ctx);
+  for (const p of live(doc.providers))
+    if (p.primaryCategoryId === id) out = updateRecord(out, 'providers', p.id, { primaryCategoryId: undefined }, ctx);
+  return out;
+}
+
 /** Deletes a label: it leaves every provider, and its shares end (owner decides, D-22). */
 export function deleteLabel(doc: DirectoryDoc, id: string, ctx: EditContext): DirectoryDoc {
   const label = labelById(doc, id);

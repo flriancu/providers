@@ -32,14 +32,19 @@
           window.top.location = window.location.href;
         } catch {}
       }
-      // If the app's own code fails to load, say so with a way on (the page would stay blank). In
-      // the language chosen on this device, else the browser's. Other sites' scripts (Google's
-      // sign-in, blocked by an extension, say) are not the app: the app handles those itself.
+      // If the app's own code fails to load, or loads but does not run (it does not parse in this
+      // browser, it was cut short), say so with a way on (the page would stay on its opening line).
+      // In the language chosen on this device, else the browser's. Other sites' scripts (Google's
+      // sign-in, blocked by an extension, say) are not the app: the app handles those itself, as
+      // it does its own errors once it has started (the opening line is gone).
       window.addEventListener(
         'error',
         function (e) {
           var el = e.target;
-          if (!el || el.tagName !== 'SCRIPT' || el.src.indexOf(location.origin + '/') !== 0) return;
+          var own = location.origin + '/';
+          var notLoaded = el && el.tagName === 'SCRIPT' && el.src.indexOf(own) === 0;
+          var notRun = (e.filename || '').indexOf(own) === 0 && document.querySelector('#root .boot');
+          if (!notLoaded && !notRun) return;
           var ro = false;
           try {
             ro = (localStorage.getItem('providers-directory.lang') || navigator.language).toLowerCase().indexOf('ro') === 0;

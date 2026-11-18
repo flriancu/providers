@@ -95,10 +95,43 @@ export function go(page: Page, query?: ListQuery) {
   location.hash = href(page, query);
 }
 
-/** Changes the list's filters or search without a new history entry per keystroke or tick. */
+/**
+ * How often the address follows typing, at most. Browsers limit history changes: WebKit refuses
+ * more than 100 in 10 seconds (SecurityError) and Firefox drops some, so one per keystroke loses
+ * characters to fast typing or key repeat. The app's route follows every key at once (QUERY_EVENT).
+ */
+const ADDRESS_EVERY_MS = 150;
+/** The route as the app shows it, ahead of the address while the address waits to be written. */
+const QUERY_EVENT = 'providers:query';
+let pendingAddress: string | null = null;
+let addressTimer: ReturnType<typeof setTimeout> | undefined;
+let lastWrite = 0;
+
+function writeAddress() {
+  clearTimeout(addressTimer);
+  if (pendingAddress === null) return;
+  history.replaceState(history.state, '', pendingAddress);
+  pendingAddress = null;
+  lastWrite = Date.now();
+}
+
+/** A real navigation (a link, Back): an address still waiting from the old page must not overwrite it. */
+function dropPendingAddress() {
+  clearTimeout(addressTimer);
+  pendingAddress = null;
+}
+
+/**
+ * Changes the list's filters or search without a new history entry per keystroke or tick: the
+ * app follows at once; the address follows within ADDRESS_EVERY_MS, and when the page is left.
+ */
 export function replaceQuery(page: Page, query: ListQuery) {
-  history.replaceState(history.state, '', href(page, query));
-  window.dispatchEvent(new HashChangeEvent('hashchange'));
+  pendingAddress = href(page, query);
+  window.dispatchEvent(new CustomEvent(QUERY_EVENT, { detail: pendingAddress }));
+  clearTimeout(addressTimer);
+  const wait = lastWrite + ADDRESS_EVERY_MS - Date.now();
+  if (wait <= 0) writeAddress();
+  else addressTimer = setTimeout(writeAddress, wait);
 }
 
 /** The filters' part of a query, as text: two equal ones are the same filters. */
@@ -119,9 +152,20 @@ export function steadyRoute(before: Route, next: Route): Route {
 export function useRoute(): Route {
   const [route, setRoute] = useState(() => parseRoute(location.hash));
   useEffect(() => {
-    const onChange = () => setRoute((before) => steadyRoute(before, parseRoute(location.hash)));
-    window.addEventListener('hashchange', onChange);
-    return () => window.removeEventListener('hashchange', onChange);
+    const follow = (hash: string) => setRoute((before) => steadyRoute(before, parseRoute(hash)));
+    const onHash = () => {
+      dropPendingAddress();
+      follow(location.hash);
+    };
+    const onQuery = (e: Event) => follow((e as CustomEvent<string>).detail);
+    window.addEventListener('hashchange', onHash);
+    window.addEventListener(QUERY_EVENT, onQuery);
+    window.addEventListener('pagehide', writeAddress);
+    return () => {
+      window.removeEventListener('hashchange', onHash);
+      window.removeEventListener(QUERY_EVENT, onQuery);
+      window.removeEventListener('pagehide', writeAddress);
+    };
   }, []);
   return route;
 }

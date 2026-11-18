@@ -4,6 +4,7 @@ import {
   createLabel,
   deleteLabel,
   mergeLabels,
+  moveLabel,
   nextColor,
   renameFacet,
   renameLabel,
@@ -185,6 +186,7 @@ function LabelEditor({ doc, apply, label, done }: { doc: DirectoryDoc; apply: Ap
   const [color, setColor] = useState<LabelColor>(label.color);
   const [aliases, setAliases] = useState(label.aliases.join(', '));
   const [target, setTarget] = useState('');
+  const [group, setGroup] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<EditErrorCode | null>(null);
   const own = labelName(label);
@@ -196,6 +198,7 @@ function LabelEditor({ doc, apply, label, done }: { doc: DirectoryDoc; apply: Ap
     if (!code) done();
   };
   const others = live(doc.labels).filter((l) => l.facetId === label.facetId && l.id !== label.id);
+  const groups = orderedFacets(doc).filter((f) => f.id !== label.facetId);
 
   return (
     <div className="inline-form" role="group" aria-label={t('labels.editLabel', { label: own })}>
@@ -236,6 +239,25 @@ function LabelEditor({ doc, apply, label, done }: { doc: DirectoryDoc; apply: Ap
             </label>
             <button type="submit" className="secondary" disabled={!target}>
               {t('labels.merge')}
+            </button>
+          </form>
+          <form onSubmit={(e) => (e.preventDefault(), run((d, ctx) => moveLabel(d, label.id, group, ctx)))}>
+            <label>
+              {tx('labels.moveTo', { label: chip })}
+              <span className="help">{t('labels.moveHelp')}</span>
+              <select value={group} onChange={(e) => setGroup(e.target.value)}>
+                <option value="" disabled>
+                  {t('labels.chooseGroup')}
+                </option>
+                {groups.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {facetName(f, t)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" className="secondary" disabled={!group}>
+              {t('labels.move')}
             </button>
           </form>
           {confirmDelete ? (

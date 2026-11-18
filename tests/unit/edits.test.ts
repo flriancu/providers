@@ -9,6 +9,7 @@ import {
   EditError,
   emptyProvider,
   mergeLabels,
+  moveLabel,
   nextColor,
   providerLog,
   renameFacet,
@@ -249,5 +250,23 @@ describe('a label this version cannot read', () => {
     const saved = saveProvider(withUnread, p.id, before, { ...before, labelIds: [...before.labelIds, labels.shortlist] }, ctx);
     expect(saved.providers[p.id]!.labelIds).toContain('from-newer');
     expect(saved.providers[p.id]!.labelIds).toContain(labels.shortlist);
+  });
+});
+
+describe('moving a label to another group (FR-08)', () => {
+  it('keeps it on its providers; out of Category, it is no longer a main category', () => {
+    const { doc, ctx, labels, providers } = weddingDirectory();
+    expect(doc.providers[providers.gradina]!.primaryCategoryId).toBe(labels.photo);
+    const moved = moveLabel(doc, labels.photo, FACET_IDS.lists, ctx);
+    expect(moved.labels[labels.photo]!.facetId).toBe(FACET_IDS.lists);
+    expect(moved.providers[providers.gradina]!.labelIds).toContain(labels.photo);
+    expect(moved.providers[providers.gradina]!.primaryCategoryId).toBeUndefined();
+    expect(moveLabel(doc, labels.photo, FACET_IDS.category, ctx)).toBe(doc); // already there
+  });
+
+  it('refuses a group that has a label of that name', () => {
+    const { doc, ctx, labels } = weddingDirectory();
+    const clash = createLabel(doc, { facetId: FACET_IDS.lists, name: 'photo' }, ctx).doc;
+    fails('labelNameTaken', () => moveLabel(clash, labels.photo, FACET_IDS.lists, ctx));
   });
 });

@@ -114,26 +114,29 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
   const [folded, setFolded] = useState<ReadonlySet<number>>(() => new Set());
   const foldSummary = useRef<HTMLElement>(null);
   /**
-   * Rows still waiting whose only look-alike is one provider with the same name, and not an
-   * earlier row: updating providers from a file (new labels, more contacts) is then one click.
+   * Rows still waiting whose only look-alike in the directory is one provider with the same name:
+   * updating providers from a file (new labels, more contacts) is then one click. A row that
+   * repeats an earlier one of the file goes into the same provider, after it.
    */
   const sameName = plan
     ? plan.rows.flatMap((r, i) =>
-        choices[i] === null && !r.sameAsRow && r.duplicates.length === 1 && r.duplicates[0]!.reasons.includes('name')
+        choices[i] === null && r.duplicates.length === 1 && r.duplicates[0]!.reasons.includes('name')
           ? [{ i, into: r.duplicates[0]!.provider.id }]
           : [],
       )
     : [];
-  const mergeSameName = () => {
-    const into = new Map(sameName.map((s) => [s.i, s.into]));
-    // The button disappears with the rows it decided: focus moves to the line they folded into.
+  /** Decides rows at once; they fold into one line, which takes the focus their buttons had. */
+  const decide = (decided: Map<number, ImportChoice>) => {
     flushSync(() => {
-      setChoices((cs) => cs.map((c, i) => (into.has(i) ? { kind: 'merge', into: into.get(i)!, keep: {} } : c)));
-      setFolded((f) => new Set([...f, ...into.keys()]));
+      setChoices((cs) => cs.map((c, i) => decided.get(i) ?? c));
+      setFolded((f) => new Set([...f, ...decided.keys()]));
     });
     foldSummary.current?.focus();
   };
-  const open = choices.filter((c) => c === null).length;
+  const mergeSameName = () => decide(new Map(sameName.map((s) => [s.i, { kind: 'merge', into: s.into, keep: {} }])));
+  const openRows = choices.flatMap((c, i) => (c === null ? [i] : []));
+  const decideOpen = (choice: ImportChoice) => decide(new Map(openRows.map((i) => [i, choice])));
+  const open = openRows.length;
   const kept = plan ? plan.rows.filter((r, i) => !r.problem && choices[i] && choices[i]!.kind !== 'skip').length : 0;
 
   const run = () => {
@@ -249,11 +252,23 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
               {groups.doubt.length > 0 && (
                 <>
                   <h4>{t('import.doubtHeading', { rows: plural('rows', groups.doubt.length) })}</h4>
-                  {sameName.length > 1 && (
-                    <p>
-                      <button type="button" className="secondary" onClick={mergeSameName}>
-                        {t('import.mergeAllSameName', { rows: plural('rows', sameName.length) })}
-                      </button>
+                  {(sameName.length > 1 || open > 1) && (
+                    <p className="actions">
+                      {sameName.length > 1 && (
+                        <button type="button" className="secondary" onClick={mergeSameName}>
+                          {t('import.mergeAllSameName', { rows: plural('rows', sameName.length) })}
+                        </button>
+                      )}
+                      {open > 1 && (
+                        <>
+                          <button type="button" className="secondary" onClick={() => decideOpen({ kind: 'add' })}>
+                            {t('import.addAllOpen', { rows: plural('rows', open), n: open })}
+                          </button>
+                          <button type="button" className="secondary" onClick={() => decideOpen({ kind: 'skip' })}>
+                            {t('import.skipAllOpen', { rows: plural('rows', open), n: open })}
+                          </button>
+                        </>
+                      )}
                     </p>
                   )}
                   {groups.doubt.some(([, i]) => folded.has(i)) && (

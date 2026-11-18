@@ -73,3 +73,10 @@ test('when the app cannot load, the page says so and offers a reload instead of 
   await expect(page.getByText('The app could not load. Check the internet connection, then reload the page.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reload the page' })).toBeVisible();
 });
+
+test('when the app arrives but does not run, the page says so instead of staying on its opening line', async ({ page }) => {
+  await page.route('**/assets/index-*.js', (route) => route.fulfill({ contentType: 'text/javascript', body: 'export const x = ;' }));
+  await page.goto('./');
+  await expect(page.getByText('The app could not load. Check the internet connection, then reload the page.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reload the page' })).toBeVisible();
+});

@@ -120,7 +120,7 @@ function Directory({ connection }: { connection: Connection }) {
           <LoadError error={loadError} account={account} sync={sync} />
         ) : doc ? (
           // A page that fails to draw leaves the header and the other pages working.
-          <ErrorBoundary kind="page" resetKey={location.hash}>
+          <ErrorBoundary kind="page" resetKey={href(route, route.query)}>
             {onLabels ? (
               <LabelsPage doc={doc} apply={apply} />
             ) : route.page === 'data' ? (

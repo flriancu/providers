@@ -96,3 +96,31 @@ test('updates several providers from a file in one click: rows merged into the p
   const lagoo = page.locator('.provider-list li').filter({ hasText: 'Lagoo' });
   await expect(lagoo.locator('.chip').first()).toHaveText('Locatii'); // the main category first
 });
+
+test('a file that repeats a name merges both rows into that provider, in one click', async ({ page }) => {
+  await openData(page);
+  await chooseCsv(page, 'Name\nLagoo\n');
+  await page.getByRole('button', { name: 'Import 1 provider' }).click();
+  await chooseCsv(page, 'Name,Phones\nLagoo,0721 111 111\nLagoo,0722 222 222\n');
+  const preview = page.getByLabel('What importing vendors.csv would do');
+  await preview.getByRole('button', { name: 'Merge 2 rows into the provider with the same name' }).click();
+  await preview.getByRole('button', { name: 'Import 2 providers' }).click();
+  await expect(page.getByText('Imported: 0 providers added, 2 providers merged, 0 rows left out; 0 labels created.')).toBeVisible();
+  await page.getByRole('link', { name: 'Back to the list' }).click();
+  await page.getByRole('link', { name: /Lagoo/ }).click();
+  await expect(page.getByRole('article').getByRole('link', { name: '0721 111 111' })).toBeVisible();
+  await expect(page.getByRole('article').getByRole('link', { name: '0722 222 222' })).toBeVisible();
+});
+
+test('the rows still to decide can all be added, or all left out, at once', async ({ page }) => {
+  await openData(page);
+  await chooseCsv(page, 'Name,Phones\nOne,+40 000 000 000\nTwo,+40 000 000 000\n'); // both share the sample's phone
+  const preview = page.getByLabel('What importing vendors.csv would do');
+  await preview.getByRole('button', { name: 'Add the 2 rows still to decide as new providers' }).click();
+  const fold = preview.locator('.import-fold > summary');
+  await expect(fold).toHaveText('2 rows to add alongside the provider already here');
+  await expect(fold).toBeFocused();
+  await chooseCsv(page, 'Name,Phones\nOne,+40 000 000 000\nTwo,+40 000 000 000\n');
+  await preview.getByRole('button', { name: 'Leave out the 2 rows still to decide' }).click();
+  await expect(fold).toHaveText('2 rows to leave out');
+});

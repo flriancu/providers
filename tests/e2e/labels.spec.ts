@@ -101,3 +101,14 @@ test('"No ..." keeps the capitals of a group the owner named', async ({ page, is
   await expect(page.getByRole('complementary', { name: 'Filters' }).getByText('No DJ equipment', { exact: true })).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'Filters' }).getByText('No category')).toBeVisible();
 });
+
+test('a label moves to another group and keeps its providers (FR-08)', async ({ page }) => {
+  const source = facet(page, 'Source');
+  await edit(source, 'Sample fair');
+  const panel = editor(source, 'Sample fair');
+  await panel.getByRole('combobox', { name: /^Move Sample fair to another label group/ }).selectOption({ label: 'Lists' });
+  await panel.getByRole('button', { name: 'Move' }).click();
+  await expect(labelText(facet(page, 'Lists'), 'Sample fair')).toBeVisible();
+  await expect(facet(page, 'Lists').locator('.label-row').filter({ hasText: 'Sample fair' })).toContainText('1 provider');
+  await expect(labelText(source, 'Sample fair')).toHaveCount(0);
+});
