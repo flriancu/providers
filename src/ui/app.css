@@ -605,6 +605,8 @@ legend {
 
 .date-field {
   margin-bottom: var(--space-2);
+  /* The calendar sizes its days to the width the field has (NFR-06: whole at 360 px). */
+  container-type: inline-size;
 }
 
 .date-button {
@@ -635,9 +637,10 @@ legend {
   --rdp-accent-color: var(--accent);
   --rdp-accent-background-color: var(--selected);
   --rdp-day-height: 2.75rem;
-  --rdp-day-width: 2.75rem;
+  /* A seventh of the field's width less the panel's padding and border, at most 2.75rem. */
+  --rdp-day-width: min(2.75rem, calc((100cqi - 2 * var(--space-1) - 2px) / 7));
   --rdp-day_button-height: 2.6rem;
-  --rdp-day_button-width: 2.6rem;
+  --rdp-day_button-width: calc(var(--rdp-day-width) - 0.15rem);
 }
 
 /* The calendar's day buttons are not the app's filled buttons. */

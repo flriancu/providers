@@ -396,3 +396,15 @@ test("an error from a browser extension is not shown as the app's", async ({ pag
   await page.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { message: 'ours', filename: `${location.origin}/assets/x.js` })));
   await expect(page.getByText(/That did not work because of an error/)).toBeVisible();
 });
+
+test('the calendar fits a 360 px screen whole: every day and both month arrows (NFR-06)', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
+  await page.locator('.date-button').click();
+  const calendar = page.getByRole('dialog', { name: 'Choose a day' });
+  await expect(calendar).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  const right = await calendar.evaluate((el) => el.getBoundingClientRect().right);
+  expect(right).toBeLessThanOrEqual(360);
+  await expect(calendar.getByRole('button', { name: /next month/i })).toBeInViewport();
+});
