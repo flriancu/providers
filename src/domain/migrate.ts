@@ -30,7 +30,8 @@ const LAST_STAMP = Date.parse('9000-01-01T00:00:00.000Z');
  * null when it is not a time this app could have written.
  */
 function readStamp(v: unknown): string | null {
-  if (!isString(v) || !/^\d{4}-\d{2}-\d{2}T/.test(v)) return null;
+  // A time with its zone (Z or an offset): without one, every device would read it in its own.
+  if (!isString(v) || !/^\d{4}-\d{2}-\d{2}T[\d:.]+(?:Z|[+-]\d{2}:\d{2})$/i.test(v)) return null;
   const ms = Date.parse(v);
   return Number.isNaN(ms) || ms >= LAST_STAMP ? null : new Date(ms).toISOString();
 }
@@ -51,12 +52,20 @@ function isMeta(r: Raw, id: string): boolean {
   );
 }
 
-/** The record with its stamps in canonical form (readStamp), so they compare as text. */
+/**
+ * The record with its stamps in canonical form (readStamp), so they compare as text, and its
+ * `updatedAt` at least its newest field's: an edit is stamped after `updatedAt` (records.ts), so
+ * a field stamped later by hand would otherwise win over every edit made to it.
+ */
 function withCanonicalStamps(r: Raw): Raw {
   const out: Raw = { ...r, createdAt: readStamp(r.createdAt), updatedAt: readStamp(r.updatedAt) };
   if (isObject(r.stamps)) {
     const stamps: Raw = {};
-    for (const [k, v] of Object.entries(r.stamps)) put<unknown>(stamps, k, readStamp(v));
+    for (const [k, v] of Object.entries(r.stamps)) {
+      const stamp = readStamp(v)!;
+      put<unknown>(stamps, k, stamp);
+      if (stamp > (out.updatedAt as string)) out.updatedAt = stamp;
+    }
     out.stamps = stamps;
   }
   return out;

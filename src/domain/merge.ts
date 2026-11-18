@@ -37,9 +37,13 @@ export function hasLocalWins(local: DirectoryDoc, remote: DirectoryDoc): boolean
   });
 }
 
-/** Whether `mine` changed any field later than `theirs`. */
+/**
+ * Whether `mine` changed any field later than `theirs`. The same stamp and author do not make
+ * the same edit: two devices of one account can stamp edits of different fields alike (each one
+ * millisecond after a record stamped ahead), so the fields are compared.
+ */
 function newerFields(mine: Meta, theirs: Meta): boolean {
-  if (mine === theirs || (mine.updatedAt === theirs.updatedAt && mine.updatedBy === theirs.updatedBy)) return false;
+  if (mine === theirs) return false;
   if (mine.updatedAt <= theirs.updatedAt && !mine.stamps && !theirs.stamps) return false;
   return keysOf(mine, theirs).some((k) => fieldStamp(mine, k) > fieldStamp(theirs, k));
 }

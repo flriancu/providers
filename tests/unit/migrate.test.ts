@@ -136,3 +136,19 @@ describe('days in a file', () => {
     expect(skippedCount(read)).toBe(1);
   });
 });
+
+describe('stamps written by hand', () => {
+  it('sets aside a stamp without a time zone, which each device would read in its own', () => {
+    const { doc, providers } = weddingDirectory();
+    const file = JSON.parse(JSON.stringify(toFile(doc)));
+    file.providers[providers.bruno].updatedAt = '2026-11-17T10:00:00';
+    expect(readDirectory(file).providers[providers.bruno]).toBeUndefined();
+  });
+
+  it('reads a record as changed at least when its newest field was, so an edit still wins', () => {
+    const { doc, providers } = weddingDirectory();
+    const file = JSON.parse(JSON.stringify(toFile(doc)));
+    file.providers[providers.bruno].stamps = { notes: '2027-05-01T00:00:00.000Z' };
+    expect(readDirectory(file).providers[providers.bruno]!.updatedAt).toBe('2027-05-01T00:00:00.000Z');
+  });
+});

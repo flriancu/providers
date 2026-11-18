@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { absorb } from '../../src/domain/absorb';
 import { demoCarry } from '../../src/domain/carry';
 import { directoryModel } from '../../src/domain/document';
-import { addLogEntry, createLabel, createProvider, emptyProvider, providerInput, saveProvider } from '../../src/domain/edits';
+import {
+  addLogEntry,
+  createLabel,
+  createProvider,
+  deleteLabel,
+  emptyProvider,
+  providerInput,
+  renameLabel,
+  saveProvider,
+} from '../../src/domain/edits';
 import { labelById } from '../../src/domain/labels';
 import { FACET_IDS, live, newDirectory, type DirectoryDoc } from '../../src/domain/schema';
 import { DEMO_OWNER, sampleDirectory } from '../../src/ui/demoDirectory';
@@ -72,8 +81,7 @@ describe('carrying the demo into an account (D-25)', () => {
 
 describe('a second visit to the demo', () => {
   // Every demo starts its sample with the same ids; a first visit carried the sample's Photo in.
-  it('never renames back or brings back a sample label the owner changed since', async () => {
-    const { renameLabel, deleteLabel } = await import('../../src/domain/edits');
+  it('never renames back or brings back a sample label the owner changed since', () => {
     const first = visited();
     const ctx = testContext(OWNER, Date.UTC(2026, 10, 17));
     const mine = directoryModel.absorb(newDirectory(OWNER), demoCarry(first.doc, first.sample));
@@ -110,5 +118,22 @@ describe('absorbing another version of my directory', () => {
     const mine = { ...newDirectory(OWNER), settings: { updatedAt: '2026-01-01T00:00:00.000Z', replaces: ['old'] } };
     const demo = { ...newDirectory(DEMO_OWNER), settings: { updatedAt: '2026-12-01T00:00:00.000Z' } };
     expect(absorb(mine, demo).settings).toEqual(mine.settings);
+  });
+});
+
+describe('a label made in the demo', () => {
+  it('never overwrites a label of the directory that has the same id', () => {
+    const ctx = testContext(OWNER, Date.UTC(2026, 10, 17));
+    const made = createLabel(newDirectory(OWNER), { facetId: FACET_IDS.category, name: 'Weddings', aliases: ['Nunta'] }, ctx);
+    const mine = renameLabel(made.doc, made.id, 'Weddings', 'teal', ['Nunta', 'Marriage'], ctx);
+    // A later visit makes "Weddings" in the demo, with the same id, and a provider with it.
+    const sample = sampleDirectory(() => new Date(Date.UTC(2026, 10, 20)));
+    const visit = { ...testContext(DEMO_OWNER, Date.UTC(2026, 10, 20)), newId: () => 'visit-provider' };
+    let demo = createLabel(sample, { facetId: FACET_IDS.category, name: 'Weddings' }, visit).doc;
+    demo = createProvider(demo, { ...emptyProvider(), name: 'Band', labelIds: [made.id] }, visit).doc;
+    const after = directoryModel.absorb(mine, demoCarry(demo, sample));
+    expect(labelById(after, made.id)).toMatchObject({ name: 'Weddings', color: 'teal', aliases: ['Nunta', 'Marriage'] });
+    const band = live(after.providers).find((p) => p.name === 'Band')!;
+    expect(band.labelIds).toEqual([made.id]); // joined by name
   });
 });

@@ -270,3 +270,16 @@ describe('moving a label to another group (FR-08)', () => {
     fails('labelNameTaken', () => moveLabel(clash, labels.photo, FACET_IDS.lists, ctx));
   });
 });
+
+describe('a label made again on a device that missed a rename', () => {
+  it('leaves the rename, colour and other words made elsewhere', () => {
+    const { doc } = weddingDirectory();
+    const base = createLabel(doc, { facetId: FACET_IDS.lists, name: 'Call back' }, testContext('sub-owner', Date.UTC(2026, 10, 16, 12)));
+    const renamedOnA = renameLabel(base.doc, base.id, 'Called back', 'teal', ['Recall'], testContext('sub-owner', Date.UTC(2026, 10, 17)));
+    // Device B never saw the label at all, and makes "Call back" later.
+    const madeOnB = createLabel(doc, { facetId: FACET_IDS.lists, name: 'Call back' }, testContext('sub-owner', Date.UTC(2026, 10, 18)));
+    expect(madeOnB.id).toBe(base.id);
+    for (const merged of [merge(renamedOnA, madeOnB.doc), merge(madeOnB.doc, renamedOnA)])
+      expect(merged.labels[base.id]).toMatchObject({ name: 'Called back', color: 'teal', aliases: ['Recall'] });
+  });
+});

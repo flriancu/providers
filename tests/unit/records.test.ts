@@ -164,3 +164,21 @@ describe('a form left open', () => {
     expect(saved.providers[providers.bruno]).toMatchObject({ phones: ['0721 000 000'], notes: 'typed in the form' });
   });
 });
+
+describe('two devices of one account, stamps alike', () => {
+  it('keeps both edits of different fields, stamped the same millisecond', () => {
+    const { doc, providers } = weddingDirectory();
+    // A record stamped ahead (a fast clock elsewhere): both devices stamp it one millisecond later.
+    const ahead = {
+      ...doc,
+      providers: { ...doc.providers, [providers.bruno]: { ...doc.providers[providers.bruno]!, updatedAt: '2027-01-01T00:00:00.000Z' } },
+    };
+    const at = Date.UTC(2026, 10, 18);
+    const phone = updateRecord(ahead, 'providers', providers.bruno, { contactPerson: 'Phone person' }, testContext(OWNER, at));
+    const laptop = updateRecord(ahead, 'providers', providers.bruno, { notes: 'Laptop note' }, testContext(OWNER, at));
+    expect(phone.providers[providers.bruno]!.updatedAt).toBe(laptop.providers[providers.bruno]!.updatedAt);
+    for (const merged of [merge(phone, laptop), merge(laptop, phone)])
+      expect(merged.providers[providers.bruno]).toMatchObject({ contactPerson: 'Phone person', notes: 'Laptop note' });
+    expect(hasLocalWins(phone, laptop)).toBe(true);
+  });
+});

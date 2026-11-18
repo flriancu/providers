@@ -8,7 +8,7 @@ import { fold, isBlank } from './fold';
 import { labelById } from './labels';
 import { addRecord, deleteRecord, restoreRecord, updateRecord, type EditContext } from './records';
 import { sameValue } from './stamps';
-import { FACET_IDS, LABEL_COLORS, live, own, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
+import { FACET_IDS, LABEL_COLORS, live, own, put, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
 
 export type EditErrorCode =
   | 'nameRequired'
@@ -215,11 +215,26 @@ export function createLabel(
   // Two devices making "Photo" in one group make the same record, which merges into one label.
   const id = labelIdOf(input.facetId, name);
   const before = own(doc.labels, id);
-  if (!before) return addRecord(doc, 'labels', fields, { ...ctx, newId: () => id });
+  if (!before) return claimLabel(addRecord(doc, 'labels', fields, { ...ctx, newId: () => id }));
   // Made before and deleted since: the same label comes back.
   if (before.deleted) return { doc: updateRecord(restoreRecord(doc, 'labels', id, ctx), 'labels', id, fields, ctx), id };
   // The id is a label renamed since: this one gets an id of its own.
   return addRecord(doc, 'labels', fields, ctx);
+}
+
+/**
+ * A label made under its shared id (labelIdOf) claims only that it exists: its fields are
+ * stamped at the start of time, so where another device already has the label, renamed,
+ * recoloured or given other words, those win in the merge, and a device that never saw a rename
+ * does not undo it. That it is not deleted is stamped now, so it comes back if deleted elsewhere.
+ */
+function claimLabel(added: { doc: DirectoryDoc; id: string }): { doc: DirectoryDoc; id: string } {
+  const labels = { ...added.doc.labels };
+  const label = labels[added.id]!;
+  const earliest = '1970-01-01T00:00:00.000Z';
+  const stamps = { facetId: earliest, name: earliest, color: earliest, aliases: earliest, deleted: label.createdAt };
+  put(labels, added.id, { ...label, stamps });
+  return { doc: { ...added.doc, labels }, id: added.id };
 }
 
 /**

@@ -9,10 +9,11 @@ import { live, put, type DirectoryDoc, type Label, type Meta, type Provider } fr
  * and every log entry about them, unused sample labels, the starting facets (every directory has
  * its own, with the same ids), shares, and whatever was deleted. Pure.
  *
- * Every demo starts its sample with the same ids, so a sample label carried in an earlier visit
- * is already in the directory under that id, perhaps renamed or deleted since. A sample label is
- * therefore carried under an id of this visit's own (`sessionId`): it joins a label of the same
- * name if the directory has one (absorb.ts) and never overwrites the old record.
+ * A label's id can already be in the directory: every demo starts its sample with the same ids,
+ * and a label made in the demo has the id its group and name give (labelIdOf), which a label of
+ * the directory may have, perhaps renamed or deleted since. Every label is therefore carried
+ * under an id of this visit's own (`sessionId`): it joins a label of the same name if the
+ * directory has one (absorb.ts) and never overwrites another record.
  */
 export function demoCarry(demo: DirectoryDoc, sample: DirectoryDoc): DirectoryDoc {
   const fromSample = (key: 'providers' | 'labels', id: string) => Object.hasOwn(sample[key], id);
@@ -24,7 +25,7 @@ export function demoCarry(demo: DirectoryDoc, sample: DirectoryDoc): DirectoryDo
   const labels = live(demo.labels).filter((l) => !fromSample('labels', l.id) || used.has(l.id));
   const facets = live(demo.facets).filter((f) => !f.key);
 
-  const renamed = new Map(labels.filter((l) => fromSample('labels', l.id)).map((l) => [l.id, sessionId(l)]));
+  const renamed = new Map(labels.map((l) => [l.id, sessionId(l)]));
   const to = (id: string) => renamed.get(id) ?? id;
   const relabelled = (p: Provider): Provider => ({
     ...p,
@@ -42,7 +43,7 @@ export function demoCarry(demo: DirectoryDoc, sample: DirectoryDoc): DirectoryDo
   };
 }
 
-/** A sample record's id for this visit: the demo started at `createdAt`, its ids follow. */
+/** A demo label's id for this visit: made at `createdAt`, in this visit only. */
 const sessionId = (r: Meta) => `${r.id}@${r.createdAt}`;
 
 function byId<T extends Meta>(records: T[]): Record<string, T> {
