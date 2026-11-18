@@ -1,4 +1,5 @@
-import { own, put, type Collections, type DirectoryDoc, type Meta, type Stamp } from './schema';
+import { membersAfter } from './lists';
+import { own, put, type Collections, type DirectoryDoc, type Members, type Meta, type Stamp } from './schema';
 import { sameValue, stampsAfter } from './stamps';
 
 /** Who is editing, and the clock and id source to use (passed in: the domain has no browser). */
@@ -40,9 +41,33 @@ export function addRecord<K extends CollectionKey>(
 }
 
 /**
- * Sets the fields in `changes` that differ from the record; `undefined` clears a field. Only those
- * fields are stamped (stamps.ts). Nothing different: the document is returned as it was, with no
- * new stamp, so saving what is already there changes nothing on any device (FR-03).
+ * The fields in `changes` that differ from `before` changed, stamped `at` by `by`; `undefined`
+ * clears a field. Only those fields are stamped (stamps.ts), and in a list, the values that went
+ * in or out (lists.ts). Null when nothing differs.
+ */
+export function changedRecord<T extends Meta>(before: T, changes: Record<string, unknown>, at: Stamp, by: string): T | null {
+  const old = before as unknown as Record<string, unknown>;
+  const changed = Object.keys(changes).filter((k) => !sameValue(own(old, k), changes[k]));
+  if (!changed.length) return null;
+  const record: Record<string, unknown> = { ...old };
+  for (const k of changed) {
+    if (changes[k] === undefined) delete record[k];
+    else put(record, k, changes[k]);
+  }
+  Object.assign(record, { updatedAt: at, updatedBy: by, stamps: stampsAfter(before, changed, at) });
+  const lists = changed.filter((k) => Array.isArray(changes[k]));
+  if (lists.length) {
+    const members: Record<string, Members> = { ...before.members };
+    for (const k of lists) put(members, k, membersAfter(before, k, changes[k] as string[], at));
+    record.members = members;
+  }
+  return record as unknown as T;
+}
+
+/**
+ * Sets the fields in `changes` that differ from the record (changedRecord). Nothing different:
+ * the document is returned as it was, with no new stamp, so saving what is already there changes
+ * nothing on any device (FR-03).
  */
 function change<K extends CollectionKey>(
   doc: DirectoryDoc,
@@ -51,18 +76,10 @@ function change<K extends CollectionKey>(
   changes: Record<string, unknown>,
   ctx: EditContext,
 ): DirectoryDoc {
-  const old = before as unknown as Record<string, unknown>;
-  const changed = Object.keys(changes).filter((k) => !sameValue(own(old, k), changes[k]));
-  if (!changed.length) return doc;
-  const stamp = nextStamp(before, ctx.now());
-  const record: Record<string, unknown> = { ...old };
-  for (const k of changed) {
-    if (changes[k] === undefined) delete record[k];
-    else put(record, k, changes[k]);
-  }
-  Object.assign(record, { updatedAt: stamp, updatedBy: ctx.by, stamps: stampsAfter(before, changed, stamp) });
+  const record = changedRecord(before, changes, nextStamp(before, ctx.now()), ctx.by);
+  if (!record) return doc;
   const next = { ...(doc[key] as Record<string, RecordOf<K>>) };
-  put(next, before.id, record as unknown as RecordOf<K>);
+  put(next, before.id, record);
   return { ...doc, [key]: next };
 }
 

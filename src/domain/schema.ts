@@ -23,6 +23,14 @@ export interface Meta {
    * record written whole, whose fields all date from `updatedAt`.
    */
   stamps?: Record<string, Stamp>;
+  /** For each list field: when each value was added or removed (lists.ts). */
+  members?: Record<string, Members>;
+}
+
+/** When each value of a list was last added or removed, and the field stamp written with them. */
+export interface Members {
+  at: Stamp;
+  stamps: Record<string, Stamp>;
 }
 
 /**
@@ -55,6 +63,11 @@ export interface Label extends Meta {
   color: LabelColor;
   /** Other words that find this label, e.g. "Foto" for Photographer (FR-06). */
   aliases: string[];
+  /**
+   * On a deleted label merged into another (FR-08, or two labels of one name, unique.ts): that
+   * label, so a provider given this one on a device that did not know yet gets that one.
+   */
+  mergedInto?: string;
 }
 
 export interface Provider extends Meta {

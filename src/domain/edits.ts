@@ -6,6 +6,7 @@ import { columnClash, isOwnWord, type FacetWords } from './columns';
 import { isDay } from './days';
 import { fold, isBlank } from './fold';
 import { labelById } from './labels';
+import { rebaseList } from './lists';
 import { addRecord, deleteRecord, restoreRecord, updateRecord, type EditContext } from './records';
 import { sameValue } from './stamps';
 import { FACET_IDS, LABEL_COLORS, live, own, put, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
@@ -119,10 +120,14 @@ export function createProvider(doc: DirectoryDoc, input: ProviderInput, ctx: Edi
   return addRecord(doc, 'providers', clean, ctx);
 }
 
+/** The fields of ProviderInput that are lists. */
+const LIST_FIELDS = ['phones', 'emails', 'links', 'labelIds'] as const satisfies readonly (keyof ProviderInput)[];
+
 /**
  * Saves what was changed in a provider's form. `base` is what the form started from: only the
  * fields that differ from it are written, so a form left open does not undo a change another
- * device made meanwhile to a field the form did not touch.
+ * device made meanwhile to a field the form did not touch. In a list, only the values the form
+ * added or removed change (lists.ts): another device's label added meanwhile stays.
  */
 export function saveProvider(doc: DirectoryDoc, id: string, base: ProviderInput, input: ProviderInput, ctx: EditContext): DirectoryDoc {
   const before = own(doc.providers, id);
@@ -130,7 +135,10 @@ export function saveProvider(doc: DirectoryDoc, id: string, base: ProviderInput,
   const clean = cleanProvider(doc, input);
   if (isBlank(clean.name)) throw new EditError('nameRequired');
   const from = cleanProvider(doc, base);
-  const changes = Object.fromEntries(PROVIDER_FIELDS.filter((k) => !sameValue(from[k], clean[k])).map((k) => [k, clean[k]]));
+  const changes: Partial<ProviderInput> = Object.fromEntries(
+    PROVIDER_FIELDS.filter((k) => !sameValue(from[k], clean[k])).map((k) => [k, clean[k]]),
+  );
+  for (const k of LIST_FIELDS) if (changes[k]) changes[k] = rebaseList(before[k], from[k], clean[k]);
   return updateRecord(doc, 'providers', id, changes, ctx);
 }
 
@@ -216,8 +224,9 @@ export function createLabel(
   const id = labelIdOf(input.facetId, name);
   const before = own(doc.labels, id);
   if (!before) return claimLabel(addRecord(doc, 'labels', fields, { ...ctx, newId: () => id }));
-  // Made before and deleted since: the same label comes back.
-  if (before.deleted) return { doc: updateRecord(restoreRecord(doc, 'labels', id, ctx), 'labels', id, fields, ctx), id };
+  // Made before and deleted since: the same label comes back, no longer merged into another.
+  if (before.deleted)
+    return { doc: updateRecord(restoreRecord(doc, 'labels', id, ctx), 'labels', id, { ...fields, mergedInto: undefined }, ctx), id };
   // The id is a label renamed since: this one gets an id of its own.
   return addRecord(doc, 'labels', fields, ctx);
 }
@@ -298,6 +307,8 @@ export function mergeLabels(doc: DirectoryDoc, fromId: string, intoId: string, c
   const target = labelById(out, intoId)!;
   const aliases = cleanAliases([...target.aliases, from.name, ...from.aliases]).filter((a) => fold(a) !== fold(target.name));
   out = updateRecord(out, 'labels', intoId, { aliases }, ctx);
+  // Where it went, for a device that gives a provider the first label before it hears of this.
+  out = updateRecord(out, 'labels', fromId, { mergedInto: intoId }, ctx);
   return deleteRecord(out, 'labels', fromId, ctx);
 }
 

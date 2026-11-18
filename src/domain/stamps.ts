@@ -12,7 +12,7 @@ import { own, put, type Meta, type Stamp } from './schema';
  */
 
 /** Meta fields that describe the record rather than hold its data. */
-const META_KEYS: ReadonlySet<string> = new Set(['id', 'createdAt', 'updatedAt', 'updatedBy', 'stamps']);
+const META_KEYS: ReadonlySet<string> = new Set(['id', 'createdAt', 'updatedAt', 'updatedBy', 'stamps', 'members']);
 
 /** The fields that hold data, set or cleared (a cleared field keeps its stamp). */
 export function dataKeys(r: Meta): string[] {

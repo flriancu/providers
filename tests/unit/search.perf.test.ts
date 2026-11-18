@@ -129,3 +129,30 @@ describe('import preview with 10,000 rows (NFR-10)', () => {
     expect(ms).toBeLessThan(2_000); // 367 ms here; pair by pair it took 972 s
   });
 });
+
+describe('merging two versions of 10,000 providers', () => {
+  it('merges value by value and checks label names within a second', async () => {
+    const { hasLocalWins, merge } = await import('../../src/domain/merge');
+    const { updateRecord } = await import('../../src/domain/records');
+    const doc = syntheticDirectory();
+    const device = (start: number, label: string) => {
+      let d = doc;
+      const clock = { by: 'owner', now: () => new Date(start), newId: () => 'unused' };
+      for (let i = 0; i < N; i += 10) {
+        const p = d.providers[`p${i}`]!;
+        d = updateRecord(d, 'providers', p.id, { labelIds: [...p.labelIds, label] }, clock);
+      }
+      return d;
+    };
+    const phone = device(Date.UTC(2026, 10, 17), 'cat-1');
+    const laptop = device(Date.UTC(2026, 10, 18), 'area-1');
+    const start = performance.now();
+    const merged = merge(phone, laptop);
+    const needsSaving = hasLocalWins(phone, laptop);
+    const ms = performance.now() - start;
+    console.log(`merge + hasLocalWins, ${N / 10} providers changed on each side: ${ms.toFixed(0)} ms`);
+    expect(needsSaving).toBe(true);
+    expect(merged.providers.p0!.labelIds).toEqual(expect.arrayContaining(['cat-1', 'area-1']));
+    expect(ms).toBeLessThan(1_000);
+  });
+});

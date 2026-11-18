@@ -10,6 +10,7 @@ import {
   type DirectoryDoc,
   type Settings,
 } from './schema';
+import { withUniqueLabelNames } from './unique';
 
 /** Why a file can't be read as a directory; `json` and `tooBig` come from drive-doc-sync. */
 export type UnsupportedReason = 'json' | 'notDirectory' | 'version' | 'tooBig';
@@ -55,18 +56,36 @@ function isMeta(r: Raw, id: string): boolean {
 /**
  * The record with its stamps in canonical form (readStamp), so they compare as text, and its
  * `updatedAt` at least its newest field's: an edit is stamped after `updatedAt` (records.ts), so
- * a field stamped later by hand would otherwise win over every edit made to it.
+ * a field stamped later by hand would otherwise win over every edit made to it. A list's value
+ * stamps that are not all times are dropped: the list is then read as a whole (lists.ts).
  */
 function withCanonicalStamps(r: Raw): Raw {
   const out: Raw = { ...r, createdAt: readStamp(r.createdAt), updatedAt: readStamp(r.updatedAt) };
+  const raise = (stamp: string) => {
+    if (stamp > (out.updatedAt as string)) out.updatedAt = stamp;
+  };
   if (isObject(r.stamps)) {
     const stamps: Raw = {};
     for (const [k, v] of Object.entries(r.stamps)) {
       const stamp = readStamp(v)!;
       put<unknown>(stamps, k, stamp);
-      if (stamp > (out.updatedAt as string)) out.updatedAt = stamp;
+      raise(stamp);
     }
     out.stamps = stamps;
+  }
+  delete out.members;
+  if (isObject(r.members)) {
+    const members: Raw = {};
+    for (const [k, m] of Object.entries(r.members)) {
+      if (!isObject(m) || !isObject(m.stamps) || !Object.values(m.stamps).every(isStamp)) continue;
+      const at = readStamp(m.at);
+      if (at === null) continue;
+      const stamps: Raw = {};
+      for (const [value, v] of Object.entries(m.stamps)) put<unknown>(stamps, value, readStamp(v));
+      for (const s of [at, ...(Object.values(stamps) as string[])]) raise(s);
+      put<unknown>(members, k, { at, stamps });
+    }
+    if (Object.keys(members).length) out.members = members;
   }
   return out;
 }
@@ -74,7 +93,8 @@ function withCanonicalStamps(r: Raw): Raw {
 /** What each collection's records must look like; anything else is set aside, not dropped. */
 const VALID: Record<keyof Collections, (r: Raw) => boolean> = {
   facets: (r) => optional(r.key, oneOf(BUILT_IN_FACETS)) && isString(r.name) && typeof r.order === 'number',
-  labels: (r) => isString(r.facetId) && isString(r.name) && oneOf(LABEL_COLORS)(r.color) && isStringList(r.aliases),
+  labels: (r) =>
+    isString(r.facetId) && isString(r.name) && oneOf(LABEL_COLORS)(r.color) && isStringList(r.aliases) && optional(r.mergedInto, isString),
   providers: (r) =>
     isString(r.name) &&
     isString(r.contactPerson) &&
@@ -111,8 +131,9 @@ function withoutRetired(key: keyof Collections, r: Raw): Raw {
 /**
  * A directory from a file's parsed content. The file may come from another version of the app
  * or from someone else, so nothing in it is trusted: a record that doesn't fit is kept aside in
- * `skipped` and written back unchanged by `toFile`, never lost. A file that isn't a directory at
- * all, or is of a newer schema, is refused.
+ * `skipped` and written back unchanged by `toFile`, never lost. Two labels of one name in one
+ * group, which a merge elsewhere may have saved, are one (unique.ts). A file that isn't a
+ * directory at all, or is of a newer schema, is refused.
  */
 export function readDirectory(raw: unknown): DirectoryDoc {
   if (!isObject(raw) || typeof raw.schemaVersion !== 'number')
@@ -140,7 +161,7 @@ export function readDirectory(raw: unknown): DirectoryDoc {
     if (Object.keys(set).length) skipped[key] = set;
   }
   if (Object.keys(skipped).length) out.skipped = skipped;
-  return out;
+  return withUniqueLabelNames(out);
 }
 
 function readSettings(v: unknown): Settings {

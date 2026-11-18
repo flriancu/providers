@@ -123,6 +123,25 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-47 Two labels of one name in one group, which two devices can make before they sync (one
+  renames or moves a label, the other makes that name), become one when the versions merge: the
+  label made first stays, with the providers and other words of both, and the other is deleted
+  and points at it, so a provider given it later on a device that had not heard gets the one
+  that stays; a merge on the Labels page (FR-08) points the same way. No scheme without a server
+  to ask can keep names unique (Bailis et al., PVLDB 8(3), 2015, peer-reviewed:
+  https://arxiv.org/abs/1402.2237); repair after the merge follows Balegas et al., EuroSys 2015,
+  peer-reviewed, section 5.1. (2026-11-18, owner: "research industry approaches and apply best
+  fixes")
+- D-46 Lists (a provider's labels, phones, emails and links; a label's other words) merge value
+  by value: two devices that each add a label keep both, and a value removed on one device stays
+  removed unless the other adds it later. When both stamp a value at one moment, it stays. The
+  order is that of the device that changed the list last. This is a last-writer-wins element set
+  (Shapiro et al., INRIA RR-7506, 2011, section 3.3.3, research report:
+  https://inria.hal.science/inria-00555588), chosen over an observed-remove set because the
+  stamps the app already keeps suffice; removed values keep their stamps, as collecting them
+  needs every device to agree (same report, section 4). A list written by an earlier version
+  merges as a whole, as before. (2026-11-18, owner: "research industry approaches and apply best
+  fixes")
 - D-45 A label group cannot be deleted; its labels can be deleted, merged or moved (FR-08).
   (2026-11-18, owner: "no")
 - D-44 Amends NFR-08. The calendar's weekday headings stay two letters ("Mo Tu We"): full

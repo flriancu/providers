@@ -17,13 +17,12 @@ reads them as top-level labels. The phase results below describe each phase as i
 fixes. Fixed in commits 08f3e08 to 764e720 and drive-doc-sync 0.4.0 to 0.7.0, each with a
 regression test that fails without it; decisions D-42 to D-45. FR-08's "move" now moves a label
 to another group (`moveLabel`); the "move" in Phase 3 below was moving a label under a parent,
-which D-35 removed. Known and not fixed:
-- Labels added to one provider on two devices at once keep one device's list (`labelIds`
-  merges as one value; a set that merges per label would keep both).
-- A label moved into a group while another device makes that name there gives two labels of
-  that name; Merge on the Labels page joins them.
-- Import line numbers count rows, not lines, after a "sep=" line or a value with a line break.
-- NFR-10 on a slowed phone at 10,000 providers (D-42).
+which D-35 removed. Known and not fixed: NFR-10 on a slowed phone at 10,000 providers (D-42).
+
+2026-11-18, after the adversarial round: lists merge value by value (D-46); two labels of one
+name after a merge become one (D-47); import previews name the line of the file a row starts on,
+after a "sep=" line, blank lines and values over several lines too. NFR-11 records the
+browsers the app supports.
 
 | Phase | Title | Status |
 |---|---|---|
