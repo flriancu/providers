@@ -23,6 +23,7 @@ export const en = {
   'auth.signOutDrafts': 'A provider form has changes that are not saved. Signing out discards them.',
   'auth.signOutKeep': 'Keep editing',
   'auth.signOutAnyway': 'Sign out and discard them',
+  'auth.signingOut': 'Signing out: saving the last changes to Google Drive first…',
   'auth.reconnect': 'Reconnect to Google',
   'auth.unsavedOnDevice': 'This device has changes that have not reached Google Drive yet. Sign in to save them.',
   'auth.errPopup': 'The Google window was closed or blocked. Try again.',
@@ -69,6 +70,8 @@ export const en = {
   'drive.auth': 'The Google session expired. Reconnect to save your changes.',
   'drive.generic': 'Something went wrong. Try again, or reload the page.',
   'notice.carried': 'What you added in the demo is now in your directory.',
+  'notice.replacedChanges':
+    'A new directory was started in place of this one, in another tab or window, so this tab now shows it. Changes made here to the old one and not saved yet were not kept.',
   'notice.unreadableFiles':
     'Directory files in your Google Drive that could not be read: {count}. They were left as they are; the oldest one that could be read is open.',
   'notice.skipped':

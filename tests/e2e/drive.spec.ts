@@ -191,3 +191,20 @@ test('signed in, the header fits a narrow phone screen', async ({ page }) => {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBe(0);
 });
+
+test('while signing out waits for the last save, the page says so and offers nothing to edit', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'storage, not layout');
+  const drive = new FakeDrive();
+  await open(page, drive);
+  await expect(saved(page)).toBeVisible();
+  let release!: () => void;
+  drive.holdWrites = new Promise<void>((r) => (release = r));
+  await addProvider(page, 'Lagoo');
+  await page.getByLabel('Account: ana@example.test').click();
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByText('Signing out: saving the last changes to Google Drive first…')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Add a provider' })).toHaveCount(0);
+  release();
+  await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
+  expect(providerNames(drive.content())).toEqual(['Lagoo']);
+});

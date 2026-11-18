@@ -26,6 +26,7 @@ export const ro: Record<MessageKey, string> = {
   'auth.signOutDrafts': 'Un formular de furnizor are modificări nesalvate. Deconectarea le șterge.',
   'auth.signOutKeep': 'Continuă editarea',
   'auth.signOutAnyway': 'Deconectează-te și șterge-le',
+  'auth.signingOut': 'Deconectare: mai întâi se salvează ultimele modificări în Google Drive…',
   'auth.reconnect': 'Reconectează-te la Google',
   'auth.unsavedOnDevice': 'Pe acest dispozitiv sunt modificări care n-au ajuns încă în Google Drive. Conectează-te ca să le salvezi.',
   'auth.errPopup': 'Fereastra Google s-a închis sau a fost blocată. Încearcă din nou.',
@@ -74,6 +75,8 @@ export const ro: Record<MessageKey, string> = {
   'drive.auth': 'Sesiunea Google a expirat. Reconectează-te ca să salvezi modificările.',
   'drive.generic': 'Ceva n-a mers. Reîncearcă sau reîncarcă pagina.',
   'notice.carried': 'Ce ai adăugat în demonstrație este acum în catalogul tău.',
+  'notice.replacedChanges':
+    'A fost început un catalog nou în locul acestuia, în alt tab sau altă fereastră, așa că acest tab îl arată acum. Modificările făcute aici în cel vechi și încă nesalvate nu au fost păstrate.',
   'notice.unreadableFiles':
     'Fișiere de catalog din Google Drive care nu au putut fi citite: {count}. Au fost lăsate cum sunt; e deschis cel mai vechi fișier care a putut fi citit.',
   'notice.skipped':

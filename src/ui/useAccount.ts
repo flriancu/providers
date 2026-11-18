@@ -168,9 +168,11 @@ export function useAccount(): Connection {
   );
 
   const signOut = useCallback(
-    (keepDeviceCopy = false) => {
-      // A copy holding changes that never reached Drive stays, however the sign-out came.
-      const keep = keepDeviceCopy || !!replica?.hasUnsaved();
+    (keepDeviceCopy?: boolean) => {
+      // A copy holding changes that never reached Drive stays. The open directory's sync knows
+      // (it checked Drive while signing out, and writes the copy no more); without it (the error
+      // screen), the copy's own flag says.
+      const keep = keepDeviceCopy ?? !!replica?.hasUnsaved();
       if (!keep) replica?.clear();
       if (sub) clearDrafts(sub);
       auth.signOut();

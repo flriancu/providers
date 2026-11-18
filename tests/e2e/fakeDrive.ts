@@ -10,6 +10,8 @@ export class FakeDrive {
   readonly files = new Map<string, { content: unknown; version: number; trashed?: boolean }>();
   /** Writes that answer 503 before the next one succeeds. */
   failWrites = 0;
+  /** While set, every write waits for it: a slow Drive. */
+  holdWrites: Promise<void> | null = null;
   /** File lists, content downloads and writes seen. */
   lists = 0;
   downloads = 0;
@@ -87,6 +89,7 @@ export class FakeDrive {
     }
     if (url.pathname.startsWith('/upload/drive/v3/files/') && req.method() === 'PATCH') {
       this.writes++;
+      if (this.holdWrites) await this.holdWrites;
       if (this.failWrites > 0) {
         this.failWrites--;
         return json({ error: 'backend error' }, 503);

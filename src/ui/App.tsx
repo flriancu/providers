@@ -60,6 +60,7 @@ function Shell() {
 /** What each notice says once the directory is open. */
 const NOTICE_TEXT = {
   carried: 'notice.carried',
+  replacedChanges: 'notice.replacedChanges',
   skipped: 'notice.skipped',
   unreadableFiles: 'notice.unreadableFiles',
 } as const;
@@ -70,9 +71,20 @@ function Directory({ connection }: { connection: Connection }) {
   const { doc, apply, saveState, saveError, copyKept, loadError, notices, sync } = useDirectory(connection);
   const onLabels = route.page === 'labels';
   // Signing out saves first; what did not reach Drive stays on this device for the next sign-in.
+  // Meanwhile (up to a few seconds) the page says so and offers no directory: an edit made now
+  // would come after the last save, and be lost.
+  const [leaving, setLeaving] = useState(false);
   const base = connection.account;
   const account: Account =
-    base.kind === 'google' ? { ...base, signOut: () => void sync.close().then((clean) => base.signOut(!clean)) } : base;
+    base.kind === 'google'
+      ? {
+          ...base,
+          signOut: () => {
+            setLeaving(true);
+            void sync.close().then((clean) => base.signOut(!clean));
+          },
+        }
+      : base;
   // Drive not answering, with this device's copy on screen: keep working on the copy.
   const offline = !!loadError && !!doc && isRetryable(loadError);
 
@@ -123,7 +135,11 @@ function Directory({ connection }: { connection: Connection }) {
         </div>
       ))}
       <main className="app-main">
-        {loadError && !offline ? (
+        {leaving ? (
+          <p className="load-state" role="status">
+            {t('auth.signingOut')}
+          </p>
+        ) : loadError && !offline ? (
           <LoadError error={loadError} account={account} sync={sync} />
         ) : doc ? (
           // A page that fails to draw leaves the header and the other pages working.
