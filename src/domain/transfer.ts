@@ -124,9 +124,15 @@ function existingLabel(doc: DirectoryDoc, facetId: string, text: string) {
 /**
  * What importing these CSV rows would do (FR-21, NFR-09). `facetWords`: the interface's words
  * for the starting label groups in every language, so "Category" and "Categorie" both find it;
- * a renamed group is also found by its own name.
+ * a renamed group is also found by its own name. `lines`: the line of the file each row starts
+ * on (csv.ts); without them, row by row from 1.
  */
-export function planImport(doc: DirectoryDoc, csv: readonly (readonly string[])[], facetWords: FacetWords): ImportPlan {
+export function planImport(
+  doc: DirectoryDoc,
+  csv: readonly (readonly string[])[],
+  facetWords: FacetWords,
+  lines: readonly number[] = csv.map((_, i) => i + 1),
+): ImportPlan {
   const [rawHeader = [], ...body] = csv;
   // Titles are escaped like any value: a group named "+Partners" is written "'+Partners".
   const header = rawHeader.map(unescapeCell);
@@ -159,7 +165,8 @@ export function planImport(doc: DirectoryDoc, csv: readonly (readonly string[])[
   const earlierRows = new LookalikeIndex<ImportRow>();
   body.forEach((raw, n) => {
     const cells = raw.map(unescapeCell);
-    if (cells.slice(header.length).some((c) => c.trim())) misaligned.push(n + 2);
+    const line = lines[n + 1]!;
+    if (cells.slice(header.length).some((c) => c.trim())) misaligned.push(line);
     const input = emptyProvider();
     const newLabels: NewLabel[] = [];
     /** A label of the row: an existing one, or one to create; returns the existing one's id. */
@@ -202,7 +209,7 @@ export function planImport(doc: DirectoryDoc, csv: readonly (readonly string[])[
       }
     }
     const row: ImportRow = {
-      line: n + 2,
+      line,
       input,
       newLabels,
       ...(newPrimary && { newPrimary }),

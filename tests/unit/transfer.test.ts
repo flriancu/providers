@@ -337,7 +337,23 @@ describe('rows and cells that show nothing, and other files from re-verification
 
   it('names the lines with a quote that is not closed or not at the start of a value', () => {
     const { quoteProblems } = readCsv('Name,Notes\n"La Mama" Restaurant,good\nLagoo,ok\nFlashbox,fine\n');
-    expect(quoteProblems.length).toBeGreaterThan(0);
+    expect(quoteProblems).toEqual([2]);
+  });
+
+  it('numbers each row by the line it starts on, as an editor shows the file', () => {
+    // A value over two lines, a blank line, a line of spaces, and a "sep=" line first.
+    const text = 'sep=,\r\nName,Notes\r\nA,"two\r\nlines"\r\n\r\nB,x\r\n   \r\nC,"one\ntwo\rthree"\r\nD,y\r\n';
+    const table = readCsv(text);
+    expect(table.rows.map((r) => r[0])).toEqual(['Name', 'A', 'B', 'C', 'D']);
+    expect(table.lines).toEqual([2, 3, 6, 8, 11]);
+    const plan = planImport(newDirectory(OWNER), table.rows, WORDS, table.lines);
+    expect(plan.rows.map((r) => r.line)).toEqual([3, 6, 8, 11]);
+  });
+
+  it('names a quote problem and a misaligned row by their lines, after a value over several lines', () => {
+    const table = readCsv('Name,Notes\nA,"x\ny"\nB,1,extra\n"La Mama" R,good\n');
+    expect(table.quoteProblems).toEqual([5]);
+    expect(planImport(newDirectory(OWNER), table.rows, WORDS, table.lines).misaligned).toEqual([4]);
   });
 
   it('refuses a preview made for another version of the directory (a label added elsewhere meanwhile)', () => {

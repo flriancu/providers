@@ -24,13 +24,29 @@ function headerSeparator(text: string): string | null {
   return most > 0 ? SEPARATORS[counts.indexOf(most)]! : null;
 }
 
+/** A line break as an editor counts one: CRLF, LF or CR. */
+const LINE_BREAK = /\r\n|\r|\n/g;
+
+/** A row with nothing in it but spaces, as Papa Parse's `skipEmptyLines: 'greedy'` leaves out. */
+const isEmptyRow = (row: readonly string[]) => row.join('').trim() === '';
+
+export interface CsvTable {
+  /** Rows of fields, the header first; rows with nothing in them are left out. */
+  rows: string[][];
+  /** The line of the file each row starts on, as an editor numbers them (the first is 1). */
+  lines: number[];
+  /**
+   * Lines with a quote that is not closed or not where a value starts ("La Mama" Restaurant),
+   * which can make the rest of the line, or of the file, one value.
+   */
+  quoteProblems: number[];
+}
+
 /**
- * Rows of fields, and the rows (0 is the header) with a quote that is not closed or not where
- * a value starts ("La Mama" Restaurant), which can make the rest of the line, or of the file,
- * one value. Blank lines are left out. A header with no separator means one column: a list of
- * names whose commas belong to the names.
+ * A CSV file's rows, each with the line it starts on. A header with no separator means one
+ * column: a list of names whose commas belong to the names.
  */
-export function readCsv(input: string): { rows: string[][]; quoteProblems: number[] } {
+export function readCsv(input: string): CsvTable {
   let text = input;
   while (text.startsWith(BOM)) text = text.slice(1);
   // Excel's "sep=;" first line names the separator.
@@ -38,11 +54,28 @@ export function readCsv(input: string): { rows: string[][]; quoteProblems: numbe
   if (named) text = text.slice(named[0].length);
   const read = (delimiter: string) => Papa.parse<string[]>(text, { delimiter, delimitersToGuess: SEPARATORS, skipEmptyLines: 'greedy' });
   const fromHeader = headerSeparator(text);
-  let result = read(named && SEPARATORS.includes(named[1]!) ? named[1]! : fromHeader === null ? Papa.RECORD_SEP : '');
+  let guessed = read(named && SEPARATORS.includes(named[1]!) ? named[1]! : fromHeader === null ? Papa.RECORD_SEP : '');
   // Not guessed (a short row): the header says.
-  if (result.errors.some((e) => e.code === 'UndetectableDelimiter')) result = read(fromHeader ?? Papa.RECORD_SEP);
-  const quoteProblems = [...new Set(result.errors.filter((e) => e.type === 'Quotes' && e.row !== undefined).map((e) => e.row!))];
-  return { rows: result.data, quoteProblems };
+  if (guessed.errors.some((e) => e.code === 'UndetectableDelimiter')) guessed = read(fromHeader ?? Papa.RECORD_SEP);
+  // Read again with that separator and every row kept, empty ones too, so each row's line is
+  // known: a row ends a line further than the line breaks inside its values (quoted ones).
+  const result = Papa.parse<string[]>(text, { delimiter: guessed.meta.delimiter });
+  const rows: string[][] = [];
+  const lines: number[] = [];
+  const lineOfRow: number[] = [];
+  let line = named ? 2 : 1;
+  for (const row of result.data) {
+    lineOfRow.push(line);
+    if (!isEmptyRow(row)) {
+      rows.push(row);
+      lines.push(line);
+    }
+    line += 1 + row.reduce((n, value) => n + (value.match(LINE_BREAK)?.length ?? 0), 0);
+  }
+  const quoteProblems = [
+    ...new Set(result.errors.filter((e) => e.type === 'Quotes' && e.row !== undefined).map((e) => lineOfRow[e.row!]!)),
+  ];
+  return { rows, lines, quoteProblems };
 }
 
 /** Rows of fields (readCsv, without its notes). */

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
-import { decodeCsv, readCsv, toCsv, type CsvEncoding } from '../domain/csv';
+import { decodeCsv, readCsv, toCsv, type CsvEncoding, type CsvTable } from '../domain/csv';
 import { dayOf } from '../domain/days';
 import { liveSelection } from '../domain/filter';
 import { fold } from '../domain/fold';
@@ -91,10 +91,10 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<EditErrorCode | null>(null);
   /** The file's rows and how its bytes were read, kept to plan again if the directory changes. */
-  const [csv, setCsv] = useState<{ rows: string[][]; encoding: CsvEncoding; quoteProblems: number[] } | null>(null);
+  const [csv, setCsv] = useState<(CsvTable & { encoding: CsvEncoding }) | null>(null);
 
-  const preview = (rows: string[][], against: DirectoryDoc) => {
-    const next = planImport(against, rows, FACET_WORDS);
+  const preview = (table: CsvTable, against: DirectoryDoc) => {
+    const next = planImport(against, table.rows, FACET_WORDS, table.lines);
     setPlan(next);
     setChoices(next.rows.map(defaultChoice));
     setFolded(new Set());
@@ -104,10 +104,10 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
     setError(null);
     if (!f) return;
     const { text, encoding } = decodeCsv(new Uint8Array(await f.arrayBuffer()));
-    const { rows, quoteProblems } = readCsv(text);
+    const table = readCsv(text);
     setFile(f.name);
-    setCsv({ rows, encoding, quoteProblems });
-    preview(rows, doc);
+    setCsv({ ...table, encoding });
+    preview(table, doc);
   };
   const choose = (i: number, c: ImportChoice) => setChoices((cs) => cs.map((x, j) => (j === i ? c : x)));
   /** Rows decided together with "Merge all": they fold into one line and stay there when changed. */
@@ -162,7 +162,7 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
     setError(code);
     if (code) {
       // The preview went stale (a provider to merge into was deleted elsewhere): plan again.
-      if (code === 'importStale' && csv) preview(csv.rows, doc);
+      if (code === 'importStale' && csv) preview(csv, doc);
       return;
     }
     setPlan(null);
@@ -231,7 +231,7 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
               )}
               {csv?.encoding === 'windows-1250' && <p className="help">{t('import.encoding')}</p>}
               {csv && csv.quoteProblems.length > 0 && (
-                <p className="help">{t('import.quotes', { lines: list(csv.quoteProblems.map((r) => String(r + 1))) })}</p>
+                <p className="help">{t('import.quotes', { lines: list(csv.quoteProblems.map(String)) })}</p>
               )}
               {csv?.encoding === 'utf-8-damaged' && <p className="help">{t('import.damagedChars')}</p>}
               {plan.misaligned.length > 0 && <p className="help">{t('import.misaligned', { lines: list(plan.misaligned.map(String)) })}</p>}
