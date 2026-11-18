@@ -359,6 +359,11 @@ test('a new provider that looks like one already here waits for a choice: save b
   await page.getByRole('textbox', { name: 'Phone number', exact: true }).fill('+40 000 000 000');
   await page.getByRole('textbox', { name: 'Email address', exact: true }).fill('x@example.com');
   await page.getByRole('button', { name: 'Save the provider' }).click();
+  // What adding would change: the email; the same phone and the provider's own name stay.
+  const changes = page.getByRole('alert').locator('.merge-diff > .diff-lines > li');
+  await expect(changes).toHaveCount(1);
+  await expect(changes.locator('.diff-field')).toHaveText('Email address');
+  await expect(changes.locator('.diff-add')).toContainText('x@example.com');
   await page.getByRole('button', { name: 'Add these details to Sample Photo Studio' }).click();
   const detail = page.getByRole('article');
   await expect(detail.getByRole('heading', { name: 'Sample Photo Studio' })).toBeVisible();

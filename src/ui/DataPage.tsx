@@ -11,17 +11,17 @@ import {
   conflicts,
   defaultChoice,
   exportRows,
-  mergeChanges,
+  mergeDiff,
   planImport,
   type ImportChoice,
   type ImportPlan,
   type ImportRow,
-  type MergeChanges,
   type SingleField,
 } from '../domain/transfer';
 import type { EditErrorCode } from '../domain/edits';
 import { useI18n } from '../i18n';
 import { LabelChip } from './LabelChip';
+import { MergeDiffView } from './MergeDiffView';
 import { FACET_WORDS, facetName } from './labelText';
 import { href, type Route } from './route';
 import type { Apply } from './types';
@@ -375,22 +375,10 @@ function RowSummary({ row, doc }: { row: ImportRow; doc: DirectoryDoc }) {
   );
 }
 
-/** "Merging adds 1 label and 1 email.": what the merge changes, in one sentence. */
-function addsText(c: MergeChanges, i18n: ReturnType<typeof useI18n>) {
-  const { t, plural, list } = i18n;
-  const parts = [
-    c.labels && plural('labels', c.labels),
-    c.phones && plural('phones', c.phones),
-    c.emails && plural('emails', c.emails),
-    c.links && plural('links', c.links),
-    ...c.filled.map((f) => t(`import.fill.${f}`)),
-  ].filter((p): p is string => Boolean(p));
-  return parts.length ? t('import.adds', { parts: list(parts) }) : t('import.addsNothing');
-}
-
 /**
- * A row that looks like a provider already there, or like an earlier row: one line says why and
- * what a merge adds, a segmented choice decides, and the row's full contents wait behind Details.
+ * A row that looks like a provider already there, or like an earlier row: one line says why, a
+ * segmented choice decides, what a merge would change shows as a diff, and the row's full
+ * contents wait behind Details.
  */
 function DoubtRow({
   doc,
@@ -418,8 +406,12 @@ function DoubtRow({
   const sentences = [
     ...(row.sameAsRow ? [t('import.likeRow', { line: row.sameAsRow.line, reasons: why(row.sameAsRow.reasons) })] : []),
     ...like,
-    ...(target ? [addsText(mergeChanges(target, row), i18n)] : []),
   ];
+  // What the merge would change, unless the row is to be added or left out.
+  const diff =
+    target && choice?.kind !== 'add' && choice?.kind !== 'skip'
+      ? mergeDiff(target, row.input, choice?.kind === 'merge' ? choice.keep : {}, row.newLabels)
+      : null;
   const option = (key: string, checked: boolean, label: string, c: ImportChoice) => (
     <label key={key}>
       <input type="radio" name={name} checked={checked} onChange={() => choose(c)} />
@@ -459,6 +451,7 @@ function DoubtRow({
         {option('add', choice?.kind === 'add', t('import.keepBoth'), { kind: 'add' })}
         {option('skip', choice?.kind === 'skip', t('import.skip'), { kind: 'skip' })}
       </fieldset>
+      {diff && <MergeDiffView doc={doc} diff={diff} />}
       <RowDetails id={`${name}-details`} row={row} hidden={!open} />
       {choice?.kind === 'merge' && <MergePicks doc={doc} row={row} choice={choice} choose={choose} />}
     </li>

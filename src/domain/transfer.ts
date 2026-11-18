@@ -283,30 +283,53 @@ export function mergeInput(
   };
 }
 
-/** What merging a row into a provider would add, for the preview's one-line summary. */
-export interface MergeChanges {
-  /** Labels the provider gains, including those the import creates. */
-  labels: number;
-  phones: number;
-  emails: number;
-  links: number;
-  /** Single fields empty on the provider that the row fills. */
-  filled: SingleField[];
-  /** Single fields where both have a different value: the owner chooses (FR-24). */
-  differ: SingleField[];
+/** The list fields of a provider that hold contacts. */
+export type ContactList = 'phones' | 'emails' | 'links';
+const CONTACT_LISTS: readonly ContactList[] = ['phones', 'emails', 'links'];
+
+/** One change a merge makes to a provider, as the preview lists it (FR-24). */
+export type MergeChange =
+  /** A single field set: `from` is empty when the provider had no value. */
+  | { kind: 'set'; field: SingleField; from: string; to: string }
+  | { kind: 'add'; field: ContactList; value: string }
+  /** A label the provider gains: one that exists, or one the import creates. */
+  | { kind: 'label'; id: string }
+  | { kind: 'newLabel'; label: NewLabel };
+
+/** What merging changes on a provider, one change per value, and what stays as it is. */
+export interface MergeDiff {
+  changes: MergeChange[];
+  /** The provider's values the merge leaves alone, field by field (labels by id). */
+  kept: { field: SingleField | ContactList | 'labelIds'; values: string[] }[];
 }
 
-/** What `mergeInput` would change on the provider, with the existing single values kept. */
-export function mergeChanges(existing: Provider, row: ImportRow): MergeChanges {
-  const merged = mergeInput(existing, row.input, {});
-  return {
-    labels: merged.labelIds.length - existing.labelIds.length + row.newLabels.length,
-    phones: merged.phones.length - existing.phones.length,
-    emails: merged.emails.length - existing.emails.length,
-    links: merged.links.length - existing.links.length,
-    filled: SINGLE_FIELDS.filter((f) => merged[f] !== existing[f]),
-    differ: conflicts(existing, row.input),
-  };
+/**
+ * What `mergeInput` with `keep` would change on `existing`, value by value: single fields set
+ * or replaced, then contacts and labels added (merging only adds to lists). `newLabels`: labels
+ * an import creates for the row.
+ */
+export function mergeDiff(
+  existing: Provider,
+  incoming: ProviderInput,
+  keep: Partial<Record<SingleField, 'existing' | 'incoming'>>,
+  newLabels: readonly NewLabel[] = [],
+): MergeDiff {
+  const merged = mergeInput(existing, incoming, keep);
+  const changes: MergeChange[] = [];
+  const kept: MergeDiff['kept'] = [];
+  for (const field of SINGLE_FIELDS) {
+    if (merged[field] !== existing[field]) changes.push({ kind: 'set', field, from: existing[field], to: merged[field] });
+    else if (existing[field].trim()) kept.push({ field, values: [existing[field]] });
+  }
+  for (const field of CONTACT_LISTS) {
+    // The union keeps the provider's values first and adds the others after them.
+    for (const value of merged[field].slice(existing[field].length)) changes.push({ kind: 'add', field, value });
+    if (existing[field].length) kept.push({ field, values: existing[field] });
+  }
+  for (const id of merged.labelIds) if (!existing.labelIds.includes(id)) changes.push({ kind: 'label', id });
+  for (const label of newLabels) changes.push({ kind: 'newLabel', label });
+  if (existing.labelIds.length) kept.push({ field: 'labelIds', values: existing.labelIds });
+  return { changes, kept };
 }
 
 export interface ImportResult {

@@ -10,7 +10,7 @@ import {
   conflicts,
   defaultChoice,
   exportRows,
-  mergeChanges,
+  mergeDiff,
   mergeInput,
   planImport,
   type ImportChoice,
@@ -148,7 +148,7 @@ describe('duplicates on import (FR-23, FR-24, D-12)', () => {
     expect(names(after)).toHaveLength(6); // nothing added
   });
 
-  it('says what a merge adds: new labels, contacts not there yet, empty fields filled, fields that differ', () => {
+  it('lists what a merge changes, value by value: fields filled or replaced, contacts and labels added', () => {
     let { doc } = weddingDirectory();
     const ctx = testContext();
     const made = createProvider(doc, { ...emptyProvider(), name: 'Studio', notes: 'old note', phones: ['0721 000 000'] }, ctx);
@@ -160,13 +160,31 @@ describe('duplicates on import (FR-23, FR-24, D-12)', () => {
       ),
       WORDS,
     );
-    expect(mergeChanges(doc.providers[made.id]!, plan.rows[0]!)).toEqual({
-      labels: 2, // Cluj exists, Fair 2030 is created
-      phones: 1, // the same number in another form is not new
-      emails: 1,
-      links: 0,
-      filled: ['contactPerson'],
-      differ: ['notes'],
+    const studio = doc.providers[made.id]!;
+    const row = plan.rows[0]!;
+    const cluj = row.input.labelIds[0]!;
+    // Keeping the provider's note: the contact person is filled; the new phone (not the same
+    // number in another form), the email and both labels are added; the rest stays.
+    expect(mergeDiff(studio, row.input, {}, row.newLabels)).toEqual({
+      changes: [
+        { kind: 'set', field: 'contactPerson', from: '', to: 'Ana' },
+        { kind: 'add', field: 'phones', value: '0722 111 111' },
+        { kind: 'add', field: 'emails', value: 'a@b.ro' },
+        { kind: 'label', id: cluj },
+        { kind: 'newLabel', label: { facetId: FACET_IDS.source, name: 'Fair 2030' } },
+      ],
+      kept: [
+        { field: 'name', values: ['Studio'] },
+        { field: 'notes', values: ['old note'] },
+        { field: 'phones', values: ['0721 000 000'] },
+      ],
+    });
+    // Using the row's note replaces the provider's.
+    expect(mergeDiff(studio, row.input, { notes: 'incoming' }, row.newLabels).changes[1]).toEqual({
+      kind: 'set',
+      field: 'notes',
+      from: 'old note',
+      to: 'new note',
     });
   });
 

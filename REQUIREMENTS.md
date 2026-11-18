@@ -123,6 +123,11 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-49 What a merge changes shows as a diff, one line per value, in the import preview and in
+  the provider form's "Add these details" warning: + and green for a value added, - and red,
+  struck through, for one replaced; signs read out as words, so colour is not the only cue (WCAG
+  1.4.1). Unchanged values wait behind "What stays as it is". A label added is a chip on a green
+  line, with no other word for new. (2026-11-18, owner: "c, except the new next to a label")
 - D-48 The header has no tabs: the Labels page is reached from "Manage labels", first in the
   header menu (Settings, or the account menu once signed in) and at the end of the filters, and
   its "Back to the list" link returns to the list with its search and filters. Navigation bars

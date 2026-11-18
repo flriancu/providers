@@ -37,9 +37,12 @@ test('previews an import, waits for a choice on a possible duplicate, then merge
     '3 rows: 1 to add, 1 to decide (they look like a provider already here or an earlier row), 1 without a name.',
   );
   await expect(preview).toContainText('The import creates 2 labels:');
-  await expect(preview.locator('.doubt-why')).toContainText(
-    'Looks like Sample Photo Studio, already in the directory (same phone). Merging adds 1 label.',
-  );
+  await expect(preview.locator('.doubt-why')).toContainText('Looks like Sample Photo Studio, already in the directory (same phone).');
+  // What a merge would change, one line per value: here, one label added (Bucharest is there already).
+  const changes = preview.locator('.merge-diff > .diff-lines > li');
+  await expect(changes).toHaveCount(1);
+  await expect(changes.locator('.diff-field')).toHaveText('Label');
+  await expect(changes.locator('.diff-add')).toContainText('AllWeddings Fest 2026');
   const run = preview.getByRole('button', { name: 'Choose for 1 row first' });
   await expect(run).toBeDisabled();
 
@@ -54,6 +57,14 @@ test('previews an import, waits for a choice on a possible duplicate, then merge
   await expect(choice.getByRole('radio')).toHaveCount(3);
   await choice.getByRole('radio', { name: 'Merge' }).check();
   await preview.getByRole('radio', { name: /Use “Met at the fair” from the file/ }).check();
+  // The note chosen from the file replaces the provider's: struck through, then added.
+  await expect(changes).toHaveCount(2);
+  const notes = changes.filter({ has: page.locator('.diff-field', { hasText: 'Notes' }) });
+  await expect(notes.locator('del.diff-del')).toContainText('A made-up provider');
+  await expect(notes.locator('.diff-add')).toContainText('Met at the fair');
+  // What the merge leaves alone waits behind a toggle.
+  await preview.locator('.diff-kept > summary').click();
+  await expect(preview.locator('.diff-kept')).toContainText('Ana Example');
   await preview.getByRole('button', { name: 'Import 2 providers' }).click();
   await expect(page.getByText('Imported: 1 provider added, 1 provider merged, 1 row left out; 2 labels created.')).toBeVisible();
 
@@ -71,7 +82,7 @@ test('updates several providers from a file in one click: rows merged into the p
   await page.getByRole('button', { name: 'Import 1 provider' }).click();
   await chooseCsv(page, 'Name,Main category,Category\nSample Photo Studio,Foto,Foto\nLagoo,Locatii,Locatii\n');
   const preview = page.getByLabel('What importing vendors.csv would do');
-  await expect(preview.locator('.doubt-why').first()).toHaveText('Already in the directory (same name). Merging adds 1 label. ▸ Details');
+  await expect(preview.locator('.doubt-why').first()).toHaveText('Already in the directory (same name). ▸ Details');
   await preview.getByRole('button', { name: 'Merge 2 rows into the provider with the same name' }).click();
 
   // The decided rows fold into one line, which takes the focus from the button that went away.

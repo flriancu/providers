@@ -14,11 +14,12 @@ import {
 import { labelById } from '../domain/labels';
 import type { EditContext } from '../domain/records';
 import { FACET_IDS, own, type DirectoryDoc } from '../domain/schema';
-import { conflicts, mergeInput, type SingleField } from '../domain/transfer';
+import { conflicts, mergeDiff, mergeInput, type SingleField } from '../domain/transfer';
 import { useI18n } from '../i18n';
 import { clearDraft, readDraft, sameInput, writeDraft } from './drafts';
 import { LabelChip } from './LabelChip';
 import { LabelPicker } from './LabelPicker';
+import { MergeDiffView } from './MergeDiffView';
 import { ListField } from './ListField';
 import { facetLabels, facetName, labelName, labelNameById, orderedFacets } from './labelText';
 import { go, href, useListQuery } from './route';
@@ -242,6 +243,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
             {doubts.found.map(({ provider: p, reasons: r }) => (
               <li key={p.id}>
                 <p>{t('import.likeProvider', { name: p.name, reasons: reasons(r) })}</p>
+                <MergeDiffView doc={doc} diff={mergeDiff(p, cleanProvider(doc, input), {})} />
                 {/* FR-24: adding keeps the provider's own single values; say which differ. */}
                 {conflicts(p, cleanProvider(doc, input)).length > 0 && (
                   <p className="help">
