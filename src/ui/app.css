@@ -392,6 +392,7 @@ a {
  */
 .icon-slot {
   color: var(--border);
+  opacity: 0.5;
 }
 
 .icon-link:hover {

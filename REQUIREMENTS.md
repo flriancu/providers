@@ -123,6 +123,14 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-45 A label group cannot be deleted; its labels can be deleted, merged or moved (FR-08).
+  (2026-11-18, owner: "no")
+- D-44 Amends NFR-08. The calendar's weekday headings stay two letters ("Mo Tu We"): full
+  names do not fit seven columns at 360 px, and the chosen day is written in full on the date
+  button above it. (2026-11-18, owner: "a")
+- D-43 A contact action a provider lacks keeps its place in the row, drawn fainter still than
+  before, so it reads as absent rather than as a disabled button. (2026-11-18, owner: "faded as
+  today, but even more faded")
 - D-42 NFR-10 for now: the list draws every row (no virtual list), which keeps find-in-page,
   the list size screen readers announce, and the scroll and focus restore. Measured at commit
   28f85ff on the production build, 10,000 providers, input to next paint: a keystroke 24-40 ms
