@@ -123,6 +123,13 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-42 NFR-10 for now: the list draws every row (no virtual list), which keeps find-in-page,
+  the list size screen readers announce, and the scroll and focus restore. Measured at commit
+  28f85ff on the production build, 10,000 providers, input to next paint: a keystroke 24-40 ms
+  and the list caught up with a search in 101 ms on a desktop; with the CPU slowed 4x (a
+  mid-range phone) a keystroke 120-168 ms and the list 429 ms, above the 100 ms of NFR-10. A
+  virtual list (`@tanstack/react-virtual`) is the way to close that gap if a directory grows
+  that large. (2026-11-18, owner: "no virtual list, at least atm")
 - D-41 Amends D-31. A new label without a chosen colour gets the colour least used over all
   labels, of every group, so labels of different groups on one provider seldom match; grey is
   never given automatically. Grey stays in the palette as a quiet colour the owner chooses, for
