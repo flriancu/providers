@@ -107,3 +107,14 @@ test('the demo sample is in the language the page opens in', async ({ page }) =>
   await expect(detail.getByText('Am sunat să întreb de date libere și prețuri.')).toBeVisible();
   await expect(detail.getByText('Foto', { exact: true })).toBeVisible();
 });
+
+test('the header has no tabs; the Labels page is in the header menu, which closes on the way there', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.getByRole('navigation')).toHaveCount(0);
+  await page.locator('details.account-menu > summary').click();
+  await page.locator('details.account-menu .menu-panel').getByRole('link', { name: 'Manage labels' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Labels', exact: true })).toBeVisible();
+  await expect(page.locator('details.account-menu')).not.toHaveAttribute('open');
+  await page.getByRole('link', { name: 'Back to the list' }).click();
+  await expect(page.getByRole('link', { name: /Sample Photo Studio/ })).toBeVisible();
+});

@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openLabels, toList } from './settings';
 
 /** Adds a label on the Labels page. */
 async function addLabel(page: Page, facet: string, en: string) {
-  await page.getByRole('link', { name: 'Labels' }).click();
+  await openLabels(page);
   const section = page.getByRole('region', { name: facet, exact: true });
   // The form stays open after adding, for adding several: open it only when it is closed.
   const form = section.locator('details.add-label');
@@ -13,7 +14,7 @@ async function addLabel(page: Page, facet: string, en: string) {
 }
 
 async function addProvider(page: Page, name: string, labels: string[] = []) {
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await toList(page);
   await page.getByRole('link', { name: 'Add a provider' }).click();
   await page.getByLabel('Name', { exact: true }).fill(name);
   for (const l of labels) await page.locator('form.provider-form').getByRole('checkbox', { name: l, exact: true }).check();
@@ -30,7 +31,7 @@ test('adds a provider with contact details and labels, then edits it (FR-01, FR-
   await addLabel(page, 'Category', 'Video');
   await addLabel(page, 'Area', 'Cluj');
 
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await toList(page);
   await page.getByRole('link', { name: 'Add a provider' }).click();
   await page.getByRole('button', { name: 'Save the provider' }).click();
   await expect(page.getByRole('alert')).toHaveText('Fill in a name.');
@@ -173,8 +174,8 @@ test('the calendar has Choose today and Cancel, and closes when focus leaves it'
 test('what is typed in the form survives leaving it, and comes back until discarded', async ({ page }) => {
   await page.getByRole('link', { name: 'Add a provider' }).click();
   await page.locator('form.provider-form').getByLabel('Name', { exact: true }).fill('Lagoo');
-  await page.getByRole('link', { name: 'Labels' }).click();
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await openLabels(page);
+  await toList(page);
 
   await expect(page.getByText('You started a new provider and have not saved it yet.')).toBeVisible();
   await page.getByRole('link', { name: 'Continue editing' }).click();
@@ -186,8 +187,8 @@ test('what is typed in the form survives leaving it, and comes back until discar
   await expect(page.locator('form.provider-form').getByLabel('Name', { exact: true })).toHaveValue('Lagoo');
   await page.getByRole('button', { name: 'Discard them' }).click();
   await expect(page.locator('form.provider-form').getByLabel('Name', { exact: true })).toHaveValue('');
-  await page.getByRole('link', { name: 'Labels' }).click();
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await openLabels(page);
+  await toList(page);
   await expect(page.getByText('You started a new provider and have not saved it yet.')).toBeHidden();
 });
 
@@ -195,8 +196,8 @@ test('edits left unsaved on a provider are flagged on its page, and Save clears 
   await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
   await page.getByRole('article').getByRole('link', { name: 'Edit' }).click();
   await page.getByLabel('Contact person').fill('Someone else');
-  await page.getByRole('link', { name: 'Labels' }).click();
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await openLabels(page);
+  await toList(page);
   await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
   const article = page.getByRole('article');
   await expect(article.getByText('This provider has changes that are not saved yet.')).toBeVisible();

@@ -2,8 +2,8 @@ import { useEffect, useRef, type ReactNode } from 'react';
 
 /**
  * A menu that opens below its button in the header (the account, the settings). Escape closes
- * it and returns to its button; a click outside closes it. Built on <details>, so it works and
- * is announced as expandable without script.
+ * it and returns to its button; a click outside closes it, and so does going to another page
+ * (a link in it). Built on <details>, so it works and is announced as expandable without script.
  */
 export function HeaderMenu({ button, label, children }: { button: ReactNode; label: string; children: ReactNode }) {
   const menu = useRef<HTMLDetailsElement>(null);
@@ -16,11 +16,16 @@ export function HeaderMenu({ button, label, children }: { button: ReactNode; lab
         if (e instanceof KeyboardEvent) el.querySelector('summary')?.focus();
       }
     };
+    const closeOnPage = () => {
+      if (menu.current) menu.current.open = false;
+    };
     document.addEventListener('keydown', close);
     document.addEventListener('pointerdown', close);
+    window.addEventListener('hashchange', closeOnPage);
     return () => {
       document.removeEventListener('keydown', close);
       document.removeEventListener('pointerdown', close);
+      window.removeEventListener('hashchange', closeOnPage);
     };
   }, []);
   return (

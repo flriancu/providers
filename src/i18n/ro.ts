@@ -22,9 +22,7 @@ export const ro: Record<MessageKey, string> = {
   'theme.device': 'La fel ca dispozitivul',
   'theme.light': 'Luminoasă',
   'theme.dark': 'Întunecată',
-  'nav.label': 'Secțiuni',
-  'nav.providers': 'Furnizori',
-  'nav.labels': 'Etichete',
+  'nav.manageLabels': 'Gestionează etichetele',
 
   'auth.signIn': 'Conectează-te cu Google',
   'auth.continueAs': 'Continuă ca {name}',
@@ -90,6 +88,16 @@ export const ro: Record<MessageKey, string> = {
   'notice.skipped':
     'Unele înregistrări din fișierul catalogului nu pot fi citite de această versiune a aplicației ({count}). Rămân neschimbate în fișier.',
   'notice.dismiss': 'Închide',
+  'notice.labelsJoined':
+    'Aveai două etichete „{name}” în grupul „{group}”, fiecare de pe alt dispozitiv. Acum sunt o singură etichetă. Niciun furnizor nu a pierdut vreo etichetă. Nu trebuie să faci nimic.',
+  'notice.labelsJoinedAfter':
+    'S-a păstrat eticheta mai veche dintre cele două, cu culoarea ei, chiar dacă avea alt nume sau era în alt grup. Toți furnizorii care aveau oricare dintre cele două etichete o au acum pe cea păstrată. Dacă „{name}” are acum o culoare pe care nu o vrei, apasă pe „Gestionează etichetele” de mai jos ca s-o schimbi.',
+  'notice.labelsJoinedMany':
+    'Pentru fiecare etichetă de mai jos aveai două cu același nume în același grup, fiecare de pe alt dispozitiv. Fiecare pereche e acum o singură etichetă:',
+  'notice.labelsJoinedManyCalm': 'Niciun furnizor nu a pierdut vreo etichetă. Nu trebuie să faci nimic.',
+  'notice.labelsJoinedManyAfter':
+    'Din fiecare pereche s-a păstrat eticheta mai veche, cu culoarea ei, chiar dacă avea alt nume sau era în alt grup. Toți furnizorii care aveau oricare dintre etichetele unei perechi o au acum pe cea păstrată. Dacă una dintre aceste etichete are acum o culoare pe care nu o vrei, apasă pe „Gestionează etichetele” de mai jos ca s-o schimbi.',
+  'notice.labelsJoinedItem': '„{name}” din grupul „{group}”',
   'crash.title': 'Pagina s-a oprit.',
   'crash.data':
     'Dacă ești conectat, catalogul tău e în siguranță: fiecare modificare rămâne pe acest dispozitiv și se salvează în Google Drive. În demonstrație, ce ai adăugat se pierde.',

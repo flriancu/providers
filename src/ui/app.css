@@ -105,23 +105,21 @@ a {
   margin-bottom: var(--space-1);
 }
 
-.app-nav {
-  display: flex;
-  gap: var(--space-2);
+/* The title takes the row's free room: the account and settings sit at its right end. */
+.app-title {
   flex: 1;
 }
 
-.app-nav a {
-  padding: var(--space-1) 0;
-  text-decoration: none;
-  font-weight: 600;
-  /* The underline's room above as well, so the text centres with the rest of the header. */
-  border-top: 3px solid transparent;
-  border-bottom: 3px solid transparent;
+/* In a header menu: the way to the Labels page, as wide as the fields under it. */
+.menu-panel .menu-link {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: var(--space-1);
 }
 
-.app-nav a[aria-current='page'] {
-  border-bottom-color: var(--accent);
+/* After the filters: the way to the Labels page. */
+.manage-labels {
+  margin-top: var(--space-2);
 }
 
 .demo-note {
@@ -910,10 +908,6 @@ details.add-label summary {
   font-size: 1.1rem;
 }
 
-.app-nav {
-  gap: var(--space-2);
-}
-
 .lang select {
   min-height: 2.25rem;
   padding: 0 var(--space-1);
@@ -1238,7 +1232,7 @@ details.add-label summary {
   border: 0;
 }
 
-/* Phones: the tabs and the language share one row; the title stays for screen readers only. */
+/* Phones: the header's row holds the account and settings; the title stays for screen readers only. */
 @media (max-width: 480px) {
   .app-title {
     position: absolute;

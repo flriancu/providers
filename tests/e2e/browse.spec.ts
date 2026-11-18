@@ -1,11 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openLabels, toList } from './settings';
 
 /**
  * Browse (FR-10..13): with the demo's Sample Photo Studio (Photo, Bucharest), plus
  * Lagoo (Cluj, no category) and Flashbox (Photo, Cluj).
  */
 async function addLabel(page: Page, facet: string, name: string) {
-  await page.getByRole('link', { name: 'Labels' }).click();
+  await openLabels(page);
   const form = page.getByRole('region', { name: facet, exact: true }).locator('details.add-label');
   if ((await form.getAttribute('open')) === null) await form.locator('summary').click();
   await form.getByLabel('Name', { exact: true }).fill(name);
@@ -13,7 +14,7 @@ async function addLabel(page: Page, facet: string, name: string) {
 }
 
 async function addProvider(page: Page, name: string, labels: string[]) {
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await toList(page);
   await page.getByRole('link', { name: 'Add a provider' }).click();
   const form = page.locator('form.provider-form');
   await form.getByLabel('Name', { exact: true }).fill(name);
@@ -27,7 +28,7 @@ async function setUp(page: Page) {
   await addLabel(page, 'Area', 'Cluj');
   await addProvider(page, 'Lagoo', ['Cluj']);
   await addProvider(page, 'Flashbox', ['Photo', 'Cluj']);
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await toList(page);
 }
 
 const names = (page: Page) => page.locator('.provider-list .provider-name');
@@ -49,9 +50,15 @@ test.describe('wide screens: filters in their own column', () => {
     await expect(names(page)).toHaveText(['Sample Photo Studio']);
     await expect(page.getByRole('heading', { name: /Providers\s*1 of 3 providers/ })).toBeVisible();
 
-    // Opening a provider and coming back keeps the query.
+    // Opening a provider keeps the query in the list beside it.
     await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
-    await page.getByRole('link', { name: 'Providers' }).click();
+    await expect(page.getByRole('article')).toBeVisible();
+    await expect(names(page)).toHaveText(['Sample Photo Studio']);
+
+    // The labels are a link away, under the filters; back from there, the filters are kept.
+    await filters.getByRole('link', { name: 'Manage labels' }).click();
+    await expect(page.getByRole('heading', { level: 2, name: 'Labels', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Back to the list' }).click();
     await expect(names(page)).toHaveText(['Sample Photo Studio']);
 
     // Each chosen value is a removable chip; Clear all removes every one.
@@ -123,6 +130,18 @@ test.describe('phones: filters open over the page (D-34)', () => {
     await sheet.getByRole('checkbox', { name: /^Photo,/ }).check();
     await page.keyboard.press('Escape');
     await expect(names(page)).toHaveText(['Flashbox']);
+  });
+
+  test('the labels are a link away, at the end of the filters; back from there, the filters are kept', async ({ page }) => {
+    await setUp(page);
+    await page.getByRole('button', { name: 'Filters', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await sheet.getByRole('checkbox', { name: /^Cluj,/ }).check();
+    await sheet.getByRole('link', { name: 'Manage labels' }).click();
+    await expect(sheet).toBeHidden();
+    await expect(page.getByRole('heading', { level: 2, name: 'Labels', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: 'Back to the list' }).click();
+    await expect(names(page)).toHaveText(['Flashbox', 'Lagoo']);
   });
 
   test('Back with the panel open leaves the panel behind; the page behind works', async ({ page }) => {

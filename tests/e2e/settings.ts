@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /**
  * Opens the header menu that holds the settings (Settings when signed out, the account menu when
@@ -17,3 +17,20 @@ export const chooseLanguage = (page: Page, lang: 'en' | 'ro') =>
 /** The theme (D-36), from the header menu. */
 export const chooseTheme = (page: Page, theme: 'device' | 'light' | 'dark') =>
   inSettings(page, (menu) => menu.getByLabel(/^(Theme|Temă)/).selectOption(theme));
+
+/** The Labels page, from the header menu (Settings when signed out, the account menu when signed in). */
+export async function openLabels(page: Page) {
+  await page.locator('details.account-menu > summary').click();
+  await page.locator('details.account-menu[open] .menu-panel').getByRole('link', { name: 'Manage labels' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Labels', exact: true })).toBeVisible();
+}
+
+/**
+ * The list, by the page's own "Back to the list" link when it shows one. A provider on a wide
+ * screen shows none: the list is beside it.
+ */
+export async function toList(page: Page) {
+  const back = page.getByRole('link', { name: 'Back to the list' });
+  if (await back.isVisible()) await back.click();
+  await expect(page.getByRole('region', { name: /^Providers/ })).toBeVisible();
+}

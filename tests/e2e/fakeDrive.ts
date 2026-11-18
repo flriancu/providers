@@ -107,7 +107,7 @@ export class FakeDrive {
 export interface Directory {
   owner: { googleSub: string };
   providers: Record<string, { id: string; name: string; labelIds: string[]; deleted?: true } & Record<string, unknown>>;
-  labels: Record<string, { id: string; name: string; deleted?: true }>;
+  labels: Record<string, { id: string; name: string; deleted?: true } & Record<string, unknown>>;
 }
 
 export const providerNames = (doc: Directory | undefined) =>

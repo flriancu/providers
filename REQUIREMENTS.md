@@ -123,11 +123,20 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-48 The header has no tabs: the Labels page is reached from "Manage labels", first in the
+  header menu (Settings, or the account menu once signed in) and at the end of the filters, and
+  its "Back to the list" link returns to the list with its search and filters. Navigation bars
+  are for three to five destinations of equal importance (Material Design 3, navigation bar:
+  https://m3.material.io/components/navigation-bar/guidelines), and a page opened rarely is not
+  one; hidden navigation is found less often (Nielsen Norman Group, 2016:
+  https://www.nngroup.com/articles/hamburger-menus/), so the link also sits where the labels
+  are on screen. (2026-11-18, owner: "c")
 - D-47 Two labels of one name in one group, which two devices can make before they sync (one
   renames or moves a label, the other makes that name), become one when the versions merge: the
   label made first stays, with the providers and other words of both, and the other is deleted
   and points at it, so a provider given it later on a device that had not heard gets the one
-  that stays; a merge on the Labels page (FR-08) points the same way. No scheme without a server
+  that stays; a merge on the Labels page (FR-08) points the same way. The page says which
+  labels became one, until dismissed (owner: "add the notice too"). No scheme without a server
   to ask can keep names unique (Bailis et al., PVLDB 8(3), 2015, peer-reviewed:
   https://arxiv.org/abs/1402.2237); repair after the merge follows Balegas et al., EuroSys 2015,
   peer-reviewed, section 5.1. (2026-11-18, owner: "research industry approaches and apply best

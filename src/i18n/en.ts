@@ -19,9 +19,7 @@ export const en = {
   'theme.device': 'Same as this device',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
-  'nav.label': 'Sections',
-  'nav.providers': 'Providers',
-  'nav.labels': 'Labels',
+  'nav.manageLabels': 'Manage labels',
 
   'auth.signIn': 'Sign in with Google',
   'auth.continueAs': 'Continue as {name}',
@@ -85,6 +83,16 @@ export const en = {
   'notice.skipped':
     'Some records in your directory file cannot be read by this version of the app ({count}). They stay unchanged in the file.',
   'notice.dismiss': 'Dismiss',
+  'notice.labelsJoined':
+    'You had two “{name}” labels in the “{group}” group, each from a different device. They are now one label. No provider lost a label. You don’t need to do anything.',
+  'notice.labelsJoinedAfter':
+    'The older of the two labels was kept, with its colour, even if it had another name or group before. Every provider that had either of the two labels now has the one that was kept. If “{name}” now has a colour you don’t want, change it with “Manage labels” below.',
+  'notice.labelsJoinedMany':
+    'For each label below, you had two with the same name in the same group, each from a different device. Each pair is now one label:',
+  'notice.labelsJoinedManyCalm': 'No provider lost a label. You don’t need to do anything.',
+  'notice.labelsJoinedManyAfter':
+    'In each pair, the older label was kept, with its colour, even if it had another name or group before. Every provider that had either label of a pair now has the one that was kept. If one of these labels now has a colour you don’t want, change it with “Manage labels” below.',
+  'notice.labelsJoinedItem': '“{name}” in the “{group}” group',
   'crash.title': 'The page stopped working.',
   'crash.data':
     'If you are signed in, your directory is safe: every change is kept on this device and saved to Google Drive. In the demo, what you added is lost.',

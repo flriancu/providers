@@ -6,12 +6,14 @@ import { hasDrafts } from './drafts';
 import { driveMessage, errorDetail, signInMessage } from './driveErrors';
 import { HeaderMenu } from './HeaderMenu';
 import { LanguageSelect, ThemeSelect } from './LanguageSelect';
+import { ManageLabelsLink } from './ManageLabelsLink';
 import type { Account, SignInFailure } from './useAccount';
 import type { DirectorySync } from './useDirectory';
 
 /**
- * Signed out: sign in (or continue as the last account), and a Settings menu with language and
- * theme. Signed in: the account menu, which holds them too. Either way the header is one row.
+ * Signed out: sign in (or continue as the last account), and a Settings menu with the way to
+ * the Labels page, language and theme. Signed in: the account menu, which holds them too. Either
+ * way the header is one row.
  */
 export function AccountBar({ account }: { account: Account }) {
   const { t } = useI18n();
@@ -34,13 +36,15 @@ export function AccountBar({ account }: { account: Account }) {
 }
 
 /**
- * The signed-in account: who, where the directory lives, language and theme, sign out.
+ * The signed-in account: the Labels page, who, where the directory lives, language and theme,
+ * sign out.
  * Escape or a click outside closes it.
  */
 function AccountMenu({ account }: { account: Extract<Account, { kind: 'google' }> }) {
   const { t } = useI18n();
   return (
     <HeaderMenu button={account.name.split(' ')[0] || account.email} label={t('account.menu', { email: account.email })}>
+      <ManageLabelsLink className="button secondary menu-link" />
       <p>{t('account.signedInAs', { email: account.email })}</p>
       <p className="help">{t('account.where', { file: DRIVE_APP.fileName })}</p>
       <LanguageSelect shown />
@@ -99,6 +103,7 @@ function SettingsMenu() {
   const { t } = useI18n();
   return (
     <HeaderMenu button={t('settings.menu')} label={t('settings.menu')}>
+      <ManageLabelsLink className="button secondary menu-link" />
       <LanguageSelect shown />
       <ThemeSelect shown />
     </HeaderMenu>

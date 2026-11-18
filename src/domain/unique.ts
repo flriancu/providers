@@ -22,6 +22,29 @@ export function withUniqueLabelNames(doc: DirectoryDoc): DirectoryDoc {
   return followMerges(out);
 }
 
+/** A label that another of its name was joined into. */
+export interface JoinedLabel {
+  id: string;
+  name: string;
+  facetId: string;
+}
+
+/**
+ * The labels of `after` that another label of their name was joined into since `before`, to
+ * tell the user. A label merged by hand has another name (names are unique in a group), so only
+ * the joins of withUniqueLabelNames count.
+ */
+export function labelsJoined(before: DirectoryDoc, after: DirectoryDoc): JoinedLabel[] {
+  const out = new Map<string, JoinedLabel>();
+  for (const gone of Object.values(after.labels)) {
+    if (!gone.deleted || gone.mergedInto === undefined || own(before.labels, gone.id)?.deleted) continue;
+    const kept = own(after.labels, gone.mergedInto);
+    if (!kept || kept.deleted || kept.facetId !== gone.facetId || fold(kept.name) !== fold(gone.name)) continue;
+    out.set(kept.id, { id: kept.id, name: kept.name, facetId: kept.facetId });
+  }
+  return [...out.values()];
+}
+
 /** One millisecond after `at`: a repair's change wins over what it repairs. */
 const after = (at: Stamp) => new Date(Date.parse(at) + 1).toISOString();
 

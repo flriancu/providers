@@ -1,5 +1,7 @@
 import { isRetryable } from 'drive-doc-sync';
 import { useCallback, useEffect, useState } from 'react';
+import { own } from '../domain/schema';
+import type { JoinedLabel } from '../domain/unique';
 import { I18nProvider, useI18n, type Lang } from '../i18n';
 import './app.css';
 import { AccountBar, LoadError, SaveAlert, SaveStatus } from './AccountBar';
@@ -7,11 +9,14 @@ import { signInMessage } from './driveErrors';
 import { ActionErrors, ErrorBoundary } from './ErrorBoundary';
 import { DataPage } from './DataPage';
 import { initialLang, LANG_KEY } from './language';
+import { facetName } from './labelText';
 import { LabelsPage } from './LabelsPage';
+import { ManageLabelsLink } from './ManageLabelsLink';
 import { ProvidersPage } from './ProvidersPage';
 import { href, useRoute } from './route';
 import { useAccount, type Account, type Connection } from './useAccount';
 import { useDirectory } from './useDirectory';
+import { useJoinedLabels } from './useJoinedLabels';
 
 export function App() {
   const [lang, setLangState] = useState<Lang>(initialLang);
@@ -56,6 +61,34 @@ function Directory({ connection }: { connection: Connection }) {
   const route = useRoute();
   const { doc, apply, saveState, saveError, copyKept, loadError, notices, sync } = useDirectory(connection);
   const onLabels = route.page === 'labels';
+  const { joined, dismiss: dismissJoined } = useJoinedLabels(doc);
+  const joinedText = (labels: JoinedLabel[]) => {
+    const named = labels.map((l) => {
+      const facet = doc && own(doc.facets, l.facetId);
+      return { name: l.name, group: facet ? facetName(facet, t) : '' };
+    });
+    // One label in a sentence; several in a list, one per line, which a phone can still read.
+    // What happened and that nothing is needed first; the details in a paragraph of their own.
+    if (named.length === 1)
+      return (
+        <>
+          <p>{t('notice.labelsJoined', named[0]!)}</p>
+          <p>{t('notice.labelsJoinedAfter', named[0]!)}</p>
+        </>
+      );
+    return (
+      <>
+        <p>{t('notice.labelsJoinedMany')}</p>
+        <ul>
+          {named.map((n, i) => (
+            <li key={i}>{t('notice.labelsJoinedItem', n)}</li>
+          ))}
+        </ul>
+        <p>{t('notice.labelsJoinedManyCalm')}</p>
+        <p>{t('notice.labelsJoinedManyAfter')}</p>
+      </>
+    );
+  };
   // Signing out saves first; what did not reach Drive stays on this device for the next sign-in.
   // Meanwhile (up to a few seconds) the page says so and offers no directory: an edit made now
   // would come after the last save, and be lost.
@@ -82,14 +115,6 @@ function Directory({ connection }: { connection: Connection }) {
     <div className="shell">
       <header className="app-header">
         <h1 className="app-title">{t('app.title')}</h1>
-        <nav aria-label={t('nav.label')} className="app-nav">
-          <a href={href({ page: 'list' }, route.query)} aria-current={onLabels ? undefined : 'page'}>
-            {t('nav.providers')}
-          </a>
-          <a href={href({ page: 'labels' })} aria-current={onLabels ? 'page' : undefined}>
-            {t('nav.labels')}
-          </a>
-        </nav>
         {account.kind === 'google' && doc && <SaveStatus saveState={saveState} />}
         <AccountBar account={account} />
       </header>
@@ -116,6 +141,16 @@ function Directory({ connection }: { connection: Connection }) {
         <p className="demo-note" role="status">
           {t('load.offline')}
         </p>
+      )}
+      {joined.length > 0 && (
+        <div className="notice" role="status">
+          <div>{joinedText(joined)}</div>
+          {/* A name or colour to change: the labels are one link away. */}
+          <ManageLabelsLink />
+          <button type="button" className="link-button" onClick={dismissJoined}>
+            {t('notice.dismiss')}
+          </button>
+        </div>
       )}
       {notices.map((n) => (
         <div key={n.kind} className="notice" role="status">

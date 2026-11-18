@@ -4,7 +4,7 @@ import { hasLocalWins, merge } from '../../src/domain/merge';
 import { readDirectory, toFile } from '../../src/domain/migrate';
 import { deleteRecord, updateRecord } from '../../src/domain/records';
 import { FACET_IDS, live, type DirectoryDoc } from '../../src/domain/schema';
-import { withUniqueLabelNames } from '../../src/domain/unique';
+import { labelsJoined, withUniqueLabelNames } from '../../src/domain/unique';
 import { OWNER, provider, testContext, weddingDirectory } from './fixture';
 
 const at = (day: number) => testContext(OWNER, Date.UTC(2026, 10, day));
@@ -96,5 +96,19 @@ describe('two labels of one name in one group become one', () => {
     d = deleteRecord(deleteRecord(d, 'labels', labels.video, ctx), 'labels', labels.plumber, ctx);
     const p = provider(d, ctx, 'X', { labelIds: [labels.video] });
     expect(withUniqueLabelNames(p.doc).providers[p.id]!.labelIds).toEqual([labels.video]);
+  });
+});
+
+describe('telling the user which labels became one', () => {
+  it('names the label kept when a merge joins two of one name, once', () => {
+    const { phone, laptop, labels } = filmTwice();
+    const merged = merge(phone, laptop);
+    expect(labelsJoined(phone, merged)).toEqual([{ id: labels.video, name: 'Film', facetId: FACET_IDS.category }]);
+    expect(labelsJoined(merged, merge(merged, laptop))).toEqual([]);
+  });
+
+  it('says nothing of a merge made by hand on the Labels page (FR-08)', () => {
+    const { doc, labels, ctx } = weddingDirectory();
+    expect(labelsJoined(doc, mergeLabels(doc, labels.video, labels.photo, ctx))).toEqual([]);
   });
 });

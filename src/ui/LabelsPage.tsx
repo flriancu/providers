@@ -16,6 +16,7 @@ import { coverage } from '../domain/sharing';
 import { useI18n } from '../i18n';
 import { ColorDot, LabelChip } from './LabelChip';
 import { FACET_WORDS, facetLabels, facetName, labelName, orderedFacets } from './labelText';
+import { href, useRoute } from './route';
 import type { Apply } from './types';
 
 const splitAliases = (text: string) => text.split(',');
@@ -27,6 +28,7 @@ const splitAliases = (text: string) => text.split(',');
  */
 export function LabelsPage({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
   const { t, plural } = useI18n();
+  const route = useRoute();
   const [editing, setEditing] = useState<string | null>(null);
   const rare = rarelyUsedLabels(doc);
 
@@ -37,8 +39,10 @@ export function LabelsPage({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) 
 
   return (
     <div className="labels-page">
-      {/* The underlined Labels tab names the page; the heading stays for screen readers' outline. */}
-      <h2 className="sr-only">{t('labels.heading')}</h2>
+      <a className="back" href={href({ page: 'list' }, route.query)}>
+        {t('detail.back')}
+      </a>
+      <h2>{t('labels.heading')}</h2>
       <p className="help">{t('labels.intro')}</p>
       <div className="facets-grid">
         {orderedFacets(doc).map((facet) => (

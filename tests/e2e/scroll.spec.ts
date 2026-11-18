@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openLabels } from './settings';
 
 /**
  * On a phone the list and a provider take turns on one page (D-29). Going to a provider and
@@ -39,7 +40,7 @@ test('the Labels page opens at its top, however far down the page before was scr
   await page.goto('./#/new');
   await page.getByRole('button', { name: 'Save the provider' }).scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
-  await page.getByRole('link', { name: 'Labels' }).click();
+  await openLabels(page);
   await expect(page.getByRole('region', { name: 'Category', exact: true })).toBeVisible();
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });

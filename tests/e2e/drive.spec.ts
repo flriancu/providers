@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { FakeDrive, providerNames, USER } from './fakeDrive';
+import { openLabels, toList } from './settings';
 
 /**
  * Signed in, against a fake Google Drive (fakeDrive.ts): sign-in, saving, the device copy and
@@ -13,7 +14,7 @@ async function open(page: Page, drive: FakeDrive, signedIn = true) {
 }
 
 async function addProvider(page: Page, name: string, labels: string[] = []) {
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await toList(page);
   await page.getByRole('link', { name: 'Add a provider' }).click();
   const form = page.locator('form.provider-form');
   await form.getByLabel('Name', { exact: true }).fill(name);
@@ -26,6 +27,34 @@ const names = (page: Page) => page.locator('.provider-list .provider-name');
 /** The header's quiet save word; not a live region, so it is not read out after every edit. */
 const saved = (page: Page) => page.getByRole('banner').getByText('Saved', { exact: true });
 
+/**
+ * Category labels made here and saved; then the phone, before it synced, made its own label of
+ * each name (another id, from before this one), and this page reloads.
+ */
+async function sameNamesOnPhone(page: Page, labelNames: string[]) {
+  const drive = new FakeDrive();
+  await open(page, drive);
+  await openLabels(page);
+  const category = page.getByRole('region', { name: 'Category', exact: true });
+  const form = category.locator('details.add-label');
+  if ((await form.getAttribute('open')) === null) await form.locator('summary').click();
+  for (const name of labelNames) {
+    await form.getByLabel('Name', { exact: true }).fill(name);
+    await form.getByRole('button', { name: 'Add the label', exact: true }).click();
+  }
+  await expect.poll(() => Object.values(drive.content().labels).map((l) => l.name)).toEqual(expect.arrayContaining(labelNames));
+  await expect(saved(page)).toBeVisible();
+  drive.change((doc) => {
+    for (const name of labelNames) {
+      const here = Object.values(doc.labels).find((l) => l.name === name)!;
+      const id = `from-phone-${name}`;
+      doc.labels[id] = { ...here, id, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' };
+    }
+  });
+  await page.reload();
+  return category;
+}
+
 test.describe('wide screens', () => {
   test.skip(({ isMobile }) => isMobile, 'storage, not layout: one screen size is enough');
 
@@ -36,7 +65,7 @@ test.describe('wide screens', () => {
     await page.getByRole('button', { name: 'Sign in with Google' }).click();
 
     await expect(page.getByRole('status').getByText('What you added in the demo is now in your directory.')).toBeVisible();
-    await page.getByRole('link', { name: 'Providers' }).click();
+    await toList(page);
     await expect(names(page)).toHaveText(['Lagoo']);
     await expect.poll(() => providerNames(drive.content())).toEqual(['Lagoo']);
     const labels = Object.values(drive.content().labels).map((l) => l.name);
@@ -73,6 +102,26 @@ test.describe('wide screens', () => {
     await page.reload();
     await expect(names(page)).toHaveText(['Flashbox', 'Lagoo']);
     expect(drive.downloads).toBe(1);
+  });
+
+  test('a label of the same name made on another device becomes one with this one, and the page says so (D-47)', async ({ page }) => {
+    const category = await sameNamesOnPhone(page, ['Film']);
+    const notice = page.getByRole('status').filter({ hasText: 'No provider lost a label.' });
+    await expect(notice).toContainText(
+      'You had two “Film” labels in the “Category” group, each from a different device. They are now one label. No provider lost a label. You don’t need to do anything.',
+    );
+    await expect(category.locator('.label-row strong').getByText('Film', { exact: true })).toHaveCount(1);
+    await notice.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(notice).toBeHidden();
+  });
+
+  test('several labels that became one at once are listed, one per line (D-47)', async ({ page }) => {
+    await sameNamesOnPhone(page, ['Film', 'Drone']);
+    const notice = page.getByRole('status').filter({ hasText: 'No provider lost a label.' });
+    await expect(notice.getByRole('listitem')).toHaveText(['“Film” in the “Category” group', '“Drone” in the “Category” group'], {
+      useInnerText: true,
+    });
+    await expect(notice).toContainText('No provider lost a label. You don’t need to do anything.');
   });
 
   test('a failed save says so and keeps the change; "Try again" saves it', async ({ page }) => {
@@ -153,7 +202,7 @@ test.describe('wide screens', () => {
     await page.getByLabel('Limba').selectOption('en');
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
-    await page.getByRole('link', { name: 'Providers' }).click();
+    await toList(page);
     await expect(names(page)).toHaveText(['Sample Photo Studio']);
     expect(await page.evaluate(() => localStorage.getItem('providers-directory.replica.u1'))).toBeNull();
     expect(await page.evaluate(() => sessionStorage.getItem('providers-directory.session'))).toBeNull();

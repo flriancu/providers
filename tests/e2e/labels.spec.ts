@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { chooseLanguage } from './settings';
+import { chooseLanguage, toList } from './settings';
 
 const facet = (page: Page, name: string) => page.getByRole('region', { name, exact: true });
 
@@ -97,7 +97,7 @@ test('"No ..." keeps the capitals of a group the owner named', async ({ page, is
   await add.locator('summary').click();
   await add.getByLabel('Label group name').fill('DJ equipment');
   await add.getByRole('button', { name: 'Add label group' }).click();
-  await page.getByRole('link', { name: 'Providers' }).click();
+  await toList(page);
   await expect(page.getByRole('complementary', { name: 'Filters' }).getByText('No DJ equipment', { exact: true })).toBeVisible();
   await expect(page.getByRole('complementary', { name: 'Filters' }).getByText('No category')).toBeVisible();
 });

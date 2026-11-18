@@ -4,6 +4,7 @@ import { labelById } from '../domain/labels';
 import { own, type DirectoryDoc, type Facet, type Label } from '../domain/schema';
 import { useI18n, type I18n } from '../i18n';
 import { LabelChip } from './LabelChip';
+import { ManageLabelsLink } from './ManageLabelsLink';
 import { facetName, facetLabels, labelName, orderedFacets } from './labelText';
 
 /** Values shown per facet before "Show all": research says about 8 (docs/research, facet UI design). */
@@ -40,6 +41,10 @@ export function FilterPanel({
       {orderedFacets(doc).map((facet) => (
         <FacetFilter key={facet.id} doc={doc} facet={facet} selection={selection} counts={own(counts, facet.id) ?? {}} toggle={toggle} />
       ))}
+      {/* Where the labels are on screen: the way to rename, merge or move them. */}
+      <p className="manage-labels">
+        <ManageLabelsLink className="link-quiet" />
+      </p>
     </div>
   );
 }
