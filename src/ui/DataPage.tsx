@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
-import { parseCsv, toCsv } from '../domain/csv';
+import { decodeCsv, parseCsv, toCsv, type CsvEncoding } from '../domain/csv';
 import { liveSelection } from '../domain/filter';
 import { fold } from '../domain/fold';
 import { live, own, type DirectoryDoc } from '../domain/schema';
@@ -10,7 +10,6 @@ import {
   conflicts,
   defaultChoice,
   exportRows,
-  facetWordsFrom,
   mergeChanges,
   planImport,
   type ImportChoice,
@@ -19,17 +18,13 @@ import {
   type MergeChanges,
   type SingleField,
 } from '../domain/transfer';
+import type { EditErrorCode } from '../domain/edits';
 import { useI18n } from '../i18n';
-import { en } from '../i18n/en';
-import { ro } from '../i18n/ro';
 import { LabelChip } from './LabelChip';
-import { facetName } from './labelText';
+import { FACET_WORDS, facetName } from './labelText';
 import { href, type Route } from './route';
 import type { Apply } from './types';
 import { visibleProviders } from './visible';
-
-/** The starting label groups' column names, in both interface languages. */
-const FACET_WORDS = facetWordsFrom([en, ro]);
 
 /** Today on this device, for the export's file name. */
 const today = () => new Date().toISOString().slice(0, 10);
@@ -86,20 +81,30 @@ export function DataPage({ doc, apply, route }: { doc: DirectoryDoc; apply: Appl
 }
 
 function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
-  const { t, plural } = useI18n();
+  const { t, plural, list } = useI18n();
   const [file, setFile] = useState('');
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const [choices, setChoices] = useState<(ImportChoice | null)[]>([]);
   const [done, setDone] = useState<string | null>(null);
+  const [error, setError] = useState<EditErrorCode | null>(null);
+  /** The file's rows and how its bytes were read, kept to plan again if the directory changes. */
+  const [csv, setCsv] = useState<{ rows: string[][]; encoding: CsvEncoding } | null>(null);
 
-  const read = async (f: File | undefined) => {
-    setDone(null);
-    if (!f) return;
-    const next = planImport(doc, parseCsv(await f.text()), FACET_WORDS);
-    setFile(f.name);
+  const preview = (rows: string[][], against: DirectoryDoc) => {
+    const next = planImport(against, rows, FACET_WORDS);
     setPlan(next);
     setChoices(next.rows.map(defaultChoice));
     setFolded(new Set());
+  };
+  const read = async (f: File | undefined) => {
+    setDone(null);
+    setError(null);
+    if (!f) return;
+    const { text, encoding } = decodeCsv(new Uint8Array(await f.arrayBuffer()));
+    const rows = parseCsv(text);
+    setFile(f.name);
+    setCsv({ rows, encoding });
+    preview(rows, doc);
   };
   const choose = (i: number, c: ImportChoice) => setChoices((cs) => cs.map((x, j) => (j === i ? c : x)));
   /** Rows decided together with "Merge all": they fold into one line and stay there when changed. */
@@ -141,8 +146,14 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
       });
       return r.doc;
     });
-    if (code) return;
+    setError(code);
+    if (code) {
+      // The preview went stale (a provider to merge into was deleted elsewhere): plan again.
+      if (code === 'importStale' && csv) preview(csv.rows, doc);
+      return;
+    }
     setPlan(null);
+    setCsv(null);
     setFile('');
     setDone(summary);
   };
@@ -200,6 +211,13 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
                     .join(', '),
                 })}
               </p>
+              {error && (
+                <p className="error" role="alert">
+                  {t(`err.${error}`)}
+                </p>
+              )}
+              {csv?.encoding === 'windows-1250' && <p className="help">{t('import.encoding')}</p>}
+              {plan.misaligned.length > 0 && <p className="help">{t('import.misaligned', { lines: list(plan.misaligned.map(String)) })}</p>}
               {plan.ignoredColumns.length > 0 && <p className="help">{t('import.ignored', { columns: plan.ignoredColumns.join(', ') })}</p>}
               {plan.newLabels.length > 0 && (
                 <div className="new-labels">

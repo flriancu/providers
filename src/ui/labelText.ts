@@ -1,6 +1,12 @@
+import { facetWordsFrom } from '../domain/columns';
 import { effectiveLabels, labelById } from '../domain/labels';
 import { FACET_IDS, live, type DirectoryDoc, type Facet, type Label, type Provider } from '../domain/schema';
 import type { I18n } from '../i18n';
+import { en } from '../i18n/en';
+import { ro } from '../i18n/ro';
+
+/** The starting label groups' words in every interface language: their CSV column names (columns.ts). */
+export const FACET_WORDS = facetWordsFrom([en, ro]);
 
 type T = I18n['t'];
 

@@ -14,7 +14,7 @@ import { LABEL_COLORS, live, type DirectoryDoc, type Facet, type Label, type Lab
 import { coverage } from '../domain/sharing';
 import { useI18n } from '../i18n';
 import { ColorDot, LabelChip } from './LabelChip';
-import { facetLabels, facetName, labelName, orderedFacets } from './labelText';
+import { FACET_WORDS, facetLabels, facetName, labelName, orderedFacets } from './labelText';
 import type { Apply } from './types';
 
 const splitAliases = (text: string) => text.split(',');
@@ -307,7 +307,7 @@ function RenameFacet({ apply, facet, done }: { apply: Apply; facet: Facet; done:
       className="inline-form"
       onSubmit={(e) => {
         e.preventDefault();
-        const code = apply((d, ctx) => renameFacet(d, facet.id, name, ctx));
+        const code = apply((d, ctx) => renameFacet(d, facet.id, name, FACET_WORDS, ctx));
         setError(code);
         if (!code) done();
       }}
@@ -335,7 +335,7 @@ function AddFacet({ apply }: { apply: Apply }) {
         className="inline-form"
         onSubmit={(e) => {
           e.preventDefault();
-          const code = apply((d, ctx) => createFacet(d, name, ctx).doc);
+          const code = apply((d, ctx) => createFacet(d, name, FACET_WORDS, ctx).doc);
           setError(code);
           if (!code) setName('');
         }}

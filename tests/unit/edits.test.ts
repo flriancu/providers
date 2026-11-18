@@ -11,6 +11,7 @@ import {
   mergeLabels,
   nextColor,
   providerLog,
+  renameFacet,
   renameLabel,
   providerInput,
   saveProvider,
@@ -18,6 +19,7 @@ import {
 } from '../../src/domain/edits';
 import { addRecord } from '../../src/domain/records';
 import { FACET_IDS, live } from '../../src/domain/schema';
+import { FACET_WORDS as WORDS } from '../../src/ui/labelText';
 import { weddingDirectory } from './fixture';
 
 const fails = (code: EditErrorCode, fn: () => unknown) => {
@@ -170,9 +172,33 @@ describe('label colours (D-31)', () => {
 describe('facets', () => {
   it('adds a flat facet after the others, with a unique name', () => {
     const { doc, ctx } = weddingDirectory();
-    const { doc: next, id } = createFacet(doc, 'Price band', ctx);
+    const { doc: next, id } = createFacet(doc, 'Price band', WORDS, ctx);
     expect(next.facets[id]).toMatchObject({ name: 'Price band', order: 5 });
-    fails('labelNameTaken', () => createFacet(next, 'price BAND', ctx));
-    fails('labelNameTaken', () => createFacet(next, 'Area', ctx)); // a starting facet's word
+    fails('labelNameTaken', () => createFacet(next, 'price BAND', WORDS, ctx));
+    fails('labelNameTaken', () => createFacet(next, 'Area', WORDS, ctx)); // a starting facet's word
+  });
+
+  // A group's CSV column must never be read as another column (FR-21).
+  it('refuses a group name its column would be read by as a field or another group, in either language', () => {
+    const { doc, ctx } = weddingDirectory();
+    fails('labelNameTaken', () => createFacet(doc, 'Categorie', WORDS, ctx));
+    fails('nameIsField', () => createFacet(doc, 'Notes', WORDS, ctx));
+    fails('nameIsField', () => createFacet(doc, 'telefon', WORDS, ctx));
+    fails('labelNameTaken', () => renameFacet(doc, FACET_IDS.lists, 'Area', WORDS, ctx));
+    fails('nameIsField', () => renameFacet(doc, FACET_IDS.source, 'Website', WORDS, ctx));
+  });
+
+  it('renamed to its own word in any language, a starting group shows the word of each language again', () => {
+    const { doc, ctx } = weddingDirectory();
+    const renamed = renameFacet(doc, FACET_IDS.category, 'Trade', WORDS, ctx);
+    expect(renamed.facets[FACET_IDS.category]!.name).toBe('Trade');
+    expect(renameFacet(renamed, FACET_IDS.category, 'Categorie', WORDS, ctx).facets[FACET_IDS.category]!.name).toBe('');
+    expect(renameFacet(doc, FACET_IDS.category, 'Category', WORDS, ctx)).toBe(doc); // nothing to change
+  });
+
+  it('refuses a semicolon in a label name: in a CSV file it separates labels', () => {
+    const { doc, ctx, labels } = weddingDirectory();
+    fails('nameSemicolon', () => createLabel(doc, { facetId: FACET_IDS.lists, name: 'Call back; urgent' }, ctx));
+    fails('nameSemicolon', () => renameLabel(doc, labels.photo, 'Photo; video', 'blue', [], ctx));
   });
 });

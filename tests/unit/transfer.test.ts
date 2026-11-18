@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 const BOM = String.fromCharCode(0xfeff);
-import { parseCsv, toCsv } from '../../src/domain/csv';
-import { createProvider, emptyProvider } from '../../src/domain/edits';
+import { decodeCsv, parseCsv, toCsv } from '../../src/domain/csv';
+import { createLabel, createProvider, deleteProvider, EditError, emptyProvider } from '../../src/domain/edits';
 import { labelById } from '../../src/domain/labels';
 import { FACET_IDS, live, newDirectory, type DirectoryDoc, type Facet } from '../../src/domain/schema';
 import {
@@ -182,5 +182,104 @@ describe('duplicates on import (FR-23, FR-24, D-12)', () => {
     const { result } = importAll(newDirectory(OWNER), 'Name,Source\nA,AllWeddings Fest 2026\nB,allweddings fest 2026\n');
     expect(live(result.doc.labels).filter((l) => l.facetId === FACET_IDS.source)).toHaveLength(1);
     expect(result.labelsCreated).toBe(1);
+  });
+});
+
+describe('CSV files from anywhere', () => {
+  it('reads a one-column list whose names hold commas as one column', () => {
+    expect(parseCsv('Name\nArtist, The Barn\nFoto & Video, SRL\n')).toEqual([['Name'], ['Artist, The Barn'], ['Foto & Video, SRL']]);
+  });
+
+  it('takes an inch mark inside a value as a character, not the start of a quoted value', () => {
+    expect(parseCsv('Name,Phones\n5" Studio,0721 111 111\nLagoo,0721 222 222\n')).toEqual([
+      ['Name', 'Phones'],
+      ['5" Studio', '0721 111 111'],
+      ['Lagoo', '0721 222 222'],
+    ]);
+  });
+
+  it('follows a "sep=" line, tabs, CR line ends, and more than one byte-order mark', () => {
+    expect(parseCsv('sep=;\nName;Phones\nX;1\n')).toEqual([
+      ['Name', 'Phones'],
+      ['X', '1'],
+    ]);
+    expect(parseCsv('Name\tPhones\nA\t1\n')).toEqual([
+      ['Name', 'Phones'],
+      ['A', '1'],
+    ]);
+    expect(parseCsv('Name,Notes\rA,b\r')).toEqual([
+      ['Name', 'Notes'],
+      ['A', 'b'],
+    ]);
+    expect(parseCsv(BOM + BOM + 'Name,Notes\nA,b\n')).toEqual([
+      ['Name', 'Notes'],
+      ['A', 'b'],
+    ]);
+    expect(parseCsv('Nume;Note, observații\nGrădina;bun\n')).toEqual([
+      ['Nume', 'Note, observații'],
+      ['Grădina', 'bun'],
+    ]);
+  });
+
+  it('reads a file saved as Windows-1250 with its diacritics, and says how it read it', () => {
+    // "Grădina;Sălcii" with ă as byte 0xE3 (Windows-1250), not valid UTF-8.
+    const bytes = Uint8Array.from([0x47, 0x72, 0xe3, 0x64, 0x69, 0x6e, 0x61, 0x3b, 0x53, 0xe3, 0x6c, 0x63, 0x69, 0x69]);
+    expect(decodeCsv(bytes)).toEqual({ text: 'Grădina;Sălcii', encoding: 'windows-1250' });
+    expect(decodeCsv(new TextEncoder().encode('Grădina'))).toEqual({ text: 'Grădina', encoding: 'utf-8' });
+  });
+
+  it('points out lines with more values than columns (a comma not in quotes)', () => {
+    const plan = planImport(newDirectory(OWNER), parseCsv('Name,Notes,Phones\nGrădina,3000 EUR, too much,0721\nLagoo,ok,0722\n'), WORDS);
+    expect(plan.misaligned).toEqual([2]);
+  });
+
+  it('writes values a spreadsheet would run as formulas as text, and reads them back as they were', () => {
+    const values = ['=HYPERLINK("http://x")', '+40 721 000 000', '-5', '@SUM(A1)', 'plain'];
+    const text = toCsv([['Name', 'Notes'], ...values.map((v, i) => [`P${i}`, v])]);
+    // What a spreadsheet sees in each cell: text that starts with an apostrophe, never a formula.
+    expect(
+      parseCsv(text)
+        .slice(1, 5)
+        .map((r) => r[1]![0]),
+    ).toEqual(["'", "'", "'", "'"]);
+    const { result } = importAll(newDirectory(OWNER), text);
+    expect(live(result.doc.providers).map((p) => p.notes)).toEqual(values);
+  });
+});
+
+describe('values that hold separators', () => {
+  it('keeps a link with a semicolon of its own as one link, and splits links the export joined', () => {
+    const { result } = importAll(newDirectory(OWNER), 'Name,Links\nP,"https://shop.example.ro/page;jsessionid=AB12; b.ro"\n');
+    expect(live(result.doc.providers)[0]!.links).toEqual(['https://shop.example.ro/page;jsessionid=AB12', 'b.ro']);
+  });
+
+  it('takes the first of several main categories as the main one, the others as categories', () => {
+    const plan = planImport(newDirectory(OWNER), parseCsv('Name,Main category\nP,Photo; Video\n'), WORDS);
+    expect(plan.rows[0]!.newPrimary?.name).toBe('Photo');
+    expect(plan.rows[0]!.newLabels.map((l) => l.name)).toEqual(['Photo', 'Video']);
+  });
+
+  it("matches a label by its own name before another label's other word", () => {
+    const ctx = testContext();
+    let doc = newDirectory(OWNER);
+    doc = createLabel(doc, { facetId: FACET_IDS.category, name: 'Photo', aliases: ['Foto'] }, ctx).doc;
+    const foto = createLabel(doc, { facetId: FACET_IDS.category, name: 'Foto' }, ctx);
+    const plan = planImport(foto.doc, parseCsv('Name,Category\nStudio,Foto\n'), WORDS);
+    expect(plan.rows[0]!.input.labelIds).toEqual([foto.id]);
+  });
+});
+
+describe('a preview that went stale', () => {
+  it('says so with an error the page can explain, when a provider to merge into was deleted meanwhile', () => {
+    const { doc, providers, ctx } = weddingDirectory();
+    const plan = planImport(doc, parseCsv('Name,Notes\nLAGOO,again\n'), WORDS);
+    const gone = deleteProvider(doc, providers.lagoo, ctx);
+    let error: unknown;
+    try {
+      applyImport(gone, plan, [{ kind: 'merge', into: providers.lagoo, keep: {} }], ctx);
+    } catch (e) {
+      error = e;
+    }
+    expect(error instanceof EditError && error.code).toBe('importStale');
   });
 });

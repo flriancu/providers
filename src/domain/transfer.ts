@@ -1,40 +1,41 @@
 /**
  * CSV import and export of providers (FR-21..24, D-09). One layout both ways, so an exported
  * file imports again: Name, Contact person, Phones, Emails, Links, Address, Notes, Main category,
- * then one column per label group, named as the group. A cell with several values separates them
- * with semicolons or line breaks. Importing is two steps: `planImport` shows everything that would
+ * then one column per label group, named as the group (columns.ts). A cell with several values
+ * separates them with semicolons or line breaks; links only with a semicolon and a space, since
+ * an address may hold a semicolon. Importing is two steps: `planImport` shows everything that would
  * change (rows, labels to create, problems, possible duplicates); `applyImport` makes exactly those
  * changes once the owner has chosen for every possible duplicate (D-12, NFR-09). Pure.
  */
+import { FIELDS, fieldOf, namesFacet, type FacetWords, type Field } from './columns';
+import { unescapeCell } from './csv';
 import { findDuplicates, linkKey, phoneKey, sameAs, type PossibleDuplicate, type Reason } from './duplicates';
-import { createLabel, createProvider, emptyProvider, providerInput, saveProvider, type ProviderInput } from './edits';
+import { createLabel, createProvider, EditError, emptyProvider, providerInput, saveProvider, type ProviderInput } from './edits';
 import { fold } from './fold';
 import { labelById } from './labels';
 import type { EditContext } from './records';
-import { BUILT_IN_FACETS, FACET_IDS, live, own, type BuiltInFacet, type DirectoryDoc, type Facet, type Provider } from './schema';
+import { FACET_IDS, live, own, type DirectoryDoc, type Facet, type Provider } from './schema';
 
-/** The fixed columns, as exported; reading also accepts the other words listed. */
-const FIELDS = {
-  name: ['Name', 'nume'],
-  contactPerson: ['Contact person', 'persoana de contact', 'contact'],
-  phones: ['Phones', 'phone', 'telefon', 'telefoane', 'numere de telefon'],
-  emails: ['Emails', 'email', 'e-mail', 'adrese de e-mail', 'adrese de email'],
-  links: ['Links', 'link', 'linkuri', 'website', 'site', 'site si profiluri sociale'],
-  address: ['Address', 'adresa'],
-  notes: ['Notes', 'note', 'notite'],
-  primary: ['Main category', 'categoria principala'],
-} as const;
-type Field = keyof typeof FIELDS;
+export { facetWordsFrom } from './columns';
 
 /** Single-value fields a merge may have to choose between (FR-24). */
 export const SINGLE_FIELDS = ['name', 'contactPerson', 'address', 'notes'] as const;
 export type SingleField = (typeof SINGLE_FIELDS)[number];
 
-const split = (cell: string) =>
+const values = (cell: string, separator: RegExp) =>
   cell
-    .split(/[;\r\n]+/)
+    .split(separator)
     .map((v) => v.trim())
     .filter((v) => v !== '');
+
+/** Phones, emails, labels: one per line or between semicolons (a label name has none, edits.ts). */
+const split = (cell: string) => values(cell, /[;\r\n]+/);
+
+/**
+ * Links: one per line, or between a semicolon and a space (how the export joins them), so an
+ * address with a semicolon of its own (`page;jsessionid=...`) stays one link.
+ */
+const splitLinks = (cell: string) => values(cell, /;\s+|[\r\n]+/).map((v) => v.replace(/;+$/, ''));
 
 // --- export -----------------------------------------------------------------------------------
 
@@ -95,12 +96,22 @@ export interface ImportPlan {
   ignoredColumns: string[];
   /** The file has no Name column, so nothing can be imported. */
   noNameColumn: boolean;
+  /**
+   * Lines with values beyond the header's last column: usually a comma inside a value that was
+   * not in quotes, which moves every later value one column on.
+   */
+  misaligned: number[];
 }
 
-/** A label of this group whose name or other words equal the text, ignoring case and diacritics. */
+/**
+ * A label of this group named as the text, ignoring case and diacritics; failing that, one with
+ * the text among its other words. A label's own name comes first, so another label's alias never
+ * takes its rows.
+ */
 function existingLabel(doc: DirectoryDoc, facetId: string, text: string) {
   const wanted = fold(text);
-  return live(doc.labels).find((l) => l.facetId === facetId && [l.name, ...l.aliases].some((w) => fold(w) === wanted));
+  const labels = live(doc.labels).filter((l) => l.facetId === facetId);
+  return labels.find((l) => fold(l.name) === wanted) ?? labels.find((l) => l.aliases.some((w) => fold(w) === wanted));
 }
 
 /**
@@ -108,22 +119,17 @@ function existingLabel(doc: DirectoryDoc, facetId: string, text: string) {
  * for the starting label groups in every language, so "Category" and "Categorie" both find it;
  * a renamed group is also found by its own name.
  */
-export function planImport(
-  doc: DirectoryDoc,
-  csv: readonly (readonly string[])[],
-  facetWords: Record<BuiltInFacet, readonly string[]>,
-): ImportPlan {
+export function planImport(doc: DirectoryDoc, csv: readonly (readonly string[])[], facetWords: FacetWords): ImportPlan {
   const [header = [], ...body] = csv;
   const facets = live(doc.facets);
   const field = new Map<number, Field>();
   const facetAt = new Map<number, string>();
   const ignoredColumns: string[] = [];
   header.forEach((title, i) => {
-    const t = fold(title);
-    if (!t) return;
-    const f = (Object.keys(FIELDS) as Field[]).find((k) => FIELDS[k].some((w) => fold(w) === t));
+    if (!fold(title)) return;
+    const f = fieldOf(title);
     if (f && ![...field.values()].includes(f)) return void field.set(i, f);
-    const facet = facets.find((g) => (g.name && fold(g.name) === t) || (g.key && facetWords[g.key].some((w) => fold(w) === t)));
+    const facet = facets.find((g) => namesFacet(g, title, facetWords));
     if (facet && ![...facetAt.values()].includes(facet.id)) return void facetAt.set(i, facet.id);
     ignoredColumns.push(title.trim());
   });
@@ -137,38 +143,42 @@ export function planImport(
   };
 
   const rows: ImportRow[] = [];
-  body.forEach((cells, n) => {
+  const misaligned: number[] = [];
+  body.forEach((raw, n) => {
+    const cells = raw.map(unescapeCell);
+    if (cells.slice(header.length).some((c) => c.trim())) misaligned.push(n + 2);
     const input = emptyProvider();
     const newLabels: NewLabel[] = [];
+    /** A label of the row: an existing one, or one to create; returns the existing one's id. */
+    const addLabel = (facetId: string, name: string): { id?: string; label?: NewLabel } => {
+      const found = existingLabel(doc, facetId, name);
+      if (found) {
+        if (!input.labelIds.includes(found.id)) input.labelIds.push(found.id);
+        return { id: found.id };
+      }
+      const label = remember({ facetId, name });
+      if (!newLabels.includes(label)) newLabels.push(label);
+      return { label };
+    };
     let primaryText = '';
     cells.forEach((cell, i) => {
       const f = field.get(i);
-      if (f === 'phones' || f === 'emails' || f === 'links') input[f] = split(cell);
-      else if (f === 'primary') primaryText = cell.trim();
+      if (f === 'phones' || f === 'emails') input[f] = split(cell);
+      else if (f === 'links') input[f] = splitLinks(cell);
+      else if (f === 'primary') primaryText = cell;
       else if (f) input[f] = cell.trim();
       const facetId = facetAt.get(i);
-      if (!facetId) return;
-      for (const name of split(cell)) {
-        const found = existingLabel(doc, facetId, name);
-        if (found) {
-          if (!input.labelIds.includes(found.id)) input.labelIds.push(found.id);
-        } else {
-          const label = remember({ facetId, name });
-          if (!newLabels.includes(label)) newLabels.push(label);
-        }
-      }
+      if (facetId) for (const name of split(cell)) addLabel(facetId, name);
     });
-    // The main category is a Category label; one not listed among the row's categories joins them.
+    // The main category is a Category label; one not listed among the row's categories joins
+    // them. A cell with several takes the first as the main one, the others as categories.
     let newPrimary: NewLabel | undefined;
-    if (primaryText) {
-      const found = existingLabel(doc, FACET_IDS.category, primaryText);
-      if (found) {
-        if (!input.labelIds.includes(found.id)) input.labelIds.push(found.id);
-        input.primaryCategoryId = found.id;
-      } else {
-        newPrimary = remember({ facetId: FACET_IDS.category, name: primaryText });
-        if (!newLabels.includes(newPrimary)) newLabels.push(newPrimary);
-      }
+    const [main, ...more] = split(primaryText);
+    if (main) {
+      const { id, label } = addLabel(FACET_IDS.category, main);
+      if (id) input.primaryCategoryId = id;
+      newPrimary = label;
+      for (const name of more) addLabel(FACET_IDS.category, name);
     }
     const row: ImportRow = {
       line: n + 2,
@@ -182,7 +192,7 @@ export function planImport(
     if (earlier && input.name) row.sameAsRow = { line: earlier.line, reasons: sameAs(input, earlier.input) };
     rows.push(row);
   });
-  return { rows, newLabels: [...allNew.values()], ignoredColumns, noNameColumn };
+  return { rows, newLabels: [...allNew.values()], ignoredColumns, noNameColumn, misaligned };
 }
 
 // --- choices and applying ---------------------------------------------------------------------
@@ -321,17 +331,11 @@ export function applyImport(
       added++;
     } else {
       const existing = own(out.providers, choice.into);
-      if (!existing || existing.deleted) throw new Error(`No provider ${choice.into} to merge into`);
+      // Deleted since the preview (on another device): the owner has to look again.
+      if (!existing || existing.deleted) throw new EditError('importStale');
       out = saveProvider(out, choice.into, providerInput(existing), mergeInput(existing, input, choice.keep), ctx);
       merged++;
     }
   });
   return { doc: out, added, merged, skipped, labelsCreated };
 }
-
-/** The interface words of the starting label groups, from both dictionaries, for `planImport`. */
-export const facetWordsFrom = (dicts: readonly Record<string, string>[]): Record<BuiltInFacet, string[]> =>
-  Object.fromEntries(BUILT_IN_FACETS.map((k) => [k, dicts.map((d) => d[`facet.${k}`] ?? '').filter(Boolean)])) as Record<
-    BuiltInFacet,
-    string[]
-  >;

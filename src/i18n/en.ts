@@ -178,6 +178,10 @@ export const en = {
 
   'err.nameRequired': 'Fill in a name.',
   'err.labelNameTaken': 'That name is already used here.',
+  'err.nameSemicolon': 'A label name cannot hold a semicolon: in an exported file it separates labels.',
+  'err.nameIsField': 'That name is a column of the exported file, such as Name, Phones or Notes. Choose another.',
+  'err.importStale':
+    'The directory changed while you were choosing: a provider to merge into is no longer there. The preview now shows the file against the directory as it is; check it and import again.',
   'err.sameLabel': 'Choose a different label.',
   'err.otherFacet': 'Labels can only be merged within one label group.',
 
@@ -216,6 +220,10 @@ export const en = {
   'import.partDoubt': '{n} to decide (they look like a provider already here or an earlier row)',
   'import.partProblem': '{n} without a name',
   'import.ignored': 'These columns match no field or label group and are not imported: {columns}.',
+  'import.misaligned':
+    'Lines {lines} have more values than the file has columns, so their values may be in the wrong columns. A value with a comma needs quotes around it.',
+  'import.encoding':
+    'This file is not saved as UTF-8, so it was read as Central European (Windows-1250). If letters look wrong, save it from the spreadsheet as "CSV UTF-8" and choose it again.',
   'import.newLabels': 'The import creates {labels}:',
   'import.doubtHeading': 'Choose for each of these {rows}',
   'import.addHeading': 'To add: {rows}',

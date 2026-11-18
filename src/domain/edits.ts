@@ -2,13 +2,24 @@
  * The changes the app makes to a directory, with their rules. Pure: each returns a new document
  * or throws EditError with a code the interface turns into a sentence.
  */
+import { columnClash, isOwnWord, type FacetWords } from './columns';
 import { fold } from './fold';
 import { labelById } from './labels';
 import { addRecord, deleteRecord, updateRecord, type EditContext } from './records';
 import { sameValue } from './stamps';
 import { FACET_IDS, LABEL_COLORS, live, own, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
 
-export type EditErrorCode = 'nameRequired' | 'labelNameTaken' | 'sameLabel' | 'otherFacet' | 'logTextRequired' | 'badDate' | 'notFound';
+export type EditErrorCode =
+  | 'nameRequired'
+  | 'labelNameTaken'
+  | 'nameSemicolon'
+  | 'nameIsField'
+  | 'sameLabel'
+  | 'otherFacet'
+  | 'logTextRequired'
+  | 'badDate'
+  | 'notFound'
+  | 'importStale';
 
 export class EditError extends Error {
   constructor(readonly code: EditErrorCode) {
@@ -158,6 +169,16 @@ function cleanName(name: string): string {
   return clean;
 }
 
+/**
+ * A label's name as stored. Never with a semicolon: in a CSV file it separates the labels of a
+ * cell, so the label would come back as two (FR-21).
+ */
+function cleanLabelName(name: string): string {
+  const clean = cleanName(name);
+  if (clean.includes(';')) throw new EditError('nameSemicolon');
+  return clean;
+}
+
 /** Two labels in one facet may not share a name (ignoring case and diacritics). */
 function assertNameFree(doc: DirectoryDoc, facetId: string, name: string, except?: string) {
   const wanted = fold(name);
@@ -188,7 +209,7 @@ export function createLabel(
 ): { doc: DirectoryDoc; id: string } {
   const facet = own(doc.facets, input.facetId);
   if (!facet || facet.deleted) throw new EditError('notFound');
-  const name = cleanName(input.name);
+  const name = cleanLabelName(input.name);
   assertNameFree(doc, input.facetId, name);
   return addRecord(
     doc,
@@ -217,7 +238,7 @@ export function renameLabel(
 ): DirectoryDoc {
   const label = labelById(doc, id);
   if (!label) throw new EditError('notFound');
-  const clean = cleanName(name);
+  const clean = cleanLabelName(name);
   assertNameFree(doc, label.facetId, clean, id);
   return updateRecord(doc, 'labels', id, { name: clean, color, aliases: cleanAliases(aliases) }, ctx);
 }
@@ -272,20 +293,32 @@ export function deleteLabel(doc: DirectoryDoc, id: string, ctx: EditContext): Di
 }
 
 /**
- * A new flat facet, after the others (D-15: the owner can add facets). Its name may not repeat
- * another facet's, nor a starting facet's built-in English word (category, area, source, lists).
+ * A facet's name as stored: never one its CSV column would be read by as something else, a fixed
+ * field (Notes, Phones) or another facet, by its name or a starting facet's word in any language
+ * (columns.ts). `words`: those words.
  */
-export function createFacet(doc: DirectoryDoc, name: string, ctx: EditContext): { doc: DirectoryDoc; id: string } {
+function cleanFacetName(doc: DirectoryDoc, name: string, words: FacetWords, selfId?: string): string {
   const clean = cleanName(name);
-  const taken = live(doc.facets).some((f) => [f.name, f.key ?? ''].some((n) => n !== '' && fold(n) === fold(clean)));
-  if (taken) throw new EditError('labelNameTaken');
+  const clash = columnClash(doc, clean, words, selfId);
+  if (clash) throw new EditError(clash === 'field' ? 'nameIsField' : 'labelNameTaken');
+  return clean;
+}
+
+/** A new flat facet, after the others (D-15: the owner can add facets). */
+export function createFacet(doc: DirectoryDoc, name: string, words: FacetWords, ctx: EditContext): { doc: DirectoryDoc; id: string } {
+  const clean = cleanFacetName(doc, name, words);
   const order = Math.max(0, ...live(doc.facets).map((f) => f.order)) + 1;
   return addRecord(doc, 'facets', { name: clean, order }, ctx);
 }
 
-/** Renames a facet; a starting facet renamed shows the owner's name from then on (D-30). */
-export function renameFacet(doc: DirectoryDoc, id: string, name: string, ctx: EditContext): DirectoryDoc {
+/**
+ * Renames a facet; a starting facet renamed shows the owner's name from then on (D-30). Renamed
+ * to its own interface word, in any language, it goes back to showing that word in each
+ * language rather than keeping one.
+ */
+export function renameFacet(doc: DirectoryDoc, id: string, name: string, words: FacetWords, ctx: EditContext): DirectoryDoc {
   const facet = own(doc.facets, id);
   if (!facet || facet.deleted) throw new EditError('notFound');
-  return updateRecord(doc, 'facets', id, { name: cleanName(name) }, ctx);
+  const clean = cleanFacetName(doc, name, words, id);
+  return updateRecord(doc, 'facets', id, { name: isOwnWord(facet, clean, words) ? '' : clean }, ctx);
 }

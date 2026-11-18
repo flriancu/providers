@@ -22,7 +22,8 @@ test('exports every provider to a CSV file with every field and label group (FR-
   expect(download.suggestedFilename()).toMatch(/^providers-\d{4}-\d{2}-\d{2}\.csv$/);
   const text = await readFile(await download.path(), 'utf8');
   expect(text).toContain('Name,Contact person,Phones,Emails,Links,Address,Notes,Main category,Category,Area,Source,Lists');
-  expect(text).toContain('Sample Photo Studio,Ana Example,+40 000 000 000');
+  // A value starting with + would open as a formula: it is written as text, with an apostrophe.
+  expect(text).toContain(`Sample Photo Studio,Ana Example,"'+40 000 000 000"`);
 });
 
 test('previews an import, waits for a choice on a possible duplicate, then merges and adds (FR-21, FR-23, FR-24)', async ({ page }) => {
