@@ -90,7 +90,7 @@ describe('a second visit to the demo', () => {
     const deleted = deleteLabel(mine, photo, ctx);
 
     // A later visit: a newer sample, and a provider with its Photo.
-    const sample = sampleDirectory(() => new Date(Date.UTC(2026, 10, 20)));
+    const sample = sampleDirectory('en', () => new Date(Date.UTC(2026, 10, 20)));
     const later = { ...testContext(DEMO_OWNER, Date.UTC(2026, 10, 20)), newId: () => 'second-visit' };
     const demo = createProvider(sample, { ...emptyProvider(), name: 'Bruno', labelIds: [labelOf(sample, 'Photo').id] }, later).doc;
 
@@ -127,7 +127,7 @@ describe('a label made in the demo', () => {
     const made = createLabel(newDirectory(OWNER), { facetId: FACET_IDS.category, name: 'Weddings', aliases: ['Nunta'] }, ctx);
     const mine = renameLabel(made.doc, made.id, 'Weddings', 'teal', ['Nunta', 'Marriage'], ctx);
     // A later visit makes "Weddings" in the demo, with the same id, and a provider with it.
-    const sample = sampleDirectory(() => new Date(Date.UTC(2026, 10, 20)));
+    const sample = sampleDirectory('en', () => new Date(Date.UTC(2026, 10, 20)));
     const visit = { ...testContext(DEMO_OWNER, Date.UTC(2026, 10, 20)), newId: () => 'visit-provider' };
     let demo = createLabel(sample, { facetId: FACET_IDS.category, name: 'Weddings' }, visit).doc;
     demo = createProvider(demo, { ...emptyProvider(), name: 'Band', labelIds: [made.id] }, visit).doc;

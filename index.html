@@ -24,6 +24,40 @@
       }
     </style>
     <script>
+      // NFR-11: a browser without what the app relies on (Object.hasOwn, CSS :has(), the modal
+      // dialog, container queries) is older than the app supports, and is told which versions
+      // work. Its own script, in syntax every browser parses, so it runs where the next one can't.
+      var tooOld = false;
+      try {
+        tooOld =
+          !Object.hasOwn ||
+          !window.HTMLDialogElement ||
+          !HTMLDialogElement.prototype.showModal ||
+          !CSS.supports('selector(:has(*))') ||
+          !CSS.supports('container-type: inline-size');
+      } catch (e) {
+        tooOld = true;
+      }
+      if (tooOld)
+        document.addEventListener('DOMContentLoaded', function () {
+          var ro = false;
+          try {
+            ro = (localStorage.getItem('providers-directory.lang') || navigator.language).toLowerCase().indexOf('ro') === 0;
+          } catch (e) {}
+          // Ahead of the app, not in its place: if the app runs anyway, the message stays.
+          var root = document.getElementById('root');
+          if (!root) return;
+          root.textContent = '';
+          var note = document.createElement('p');
+          note.setAttribute('role', 'alert');
+          note.style.cssText = 'margin: 1rem; font: 1.1rem system-ui, sans-serif';
+          root.parentNode.insertBefore(note, root);
+          note.textContent = ro
+            ? 'Acest browser este mai vechi decât poate folosi aplicația. Folosește Chrome sau Edge 111, Firefox 121, Safari 16.4 sau o versiune mai nouă.'
+            : 'This browser is older than the app can use. Use Chrome or Edge 111, Firefox 121, Safari 16.4, or newer.';
+        });
+    </script>
+    <script>
       // Never inside another site's frame (clickjacking): a static host can't send
       // X-Frame-Options, so the page leaves the frame, or stays blank if the frame forbids that.
       if (window.top !== window.self) {
@@ -44,7 +78,8 @@
           var own = location.origin + '/';
           var notLoaded = el && el.tagName === 'SCRIPT' && el.src.indexOf(own) === 0;
           var notRun = (e.filename || '').indexOf(own) === 0 && document.querySelector('#root .boot');
-          if (!notLoaded && !notRun) return;
+          // In a browser too old for the app, the message says so (above); no reload helps.
+          if (tooOld || (!notLoaded && !notRun)) return;
           var ro = false;
           try {
             ro = (localStorage.getItem('providers-directory.lang') || navigator.language).toLowerCase().indexOf('ro') === 0;

@@ -80,3 +80,30 @@ test('when the app arrives but does not run, the page says so instead of staying
   await expect(page.getByText('The app could not load. Check the internet connection, then reload the page.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reload the page' })).toBeVisible();
 });
+
+test('a browser older than the app supports is told which versions work (NFR-11)', async ({ page }) => {
+  // A browser before Object.hasOwn (Chrome 93, Firefox 92, Safari 15.4).
+  await page.addInitScript(() => {
+    delete (Object as { hasOwn?: unknown }).hasOwn;
+  });
+  await page.goto('./');
+  await expect(page.getByRole('alert').filter({ hasText: 'older than the app' })).toHaveText(
+    'This browser is older than the app can use. Use Chrome or Edge 111, Firefox 121, Safari 16.4, or newer.',
+  );
+});
+
+test('a current browser is not told it is too old (NFR-11)', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.getByRole('link', { name: /Sample Photo Studio/ })).toBeVisible();
+  await expect(page.getByText('older than the app')).toHaveCount(0);
+});
+
+test('the demo sample is in the language the page opens in', async ({ page }) => {
+  await page.goto('./');
+  await chooseLanguage(page, 'ro');
+  await page.reload();
+  await page.getByRole('link', { name: /Studio Foto Exemplu/ }).click();
+  const detail = page.getByRole('article');
+  await expect(detail.getByText('Am sunat să întreb de date libere și prețuri.')).toBeVisible();
+  await expect(detail.getByText('Foto', { exact: true })).toBeVisible();
+});

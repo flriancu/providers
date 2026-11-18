@@ -1,31 +1,17 @@
 import { isRetryable } from 'drive-doc-sync';
 import { useCallback, useEffect, useState } from 'react';
-import { STORAGE_PREFIX } from '../config';
 import { I18nProvider, useI18n, type Lang } from '../i18n';
 import './app.css';
 import { AccountBar, LoadError, SaveAlert, SaveStatus } from './AccountBar';
 import { signInMessage } from './driveErrors';
 import { ActionErrors, ErrorBoundary } from './ErrorBoundary';
 import { DataPage } from './DataPage';
+import { initialLang, LANG_KEY } from './language';
 import { LabelsPage } from './LabelsPage';
 import { ProvidersPage } from './ProvidersPage';
 import { href, useRoute } from './route';
 import { useAccount, type Account, type Connection } from './useAccount';
 import { useDirectory } from './useDirectory';
-
-const LANG_KEY = `${STORAGE_PREFIX}.lang`;
-
-/** The language chosen on this device, else the browser's if it is Romanian, else English. */
-function initialLang(): Lang {
-  let stored: string | null = null;
-  try {
-    stored = localStorage.getItem(LANG_KEY);
-  } catch {
-    // storage blocked: the browser's language decides
-  }
-  if (stored === 'en' || stored === 'ro') return stored;
-  return navigator.language.toLowerCase().startsWith('ro') ? 'ro' : 'en';
-}
 
 export function App() {
   const [lang, setLangState] = useState<Lang>(initialLang);

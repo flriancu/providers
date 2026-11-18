@@ -16,6 +16,7 @@ import { demoCarry } from '../domain/carry';
 import { directoryModel } from '../domain/document';
 import { newDirectory, type DirectoryDoc } from '../domain/schema';
 import { DEMO_OWNER, sampleDirectory } from './demoDirectory';
+import { initialLang } from './language';
 import { clearDrafts } from './drafts';
 
 const auth = new GoogleAuth(GOOGLE_CLIENT_ID, GOOGLE_SCOPES, DRIVE_FILE_SCOPE, SESSION_KEY);
@@ -193,7 +194,7 @@ export function useAccount(): Connection {
     const fresh = new MemoryStorage<DirectoryDoc>();
     demoRef.current = fresh;
     setDemo(fresh);
-    return visited && demoCarry(visited, sampleDirectory());
+    return visited && demoCarry(visited, sampleDirectory(initialLang()));
   }, []);
 
   if (session && drive && replica) {
@@ -213,7 +214,7 @@ export function useAccount(): Connection {
     key: 'demo',
     account: { kind: 'demo', hint: offered, unsavedOnDevice: !!waiting, busy, error, signIn },
     storage: demo,
-    init: () => sampleDirectory(),
+    init: () => sampleDirectory(initialLang()),
     by: DEMO_OWNER,
   };
 }

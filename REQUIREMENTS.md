@@ -284,6 +284,13 @@ Language
 - NFR-10 Speed: with 10,000 providers, a search or filter change updates the list within 100 ms
   on a mid-range phone; a refresh with an unchanged Drive file downloads nothing but the
   version. (Added 2026-11-16, D-23, D-24.)
+- NFR-11 Browsers: Chrome and Edge 111, Firefox 121, Safari and Safari on iOS 16.4, or newer.
+  These are Vite's default build target, the browsers of Baseline Widely available on
+  2026-01-01 (Chrome and Edge 111, Firefox 114, Safari 16.4;
+  https://vite.dev/config/build-options), raised for Firefox by CSS `:has()`, which the app's
+  styles use (Chrome 105, Firefox 121, Safari 15.4; MDN browser-compat-data,
+  css/selectors/has.json). An older browser is told which versions the app needs. (Added
+  2026-11-18, owner: "record minimum".)
 
 ## Verification
 
@@ -305,6 +312,7 @@ Language
 | NFR-07 | Inspection | accessibility audit output in `evidence/` |
 | NFR-08 | Inspection | stranger-read of the interface text |
 | NFR-09 | Test | `tests/e2e/import-export.spec.ts` (preview shows every change) |
+| NFR-11 | Test | `tests/e2e/home.spec.ts` (a browser without a feature the app needs is told the versions); build target in `vite.config.ts` |
 | NFR-10 | Test | `tests/unit/search.perf.test.ts` on 10,000 synthetic providers; `tests/e2e/drive.spec.ts` (a reload with an unchanged file downloads nothing) |
 
 Acceptance for v1: the automated end-to-end suite and a phone check show the ten points agreed
