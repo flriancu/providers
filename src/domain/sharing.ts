@@ -1,6 +1,6 @@
 import { fold } from './fold';
 import { effectiveLabels, labelById } from './labels';
-import { live, type DirectoryDoc, type LabelColor, type Provider, type Share } from './schema';
+import { live, own, type DirectoryDoc, type LabelColor, type Provider, type Share } from './schema';
 
 /** A label as a shared file shows it. */
 export interface ListedLabel {
@@ -62,7 +62,7 @@ export function labelSnapshot(doc: DirectoryDoc, labelId: string, now: Date): La
 
 /** FR-19: every share through which this provider is visible: the whole directory, or one of its labels. */
 export function whoCanSee(doc: DirectoryDoc, providerId: string): Share[] {
-  const provider = Object.hasOwn(doc.providers, providerId) ? doc.providers[providerId] : undefined;
+  const provider = own(doc.providers, providerId);
   if (!provider || provider.deleted) return [];
   const labels = new Set(effectiveLabels(doc, provider));
   return live(doc.shares).filter((s) => s.labelId === undefined || labels.has(s.labelId));

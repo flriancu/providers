@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { createLabel, createProvider, emptyProvider, saveProvider, type EditErrorCode, type ProviderInput } from '../domain/edits';
 import { labelById } from '../domain/labels';
-import { FACET_IDS, type DirectoryDoc, type Provider } from '../domain/schema';
+import { FACET_IDS, own, type DirectoryDoc, type Provider } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { clearDraft, readDraft, sameInput, writeDraft } from './drafts';
 import { ColorDot } from './LabelChip';
@@ -10,6 +10,7 @@ import { ListField } from './ListField';
 import { facetLabels, facetName, labelName, labelNameById, orderedFacets } from './labelText';
 import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
+import { useOncePerRender } from './useOncePerRender';
 
 /** The fields the form edits, without the record's id and stamps. */
 function toInput(p: Provider): ProviderInput {
@@ -33,7 +34,8 @@ function toInput(p: Provider): ProviderInput {
  */
 export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: Apply; id?: string }) {
   const { t } = useI18n();
-  const existing = id && Object.hasOwn(doc.providers, id) && !doc.providers[id]!.deleted ? doc.providers[id]! : undefined;
+  const found = id ? own(doc.providers, id) : undefined;
+  const existing = found && !found.deleted ? found : undefined;
   const owner = doc.owner.googleSub;
   const saved = existing ? toInput(existing) : emptyProvider();
   const [input, setInput] = useState<ProviderInput>(() => readDraft(owner, id) ?? saved);
@@ -55,6 +57,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
   }, [changed]);
   const [error, setError] = useState<EditErrorCode | null>(null);
   const ids = useId();
+  const once = useOncePerRender();
   const query = useListQuery();
   const cancel = id ? href({ page: 'provider', id }, query) : href({ page: 'list' }, query);
 
@@ -78,17 +81,20 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    let target = id;
-    const code = apply((d, ctx) => {
-      if (id) return saveProvider(d, id, input, ctx);
-      const created = createProvider(d, input, ctx);
-      target = created.id;
-      return created.doc;
+    once(() => {
+      let target = id;
+      const code = apply((d, ctx) => {
+        if (id) return saveProvider(d, id, input, ctx);
+        const created = createProvider(d, input, ctx);
+        target = created.id;
+        return created.doc;
+      });
+      setError(code);
+      if (code || !target) return false;
+      clearDraft(owner, id);
+      go({ page: 'provider', id: target }, query);
+      return true;
     });
-    setError(code);
-    if (code || !target) return;
-    clearDraft(owner, id);
-    go({ page: 'provider', id: target }, query);
   };
 
   const textField = (key: 'name' | 'contactPerson' | 'address', label: string, required = false) => (

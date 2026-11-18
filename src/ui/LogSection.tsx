@@ -5,6 +5,7 @@ import type { DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { DateField, todayIso } from './DateField';
 import type { Apply } from './types';
+import { useOncePerRender } from './useOncePerRender';
 
 /**
  * FR-02: the provider's interaction log, newest first, with a form to add to it. Deleting an
@@ -18,6 +19,7 @@ export function LogSection({ doc, apply, providerId }: { doc: DirectoryDoc; appl
   /** The entry just deleted, while its Undo is offered. */
   const [deleted, setDeleted] = useState<string | null>(null);
   const ids = useId();
+  const once = useOncePerRender();
   const entries = providerLog(doc, providerId);
 
   return (
@@ -27,12 +29,14 @@ export function LogSection({ doc, apply, providerId }: { doc: DirectoryDoc; appl
         className="log-form"
         onSubmit={(e) => {
           e.preventDefault();
-          const code = apply((d, ctx) => addLogEntry(d, providerId, day, text, ctx).doc);
-          setError(code);
-          if (!code) {
+          once(() => {
+            const code = apply((d, ctx) => addLogEntry(d, providerId, day, text, ctx).doc);
+            setError(code);
+            if (code) return false;
             setText('');
             setDeleted(null);
-          }
+            return true;
+          });
         }}
       >
         <DateField label={t('log.date')} value={day} onChange={setDay} />

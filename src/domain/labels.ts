@@ -1,11 +1,9 @@
 import { fold } from './fold';
-import { live, type DirectoryDoc, type Label, type Provider } from './schema';
-
-const has = <T>(record: Record<string, T>, id: string) => Object.hasOwn(record, id);
+import { live, own, type DirectoryDoc, type Label, type Provider } from './schema';
 
 /** A live label, or undefined (gone, deleted, or never there). */
 export function labelById(doc: DirectoryDoc, id: string): Label | undefined {
-  const label = has(doc.labels, id) ? doc.labels[id] : undefined;
+  const label = own(doc.labels, id);
   return label && !label.deleted ? label : undefined;
 }
 

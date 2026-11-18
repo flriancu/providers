@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { Selection } from '../domain/filter';
+import { decodeOrKeep } from '../domain/uri';
 
 /**
  * Where the app is, kept in the address's hash so it works on any static host, survives a
@@ -32,16 +33,18 @@ const SEP = '~';
 
 export function parseQuery(search: string): ListQuery {
   const params = new URLSearchParams(search);
-  const selection: Record<string, string[]> = {};
+  // A Map, not an object: the ids come from the address, and "__proto__" or "constructor" must be plain keys.
+  const selection = new Map<string, string[]>();
   for (const value of params.getAll('f')) {
     const at = value.indexOf(SEP);
     if (at <= 0 || at === value.length - 1) continue;
     const facetId = value.slice(0, at);
     const labelId = value.slice(at + 1);
-    const list = (selection[facetId] ??= []);
+    const list = selection.get(facetId) ?? [];
     if (!list.includes(labelId)) list.push(labelId);
+    selection.set(facetId, list);
   }
-  return { selection, q: params.get('q') ?? '' };
+  return { selection: Object.fromEntries(selection), q: params.get('q') ?? '' };
 }
 
 export function queryString(query: ListQuery): string {
@@ -57,7 +60,7 @@ export function parseRoute(hash: string): Route {
   const at = raw.indexOf('?');
   const path = at === -1 ? raw : raw.slice(0, at);
   const query = parseQuery(at === -1 ? '' : raw.slice(at + 1));
-  const parts = path.split('/').map(decodeURIComponent);
+  const parts = path.split('/').map(decodeOrKeep);
   let page: Page = { page: 'list' };
   if (parts[0] === 'labels') page = { page: 'labels' };
   else if (parts[0] === 'data') page = { page: 'data' };

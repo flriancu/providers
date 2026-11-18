@@ -1,5 +1,5 @@
 import { effectiveLabels, labelById } from './labels';
-import { live, type DirectoryDoc, type Provider } from './schema';
+import { live, own, put, type DirectoryDoc, type Provider } from './schema';
 
 /** What is selected in the filter panel: label ids per facet id. */
 export type Selection = Record<string, readonly string[]>;
@@ -13,10 +13,10 @@ export const NO_SELECTION: Selection = {};
 export function liveSelection(doc: DirectoryDoc, selection: Selection): Selection {
   const out: Record<string, string[]> = {};
   for (const [facetId, ids] of Object.entries(selection)) {
-    const facet = Object.hasOwn(doc.facets, facetId) ? doc.facets[facetId] : undefined;
+    const facet = own(doc.facets, facetId);
     if (!facet || facet.deleted) continue;
     const kept = ids.filter((id) => id === NO_LABEL || labelById(doc, id)?.facetId === facetId);
-    if (kept.length) out[facetId] = kept;
+    if (kept.length) put(out, facetId, kept);
   }
   return out;
 }
@@ -93,13 +93,13 @@ export function facetCounts(doc: DirectoryDoc, selection: Selection): FacetCount
   const out: FacetCounts = {};
   for (const facet of live(doc.facets)) {
     const counts: Record<string, number> = { [NO_LABEL]: 0 };
-    for (const l of live(doc.labels)) if (l.facetId === facet.id) counts[l.id] = 0;
+    for (const l of live(doc.labels)) if (l.facetId === facet.id) put(counts, l.id, 0);
     for (const p of prepared) {
       if (!matches(p, want, facet.id)) continue;
       if (!p.facets.has(facet.id)) counts[NO_LABEL]! += 1;
       for (const id of p.labels) if (Object.hasOwn(counts, id)) counts[id]! += 1;
     }
-    out[facet.id] = counts;
+    put(out, facet.id, counts);
   }
   return out;
 }

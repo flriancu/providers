@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { parseCsv, toCsv } from '../domain/csv';
 import { liveSelection } from '../domain/filter';
 import { fold } from '../domain/fold';
-import { live, type DirectoryDoc } from '../domain/schema';
+import { live, own, type DirectoryDoc } from '../domain/schema';
 import { ProviderSearch } from '../domain/search';
 import {
   applyImport,
@@ -296,7 +296,7 @@ function RowLabels({ row, doc }: { row: ImportRow; doc: DirectoryDoc }) {
   return (
     <>
       {row.input.labelIds.map((id) => {
-        const l = doc.labels[id];
+        const l = own(doc.labels, id);
         return l ? (
           <LabelChip key={id} color={l.color}>
             {l.name}
@@ -362,7 +362,7 @@ function DoubtRow({
   const name = `row-${row.line}`;
   const why = (reasons: readonly string[]) => i18n.list(reasons.map((r) => t(`import.reason.${r as 'name'}`)));
   const only = row.duplicates.length === 1 ? row.duplicates[0] : undefined;
-  const target = choice?.kind === 'merge' ? doc.providers[choice.into] : only?.provider;
+  const target = choice?.kind === 'merge' ? own(doc.providers, choice.into) : only?.provider;
   const like = row.duplicates.map((d) =>
     fold(d.provider.name) === fold(row.input.name)
       ? t('import.likeSameName', { reasons: why(d.reasons) })
@@ -473,7 +473,7 @@ function FoldedRows({
   ).flatMap(([kind, key]) => (count(kind) ? [t(key, { rows: plural('rows', count(kind)) })] : []));
   const differ = rows.filter(([row, i]) => {
     const c = choices[i];
-    return c?.kind === 'merge' && conflicts(doc.providers[c.into]!, row.input).length > 0;
+    return c?.kind === 'merge' && conflicts(own(doc.providers, c.into)!, row.input).length > 0;
   }).length;
   return (
     <>
@@ -503,7 +503,7 @@ function MergePicks({
   choose: (c: ImportChoice) => void;
 }) {
   const { t } = useI18n();
-  const existing = doc.providers[choice.into]!;
+  const existing = own(doc.providers, choice.into)!;
   const fields = conflicts(existing, row.input);
   const labels: Record<SingleField, string> = {
     name: t('field.name'),

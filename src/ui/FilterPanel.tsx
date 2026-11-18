@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import { NO_LABEL, type FacetCounts, type Selection } from '../domain/filter';
 import { labelById } from '../domain/labels';
-import type { DirectoryDoc, Facet, Label } from '../domain/schema';
+import { own, type DirectoryDoc, type Facet, type Label } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { LabelChip } from './LabelChip';
 import { facetName, facetLabels, labelName, orderedFacets } from './labelText';
@@ -12,7 +12,7 @@ const SHOWN = 8;
 export type Toggle = (facetId: string, labelId: string, on: boolean) => void;
 
 /** True when a value is selected. */
-const isOn = (selection: Selection, facetId: string, labelId: string) => (selection[facetId] ?? []).includes(labelId);
+const isOn = (selection: Selection, facetId: string, labelId: string) => (own(selection, facetId) ?? []).includes(labelId);
 
 /**
  * FR-10, FR-11: one group per facet; each value with its count, and "No <facet>" (D-33) last. A value that would empty the list is greyed out and
@@ -32,7 +32,7 @@ export function FilterPanel({
   return (
     <div className="filter-panel">
       {orderedFacets(doc).map((facet) => (
-        <FacetFilter key={facet.id} doc={doc} facet={facet} selection={selection} counts={counts[facet.id] ?? {}} toggle={toggle} />
+        <FacetFilter key={facet.id} doc={doc} facet={facet} selection={selection} counts={own(counts, facet.id) ?? {}} toggle={toggle} />
       ))}
     </div>
   );
@@ -63,7 +63,7 @@ function FacetFilter({
     <fieldset className="facet-filter">
       <legend id={`${ids}-legend`}>{name}</legend>
       {visible.map((r) => {
-        const count = counts[r.id] ?? 0;
+        const count = own(counts, r.id) ?? 0;
         const on = isOn(selection, facet.id, r.id);
         const valueName = r.label ? labelName(r.label) : t('filter.none', { facet: name.toLocaleLowerCase() });
         return (
@@ -110,7 +110,7 @@ export function ActiveFilters({
     <div className="active-filters">
       {chosen.map(({ facetId, labelId }) => {
         const label = labelById(doc, labelId);
-        const facet = doc.facets[facetId];
+        const facet = own(doc.facets, facetId);
         const text = label ? labelName(label) : facet ? t('filter.none', { facet: facetName(facet, t).toLocaleLowerCase() }) : labelId;
         return (
           <button
@@ -135,7 +135,7 @@ export function ActiveFilters({
 
 /** The selection with one value added or removed; facets left empty are dropped. */
 export function toggled(selection: Selection, facetId: string, labelId: string, on: boolean): Selection {
-  const current = selection[facetId] ?? [];
+  const current = own(selection, facetId) ?? [];
   const next = on ? [...new Set([...current, labelId])] : current.filter((id) => id !== labelId);
   const { [facetId]: _old, ...rest } = selection;
   return next.length ? { ...rest, [facetId]: next } : rest;

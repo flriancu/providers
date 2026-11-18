@@ -1,3 +1,5 @@
+import { decodeOrKeep } from './uri';
+
 /**
  * What a provider's link is: its own website, or a profile on a known network or directory, and
  * the profile's handle. Pure; no network access, only the address is read.
@@ -34,7 +36,7 @@ export function handleOf(link: string): string {
     toUrl(link)
       ?.pathname.split('/')
       .find((part) => part !== '') ?? '';
-  return decodeURIComponent(first).replace(/^@/, '');
+  return decodeOrKeep(first).replace(/^@/, '');
 }
 
 /** A provider's first link of each kind, in the order they are stored. */

@@ -271,3 +271,62 @@ test('each row offers a call, an email and its website, named in full, opening t
   // No Instagram or TikTok on this provider: no buttons for them.
   await expect(row.getByRole('link', { name: /Instagram|TikTok/ })).toHaveCount(0);
 });
+
+/** Opens a provider page the way a link in the list does, also where the list is hidden (phone). */
+async function openByHash(page: Page, name: string, edit = false) {
+  const address = await page.locator('a.row-link').filter({ hasText: name }).getAttribute('href');
+  await page.evaluate((h) => (location.hash = h), edit ? address!.replace(/(#\/p\/[^?]+)/, '$1/edit') : address!);
+}
+
+test('nothing typed or armed on one provider carries over to the next', async ({ page }) => {
+  await addProvider(page, 'Lagoo');
+  const log = page.getByRole('region', { name: 'Conversations and notes' });
+  await log.getByLabel('What happened').fill('Meant for Lagoo');
+  await page.getByRole('button', { name: 'Delete provider' }).click();
+  await openByHash(page, 'Sample Photo Studio');
+  await expect(page.getByRole('heading', { level: 2, name: 'Sample Photo Studio' })).toBeVisible();
+  await expect(log.getByLabel('What happened')).toHaveValue('');
+  await expect(page.getByRole('button', { name: /^Delete Lagoo|^Delete Sample/ })).toHaveCount(0);
+
+  // From one edit form straight to another (Back and Forward do this): each shows its own provider.
+  await openByHash(page, 'Lagoo', true);
+  await page.getByLabel('Name', { exact: true }).fill('Lagoo renamed');
+  await openByHash(page, 'Sample Photo Studio', true);
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Sample Photo Studio');
+});
+
+test('Save or Add pressed twice before the screen updates acts once', async ({ page }) => {
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Twice Saved');
+  // Two clicks in one task: the second arrives before React has drawn the result of the first.
+  await page.getByRole('button', { name: 'Save the provider' }).evaluate((b: HTMLElement) => (b.click(), b.click()));
+  await expect(page.getByRole('heading', { level: 2, name: 'Twice Saved' })).toBeVisible();
+  await expect(page.locator('.provider-list .provider-name').filter({ hasText: 'Twice Saved' })).toHaveCount(1);
+
+  const log = page.getByRole('region', { name: 'Conversations and notes' });
+  await log.getByLabel('What happened').fill('Called once');
+  await log.getByRole('button', { name: 'Add to the log' }).evaluate((b: HTMLElement) => (b.click(), b.click()));
+  await expect(log.locator('.log-entries li')).toHaveCount(1);
+  await expect(log.getByRole('alert')).toHaveCount(0);
+});
+
+test('a stray % in a profile address shows as typed and the list keeps working', async ({ page }) => {
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Fifty Off');
+  await page.getByRole('textbox', { name: 'Website or social profile', exact: true }).fill('https://www.instagram.com/50%off/');
+  await page.getByRole('button', { name: 'Save the provider' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'Fifty Off' })).toBeVisible();
+  // The demo keeps nothing across a reload: back to the list in the page.
+  await page.evaluate(() => (location.hash = '#/'));
+  const row = page.locator('.provider-list li').filter({ hasText: 'Fifty Off' });
+  await expect(row.getByRole('link', { name: /Instagram.*50%off/ })).toBeVisible();
+});
+
+test('a hostile address opens the list instead of stopping the app', async ({ page }) => {
+  for (const hash of ['#/?f=__proto__~x', '#/?f=constructor~x', '#/p/%', '#/p/%E0%A4%A/edit', '#/p/constructor']) {
+    await page.goto(`./${hash}`);
+    await page.reload();
+    await expect(page.getByText('The page stopped working.')).toHaveCount(0);
+    await expect(page.locator('.app-header')).toBeVisible();
+  }
+});

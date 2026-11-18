@@ -27,3 +27,16 @@ describe('the address (FR-12)', () => {
     expect(parseRoute('#/?f=nolabel&f=~x&f=a~&f=a~b&f=a~b').query.selection).toEqual({ a: ['b'] });
   });
 });
+
+describe('hostile addresses', () => {
+  it('reads filters named after built-in properties as plain values', () => {
+    const { selection } = parseRoute('#/?f=__proto__~x&f=constructor~y&f=toString~z').query;
+    expect(Object.keys(selection)).toEqual(['__proto__', 'constructor', 'toString']);
+    expect(Object.hasOwn(selection, '__proto__') && selection['__proto__']).toEqual(['x']);
+  });
+
+  it('keeps a malformed escape as typed instead of failing', () => {
+    expect(parseRoute('#/p/%')).toMatchObject({ page: 'provider', id: '%' });
+    expect(parseRoute('#/p/%E0%A4%A/edit')).toMatchObject({ page: 'edit', id: '%E0%A4%A' });
+  });
+});

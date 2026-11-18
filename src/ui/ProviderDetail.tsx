@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { deleteProvider } from '../domain/edits';
 import { effectiveLabels, labelById } from '../domain/labels';
-import type { DirectoryDoc } from '../domain/schema';
+import { own, type DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { hasDraft } from './drafts';
 import { LabelChip } from './LabelChip';
@@ -17,7 +17,7 @@ export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: A
   const { t } = useI18n();
   const query = useListQuery();
   const [confirming, setConfirming] = useState(false);
-  const provider = Object.hasOwn(doc.providers, id) ? doc.providers[id] : undefined;
+  const provider = own(doc.providers, id);
 
   if (!provider || provider.deleted) {
     return (

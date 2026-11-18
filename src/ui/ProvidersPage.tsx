@@ -145,9 +145,10 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
         </section>
 
         <section className="pane detail-pane">
-          {route.page === 'new' && <ProviderForm doc={doc} apply={apply} />}
-          {route.page === 'edit' && <ProviderForm doc={doc} apply={apply} id={route.id} />}
-          {route.page === 'provider' && <ProviderDetail doc={doc} apply={apply} id={route.id} />}
+          {/* Keyed by provider: nothing typed, armed or offered for one provider carries over to the next. */}
+          {route.page === 'new' && <ProviderForm key="new" doc={doc} apply={apply} />}
+          {route.page === 'edit' && <ProviderForm key={`edit-${route.id}`} doc={doc} apply={apply} id={route.id} />}
+          {route.page === 'provider' && <ProviderDetail key={`provider-${route.id}`} doc={doc} apply={apply} id={route.id} />}
           {route.page === 'list' && <p className="muted placeholder">{t('detail.none')}</p>}
         </section>
 

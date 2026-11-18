@@ -142,6 +142,11 @@ export function live<T extends Meta>(collection: Record<string, T>): T[] {
   return Object.values(collection).filter((r) => !r.deleted);
 }
 
+/** `record[id]` when it is the record's own property, so ids like `constructor` find nothing inherited. */
+export function own<T>(record: Record<string, T>, id: string): T | undefined {
+  return Object.hasOwn(record, id) ? record[id] : undefined;
+}
+
 /** Sets `record[id]` as an own property, even for ids like `__proto__`. */
 export function put<T>(record: Record<string, T>, id: string, value: T) {
   Object.defineProperty(record, id, { value, enumerable: true, writable: true, configurable: true });

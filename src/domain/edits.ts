@@ -5,7 +5,7 @@
 import { fold } from './fold';
 import { labelById } from './labels';
 import { addRecord, deleteRecord, updateRecord, type EditContext } from './records';
-import { FACET_IDS, LABEL_COLORS, live, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
+import { FACET_IDS, LABEL_COLORS, live, own, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
 
 export type EditErrorCode = 'nameRequired' | 'labelNameTaken' | 'sameLabel' | 'otherFacet' | 'logTextRequired' | 'badDate' | 'notFound';
 
@@ -77,7 +77,7 @@ export function createProvider(doc: DirectoryDoc, input: ProviderInput, ctx: Edi
 }
 
 export function saveProvider(doc: DirectoryDoc, id: string, input: ProviderInput, ctx: EditContext): DirectoryDoc {
-  const before = doc.providers[id];
+  const before = own(doc.providers, id);
   if (!before || before.deleted) throw new EditError('notFound');
   const clean = cleanProvider(doc, input);
   if (!clean.name) throw new EditError('nameRequired');
@@ -107,7 +107,7 @@ export function addLogEntry(
   text: string,
   ctx: EditContext,
 ): { doc: DirectoryDoc; id: string } {
-  const provider = doc.providers[providerId];
+  const provider = own(doc.providers, providerId);
   if (!provider || provider.deleted) throw new EditError('notFound');
   if (!isISODate(date)) throw new EditError('badDate');
   if (!text.trim()) throw new EditError('logTextRequired');
@@ -156,7 +156,7 @@ export function createLabel(
   input: { facetId: string; name: string; color?: LabelColor; aliases?: string[] },
   ctx: EditContext,
 ): { doc: DirectoryDoc; id: string } {
-  const facet = doc.facets[input.facetId];
+  const facet = own(doc.facets, input.facetId);
   if (!facet || facet.deleted) throw new EditError('notFound');
   const name = cleanName(input.name);
   assertNameFree(doc, input.facetId, name);
@@ -250,7 +250,7 @@ export function createFacet(doc: DirectoryDoc, name: string, ctx: EditContext): 
 
 /** Renames a facet; a starting facet renamed shows the owner's name from then on (D-30). */
 export function renameFacet(doc: DirectoryDoc, id: string, name: string, ctx: EditContext): DirectoryDoc {
-  const facet = doc.facets[id];
+  const facet = own(doc.facets, id);
   if (!facet || facet.deleted) throw new EditError('notFound');
   return updateRecord(doc, 'facets', id, { name: cleanName(name) }, ctx);
 }

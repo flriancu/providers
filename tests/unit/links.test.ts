@@ -16,6 +16,9 @@ describe('what a link is', () => {
   it("reads the account name from a profile's address", () => {
     expect(handleOf('https://www.instagram.com/alina.vreju/')).toBe('alina.vreju');
     expect(handleOf('https://www.tiktok.com/@adrianscinteifotograf')).toBe('adrianscinteifotograf');
+    expect(handleOf('https://www.instagram.com/caf%C3%A9/')).toBe('café');
+    // A stray % is not an escape: the handle shows as typed, it does not fail.
+    expect(handleOf('https://www.instagram.com/50%off/')).toBe('50%off');
   });
 
   it('takes the first link of each kind, skipping text that is not an address', () => {

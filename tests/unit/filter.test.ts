@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { facetCounts, filterProviders, NO_LABEL, NO_SELECTION, type Selection } from '../../src/domain/filter';
-import { FACET_IDS } from '../../src/domain/schema';
-import { weddingDirectory } from './fixture';
+import { facetCounts, filterProviders, liveSelection, NO_LABEL, NO_SELECTION, type Selection } from '../../src/domain/filter';
+import { addRecord } from '../../src/domain/records';
+import { FACET_IDS, newDirectory, own } from '../../src/domain/schema';
+import { label, OWNER, provider, testContext, weddingDirectory } from './fixture';
 
 const names = (list: { name: string }[]) => list.map((p) => p.name).sort();
 const count = (counts: ReturnType<typeof facetCounts>, facetId: string, labelId: string) => counts[facetId]?.[labelId];
@@ -67,8 +68,7 @@ describe('counts next to each value (FR-11)', () => {
 });
 
 describe('selections that outlive their labels', () => {
-  it('drops values whose label or facet is gone, keeping "none" and live labels', async () => {
-    const { liveSelection } = await import('../../src/domain/filter');
+  it('drops values whose label or facet is gone, keeping "none" and live labels', () => {
     const { doc, labels } = weddingDirectory();
     expect(
       liveSelection(doc, {
@@ -77,5 +77,24 @@ describe('selections that outlive their labels', () => {
         [FACET_IDS.area]: ['also-gone'],
       }),
     ).toEqual({ [FACET_IDS.category]: [labels.photo, NO_LABEL] });
+  });
+});
+
+describe('ids that are names of built-in properties', () => {
+  // A directory file comes from anywhere; its ids are plain keys, never Object.prototype's members.
+  it('filters and counts labels and facets named "__proto__" or "constructor"', () => {
+    const ids = ['constructor', '__proto__', 'p1', 'p2'];
+    const ctx = { ...testContext(), newId: () => ids.shift()! };
+    let doc = addRecord(newDirectory(OWNER), 'facets', { name: 'Hall', order: 9 }, ctx).doc; // facet "constructor"
+    doc = label(doc, ctx, 'constructor', 'Big').doc; // label "__proto__"
+    doc = provider(doc, ctx, 'Inside', { labelIds: ['__proto__'] }).doc;
+    doc = provider(doc, ctx, 'Outside').doc;
+
+    const selection = liveSelection(doc, Object.fromEntries([['constructor', ['__proto__']]]));
+    expect(Object.keys(selection)).toEqual(['constructor']);
+    expect(names(filterProviders(doc, selection))).toEqual(['Inside']);
+    const hall = own(facetCounts(doc, NO_SELECTION), 'constructor');
+    expect(hall && own(hall, '__proto__')).toBe(1);
+    expect(hall?.[NO_LABEL]).toBe(1);
   });
 });

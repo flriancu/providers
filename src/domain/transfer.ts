@@ -11,7 +11,7 @@ import { createLabel, createProvider, emptyProvider, saveProvider, type Provider
 import { fold } from './fold';
 import { labelById } from './labels';
 import type { EditContext } from './records';
-import { BUILT_IN_FACETS, FACET_IDS, live, type BuiltInFacet, type DirectoryDoc, type Facet, type Provider } from './schema';
+import { BUILT_IN_FACETS, FACET_IDS, live, own, type BuiltInFacet, type DirectoryDoc, type Facet, type Provider } from './schema';
 
 /** The fixed columns, as exported; reading also accepts the other words listed. */
 const FIELDS = {
@@ -320,7 +320,7 @@ export function applyImport(
       out = createProvider(out, input, ctx).doc;
       added++;
     } else {
-      const existing = out.providers[choice.into];
+      const existing = own(out.providers, choice.into);
       if (!existing || existing.deleted) throw new Error(`No provider ${choice.into} to merge into`);
       out = saveProvider(out, choice.into, mergeInput(existing, input, choice.keep), ctx);
       merged++;
