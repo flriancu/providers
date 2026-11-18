@@ -1,7 +1,15 @@
 import { useEffect, useId, useState } from 'react';
-import { createLabel, createProvider, emptyProvider, saveProvider, type EditErrorCode, type ProviderInput } from '../domain/edits';
+import {
+  createLabel,
+  createProvider,
+  emptyProvider,
+  providerInput,
+  saveProvider,
+  type EditErrorCode,
+  type ProviderInput,
+} from '../domain/edits';
 import { labelById } from '../domain/labels';
-import { FACET_IDS, own, type DirectoryDoc, type Provider } from '../domain/schema';
+import { FACET_IDS, own, type DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { clearDraft, readDraft, sameInput, writeDraft } from './drafts';
 import { ColorDot } from './LabelChip';
@@ -12,41 +20,30 @@ import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
 import { useOncePerRender } from './useOncePerRender';
 
-/** The fields the form edits, without the record's id and stamps. */
-function toInput(p: Provider): ProviderInput {
-  return {
-    name: p.name,
-    contactPerson: p.contactPerson,
-    phones: p.phones,
-    emails: p.emails,
-    links: p.links,
-    address: p.address,
-    notes: p.notes,
-    labelIds: p.labelIds,
-    ...(p.primaryCategoryId && { primaryCategoryId: p.primaryCategoryId }),
-  };
-}
-
 /**
  * Create (no `id`) or edit a provider. Lists have one field per value (ListField). What is typed
  * is kept as a draft for this tab until it is saved or cancelled (drafts.ts), so leaving the form
- * by any route loses nothing; coming back brings it back, with a way to discard it.
+ * by any route loses nothing; coming back brings it back, with a way to discard it. The form
+ * remembers what it started from, with the draft, and saves only the fields changed since: a
+ * change made meanwhile on another device to another field stays.
  */
 export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: Apply; id?: string }) {
   const { t } = useI18n();
   const found = id ? own(doc.providers, id) : undefined;
   const existing = found && !found.deleted ? found : undefined;
   const owner = doc.owner.googleSub;
-  const saved = existing ? toInput(existing) : emptyProvider();
-  const [input, setInput] = useState<ProviderInput>(() => readDraft(owner, id) ?? saved);
-  const [restored, setRestored] = useState(() => readDraft(owner, id) !== null);
-  const changed = !sameInput(input, saved);
+  const saved = existing ? providerInput(existing) : emptyProvider();
+  const [draft] = useState(() => readDraft(owner, id));
+  const [base, setBase] = useState<ProviderInput>(draft?.base ?? saved);
+  const [input, setInput] = useState<ProviderInput>(draft?.input ?? saved);
+  const [restored, setRestored] = useState(draft !== null);
+  const changed = !sameInput(input, base);
 
-  // The draft follows every change; back to the saved values, there is nothing to keep.
+  // The draft follows every change; back to where the form started, there is nothing to keep.
   useEffect(() => {
-    if (changed) writeDraft(owner, id, input);
+    if (changed) writeDraft(owner, id, { base, input });
     else clearDraft(owner, id);
-  }, [changed, owner, id, input]);
+  }, [changed, owner, id, base, input]);
 
   // Closing the tab with unsaved edits asks first (a reload keeps the draft anyway).
   useEffect(() => {
@@ -84,7 +81,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
     once(() => {
       let target = id;
       const code = apply((d, ctx) => {
-        if (id) return saveProvider(d, id, input, ctx);
+        if (id) return saveProvider(d, id, base, input, ctx);
         const created = createProvider(d, input, ctx);
         target = created.id;
         return created.doc;
@@ -131,6 +128,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
             type="button"
             className="secondary"
             onClick={() => {
+              setBase(saved);
               setInput(saved);
               setRestored(false);
             }}

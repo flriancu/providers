@@ -9,10 +9,32 @@ import type { ProviderInput } from '../domain/edits';
 const prefix = (owner: string) => `${STORAGE_PREFIX}.draft.${owner}.`;
 const keyOf = (owner: string, id: string | undefined) => `${prefix(owner)}${id ?? 'new'}`;
 
-export function readDraft(owner: string, id: string | undefined): ProviderInput | null {
+/** What was typed, and what the form started from: saving writes only the difference (saveProvider). */
+export interface Draft {
+  base: ProviderInput;
+  input: ProviderInput;
+}
+
+const isText = (v: unknown) => typeof v === 'string';
+const isTextList = (v: unknown) => Array.isArray(v) && v.every(isText);
+
+/** Storage is shared with other tabs, extensions and older versions: a draft is checked, not trusted. */
+function isInput(v: unknown): v is ProviderInput {
+  if (typeof v !== 'object' || v === null) return false;
+  const i = v as Record<string, unknown>;
+  return (
+    ['name', 'contactPerson', 'address', 'notes'].every((k) => isText(i[k])) &&
+    ['phones', 'emails', 'links', 'labelIds'].every((k) => isTextList(i[k])) &&
+    (i.primaryCategoryId === undefined || isText(i.primaryCategoryId))
+  );
+}
+
+export function readDraft(owner: string, id: string | undefined): Draft | null {
   try {
     const raw = sessionStorage.getItem(keyOf(owner, id));
-    return raw ? (JSON.parse(raw) as ProviderInput) : null;
+    const draft: unknown = raw ? JSON.parse(raw) : null;
+    const { base, input } = (draft ?? {}) as Partial<Record<keyof Draft, unknown>>;
+    return isInput(base) && isInput(input) ? { base, input } : null;
   } catch {
     return null; // unreadable or storage blocked: no draft
   }
@@ -20,9 +42,9 @@ export function readDraft(owner: string, id: string | undefined): ProviderInput 
 
 export const hasDraft = (owner: string, id: string | undefined) => readDraft(owner, id) !== null;
 
-export function writeDraft(owner: string, id: string | undefined, input: ProviderInput) {
+export function writeDraft(owner: string, id: string | undefined, draft: Draft) {
   try {
-    sessionStorage.setItem(keyOf(owner, id), JSON.stringify(input));
+    sessionStorage.setItem(keyOf(owner, id), JSON.stringify(draft));
   } catch {
     // storage full or blocked: the form still holds the edits while it is open
   }

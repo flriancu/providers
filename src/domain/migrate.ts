@@ -18,13 +18,47 @@ type Raw = Record<string, unknown>;
 const isObject = (v: unknown): v is Raw => typeof v === 'object' && v !== null && !Array.isArray(v);
 const isString = (v: unknown): v is string => typeof v === 'string';
 const isStringList = (v: unknown): v is string[] => Array.isArray(v) && v.every(isString);
-const isStamp = (v: unknown): v is string => isString(v) && !Number.isNaN(Date.parse(v)) && /^\d{4}-\d{2}-\d{2}T/.test(v);
+/**
+ * No clock reads the year 9000: a stamp from then on is damage (a tampered file, a broken clock).
+ * Below it, a record can take a millisecond more on every edit for longer than anyone edits.
+ */
+const LAST_STAMP = Date.parse('9000-01-01T00:00:00.000Z');
+
+/**
+ * A stamp in the one form stamps compare in as text (`toISOString`, milliseconds and `Z`), or
+ * null when it is not a time this app could have written.
+ */
+function readStamp(v: unknown): string | null {
+  if (!isString(v) || !/^\d{4}-\d{2}-\d{2}T/.test(v)) return null;
+  const ms = Date.parse(v);
+  return Number.isNaN(ms) || ms >= LAST_STAMP ? null : new Date(ms).toISOString();
+}
+
+const isStamp = (v: unknown): v is string => readStamp(v) !== null;
 const isDate = (v: unknown): v is string => isString(v) && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
 const oneOf = (values: readonly string[]) => (v: unknown) => isString(v) && values.includes(v);
 const optional = (v: unknown, check: (x: unknown) => boolean) => v === undefined || check(v);
 
 function isMeta(r: Raw, id: string): boolean {
-  return r.id === id && isStamp(r.createdAt) && isStamp(r.updatedAt) && isString(r.updatedBy) && optional(r.deleted, (d) => d === true);
+  return (
+    r.id === id &&
+    isStamp(r.createdAt) &&
+    isStamp(r.updatedAt) &&
+    isString(r.updatedBy) &&
+    optional(r.deleted, (d) => d === true) &&
+    optional(r.stamps, (s) => isObject(s) && Object.values(s).every(isStamp))
+  );
+}
+
+/** The record with its stamps in canonical form (readStamp), so they compare as text. */
+function withCanonicalStamps(r: Raw): Raw {
+  const out: Raw = { ...r, createdAt: readStamp(r.createdAt), updatedAt: readStamp(r.updatedAt) };
+  if (isObject(r.stamps)) {
+    const stamps: Raw = {};
+    for (const [k, v] of Object.entries(r.stamps)) put<unknown>(stamps, k, readStamp(v));
+    out.stamps = stamps;
+  }
+  return out;
 }
 
 /** What each collection's records must look like; anything else is set aside, not dropped. */
@@ -89,7 +123,7 @@ export function readDirectory(raw: unknown): DirectoryDoc {
     const set: Raw = { ...(isObject(raw.skipped) && isObject(raw.skipped[key]) ? raw.skipped[key] : {}) };
     const source = isObject(raw[key]) ? raw[key] : {};
     for (const [id, r] of Object.entries(source)) {
-      if (isObject(r) && isMeta(r, id) && VALID[key](r)) put<unknown>(records, id, withoutRetired(key, r));
+      if (isObject(r) && isMeta(r, id) && VALID[key](r)) put<unknown>(records, id, withCanonicalStamps(withoutRetired(key, r)));
       else put<unknown>(set, id, r);
     }
     (out as unknown as Raw)[key] = records;
@@ -102,7 +136,7 @@ export function readDirectory(raw: unknown): DirectoryDoc {
 function readSettings(v: unknown): Settings {
   const s = isObject(v) ? v : {};
   return {
-    updatedAt: isStamp(s.updatedAt) ? s.updatedAt : '1970-01-01T00:00:00.000Z',
+    updatedAt: readStamp(s.updatedAt) ?? '1970-01-01T00:00:00.000Z',
     ...(isStringList(s.replaces) && { replaces: s.replaces }),
   };
 }

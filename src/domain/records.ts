@@ -1,4 +1,5 @@
-import { COLLECTION_KEYS, put, type Collections, type DirectoryDoc, type Meta, type Stamp } from './schema';
+import { own, put, type Collections, type DirectoryDoc, type Meta, type Stamp } from './schema';
+import { sameValue, stampsAfter } from './stamps';
 
 /** Who is editing, and the clock and id source to use (passed in: the domain has no browser). */
 export interface EditContext {
@@ -14,17 +15,14 @@ type RecordOf<K extends CollectionKey> = Collections[K][string];
 export type Fields<K extends CollectionKey> = Omit<RecordOf<K>, keyof Meta>;
 
 /**
- * The time stamped on an edit: now, but never at or below the newest stamp already in the
- * document. A device whose clock is behind could otherwise make its edit lose the merge to the
- * very record it changed.
+ * The time stamped on a change to `before`: now, but never at or below the record's own stamp. A
+ * device whose clock is behind could otherwise make its edit lose the merge to the very record it
+ * changed. Only the record itself counts: one record stamped far ahead (a wrong clock elsewhere)
+ * moves no other record's stamps.
  */
-export function nextStamp(doc: DirectoryDoc, now: Date): Stamp {
-  let newest = doc.settings.updatedAt;
-  for (const key of COLLECTION_KEYS) {
-    for (const r of Object.values(doc[key] as Record<string, Meta>)) if (r.updatedAt > newest) newest = r.updatedAt;
-  }
+export function nextStamp(before: Meta, now: Date): Stamp {
   const candidate = now.toISOString();
-  return candidate > newest ? candidate : new Date(Date.parse(newest) + 1).toISOString();
+  return candidate > before.updatedAt ? candidate : new Date(Date.parse(before.updatedAt) + 1).toISOString();
 }
 
 export function addRecord<K extends CollectionKey>(
@@ -34,12 +32,41 @@ export function addRecord<K extends CollectionKey>(
   ctx: EditContext,
 ): { doc: DirectoryDoc; id: string } {
   const id = ctx.newId();
-  const stamp = nextStamp(doc, ctx.now());
+  const stamp = ctx.now().toISOString();
   const record = { ...fields, id, createdAt: stamp, updatedAt: stamp, updatedBy: ctx.by } as RecordOf<K>;
   const collection = { ...(doc[key] as Record<string, RecordOf<K>>) };
   put(collection, id, record);
   return { doc: { ...doc, [key]: collection }, id };
 }
+
+/**
+ * Sets the fields in `changes` that differ from the record; `undefined` clears a field. Only those
+ * fields are stamped (stamps.ts). Nothing different: the document is returned as it was, with no
+ * new stamp, so saving what is already there changes nothing on any device (FR-03).
+ */
+function change<K extends CollectionKey>(
+  doc: DirectoryDoc,
+  key: K,
+  before: RecordOf<K>,
+  changes: Record<string, unknown>,
+  ctx: EditContext,
+): DirectoryDoc {
+  const old = before as unknown as Record<string, unknown>;
+  const changed = Object.keys(changes).filter((k) => !sameValue(own(old, k), changes[k]));
+  if (!changed.length) return doc;
+  const stamp = nextStamp(before, ctx.now());
+  const record: Record<string, unknown> = { ...old };
+  for (const k of changed) {
+    if (changes[k] === undefined) delete record[k];
+    else put(record, k, changes[k]);
+  }
+  Object.assign(record, { updatedAt: stamp, updatedBy: ctx.by, stamps: stampsAfter(before, changed, stamp) });
+  const next = { ...(doc[key] as Record<string, RecordOf<K>>) };
+  put(next, before.id, record as unknown as RecordOf<K>);
+  return { ...doc, [key]: next };
+}
+
+const recordOf = <K extends CollectionKey>(doc: DirectoryDoc, key: K, id: string) => own(doc[key] as Record<string, RecordOf<K>>, id);
 
 export function updateRecord<K extends CollectionKey>(
   doc: DirectoryDoc,
@@ -48,12 +75,9 @@ export function updateRecord<K extends CollectionKey>(
   changes: Partial<Fields<K>>,
   ctx: EditContext,
 ): DirectoryDoc {
-  const collection = doc[key] as Record<string, RecordOf<K>>;
-  const before = Object.hasOwn(collection, id) ? collection[id] : undefined;
+  const before = recordOf(doc, key, id);
   if (!before || before.deleted) throw new Error(`No ${key} record ${id}`);
-  const next = { ...collection };
-  put(next, id, { ...before, ...changes, updatedAt: nextStamp(doc, ctx.now()), updatedBy: ctx.by });
-  return { ...doc, [key]: next };
+  return change(doc, key, before, changes as Record<string, unknown>, ctx);
 }
 
 /**
@@ -61,21 +85,14 @@ export function updateRecord<K extends CollectionKey>(
  * record returns on every device too. A record that is not deleted is left as it is.
  */
 export function restoreRecord<K extends CollectionKey>(doc: DirectoryDoc, key: K, id: string, ctx: EditContext): DirectoryDoc {
-  const collection = doc[key] as Record<string, RecordOf<K>>;
-  const before = Object.hasOwn(collection, id) ? collection[id] : undefined;
+  const before = recordOf(doc, key, id);
   if (!before?.deleted) return doc;
-  const { deleted: _gone, ...rest } = before;
-  const next = { ...collection };
-  put(next, id, { ...rest, updatedAt: nextStamp(doc, ctx.now()), updatedBy: ctx.by } as RecordOf<K>);
-  return { ...doc, [key]: next };
+  return change(doc, key, before, { deleted: undefined }, ctx);
 }
 
 /** Marks a record deleted; the marker merges like any edit, so the delete reaches every device. */
 export function deleteRecord<K extends CollectionKey>(doc: DirectoryDoc, key: K, id: string, ctx: EditContext): DirectoryDoc {
-  const collection = doc[key] as Record<string, RecordOf<K>>;
-  const before = Object.hasOwn(collection, id) ? collection[id] : undefined;
+  const before = recordOf(doc, key, id);
   if (!before || before.deleted) return doc;
-  const next = { ...collection };
-  put(next, id, { ...before, deleted: true, updatedAt: nextStamp(doc, ctx.now()), updatedBy: ctx.by });
-  return { ...doc, [key]: next };
+  return change(doc, key, before, { deleted: true }, ctx);
 }

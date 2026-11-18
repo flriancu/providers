@@ -5,6 +5,7 @@
 import { fold } from './fold';
 import { labelById } from './labels';
 import { addRecord, deleteRecord, updateRecord, type EditContext } from './records';
+import { sameValue } from './stamps';
 import { FACET_IDS, LABEL_COLORS, live, own, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
 
 export type EditErrorCode = 'nameRequired' | 'labelNameTaken' | 'sameLabel' | 'otherFacet' | 'logTextRequired' | 'badDate' | 'notFound';
@@ -26,6 +27,34 @@ export interface ProviderInput {
   notes: string;
   labelIds: string[];
   primaryCategoryId?: string;
+}
+
+/** Every field of ProviderInput, the optional one too. */
+const PROVIDER_FIELDS = [
+  'name',
+  'contactPerson',
+  'phones',
+  'emails',
+  'links',
+  'address',
+  'notes',
+  'labelIds',
+  'primaryCategoryId',
+] as const satisfies readonly (keyof ProviderInput)[];
+
+/** The fields a form edits, from a stored provider. */
+export function providerInput(p: Provider): ProviderInput {
+  return {
+    name: p.name,
+    contactPerson: p.contactPerson,
+    phones: p.phones,
+    emails: p.emails,
+    links: p.links,
+    address: p.address,
+    notes: p.notes,
+    labelIds: p.labelIds,
+    ...(p.primaryCategoryId && { primaryCategoryId: p.primaryCategoryId }),
+  };
 }
 
 export const emptyProvider = (): ProviderInput => ({
@@ -76,18 +105,19 @@ export function createProvider(doc: DirectoryDoc, input: ProviderInput, ctx: Edi
   return addRecord(doc, 'providers', clean, ctx);
 }
 
-export function saveProvider(doc: DirectoryDoc, id: string, input: ProviderInput, ctx: EditContext): DirectoryDoc {
+/**
+ * Saves what was changed in a provider's form. `base` is what the form started from: only the
+ * fields that differ from it are written, so a form left open does not undo a change another
+ * device made meanwhile to a field the form did not touch.
+ */
+export function saveProvider(doc: DirectoryDoc, id: string, base: ProviderInput, input: ProviderInput, ctx: EditContext): DirectoryDoc {
   const before = own(doc.providers, id);
   if (!before || before.deleted) throw new EditError('notFound');
   const clean = cleanProvider(doc, input);
   if (!clean.name) throw new EditError('nameRequired');
-  // A primary category removed in the form must go from the record too, not survive the spread.
-  const next = updateRecord(doc, 'providers', id, clean, ctx);
-  if (clean.primaryCategoryId === undefined && next.providers[id]!.primaryCategoryId !== undefined) {
-    const { primaryCategoryId: _gone, ...rest } = next.providers[id]!;
-    return { ...next, providers: { ...next.providers, [id]: rest as Provider } };
-  }
-  return next;
+  const from = cleanProvider(doc, base);
+  const changes = Object.fromEntries(PROVIDER_FIELDS.filter((k) => !sameValue(from[k], clean[k])).map((k) => [k, clean[k]]));
+  return updateRecord(doc, 'providers', id, changes, ctx);
 }
 
 /** Deletes a provider and its log entries (owner only, D-17). */
@@ -228,7 +258,12 @@ export function deleteLabel(doc: DirectoryDoc, id: string, ctx: EditContext): Di
     out = saveProvider(
       out,
       p.id,
-      { ...p, labelIds: p.labelIds.filter((x) => x !== id), ...(p.primaryCategoryId === id && { primaryCategoryId: undefined }) },
+      providerInput(p),
+      {
+        ...providerInput(p),
+        labelIds: p.labelIds.filter((x) => x !== id),
+        ...(p.primaryCategoryId === id && { primaryCategoryId: undefined }),
+      },
       ctx,
     );
   }

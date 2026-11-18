@@ -1,15 +1,24 @@
-import { COLLECTION_KEYS, put, type Collections, type DirectoryDoc, type Meta } from './schema';
+import { COLLECTION_KEYS, own, put, type Collections, type DirectoryDoc, type Meta, type Stamp } from './schema';
+import { dataKeys, fieldStamp } from './stamps';
 
 /**
- * Two versions of the same directory, record by record: for every id in either, the record with
- * the later `updatedAt` wins; on a tie the remote one. Deleted records are markers with their own
- * stamp, so a delete wins over an older edit. Pure.
+ * Two versions of the same directory, field by field: for every record in either, each field
+ * comes from the side that changed it last (stamps.ts); on a tie the remote one. A record only
+ * one side has is kept as it is. Deleted records are markers with a stamped `deleted` field, so a
+ * delete wins over an older edit, and an edit of another field does not bring the record back.
+ * Pure.
  */
 export function merge(local: DirectoryDoc, remote: DirectoryDoc): DirectoryDoc {
   const out: DirectoryDoc = { ...remote };
   for (const key of COLLECTION_KEYS) {
-    const merged: Record<string, Meta> = { ...(remote[key] as Record<string, Meta>) };
-    for (const [id, mine] of Object.entries(local[key] as Record<string, Meta>)) if (wins(mine, id, remote, key)) put(merged, id, mine);
+    const theirs = remote[key] as Record<string, Meta>;
+    const merged: Record<string, Meta> = { ...theirs };
+    for (const [id, mine] of Object.entries(local[key] as Record<string, Meta>)) {
+      const other = own(theirs, id);
+      if (other) {
+        if (newerFields(mine, other)) put(merged, id, mergeRecord(mine, other));
+      } else if (!unreadNewer(mine, id, remote, key)) put(merged, id, mine);
+    }
     (out as unknown as Record<string, unknown>)[key] = merged;
   }
   out.settings = local.settings.updatedAt > remote.settings.updatedAt ? local.settings : remote.settings;
@@ -19,20 +28,52 @@ export function merge(local: DirectoryDoc, remote: DirectoryDoc): DirectoryDoc {
 /** True when `merge(local, remote)` keeps something of `local` that `remote` lacks: it needs saving. */
 export function hasLocalWins(local: DirectoryDoc, remote: DirectoryDoc): boolean {
   if (local.settings.updatedAt > remote.settings.updatedAt) return true;
-  return COLLECTION_KEYS.some((key) =>
-    Object.entries(local[key] as Record<string, Meta>).some(([id, mine]) => wins(mine, id, remote, key)),
-  );
+  return COLLECTION_KEYS.some((key) => {
+    const theirs = remote[key] as Record<string, Meta>;
+    return Object.entries(local[key] as Record<string, Meta>).some(([id, mine]) => {
+      const other = own(theirs, id);
+      return other ? newerFields(mine, other) : !unreadNewer(mine, id, remote, key);
+    });
+  });
+}
+
+/** Whether `mine` changed any field later than `theirs`. */
+function newerFields(mine: Meta, theirs: Meta): boolean {
+  if (mine === theirs || (mine.updatedAt === theirs.updatedAt && mine.updatedBy === theirs.updatedBy)) return false;
+  if (mine.updatedAt <= theirs.updatedAt && !mine.stamps && !theirs.stamps) return false;
+  return keysOf(mine, theirs).some((k) => fieldStamp(mine, k) > fieldStamp(theirs, k));
+}
+
+const keysOf = (a: Meta, b: Meta) => [...new Set([...dataKeys(b), ...dataKeys(a)])];
+
+/**
+ * One record from two versions: every field from the side that changed it last. Two records
+ * written whole (no field stamps) stay whole: the newer one, as before field stamps existed.
+ */
+function mergeRecord(mine: Meta, theirs: Meta): Meta {
+  if (!mine.stamps && !theirs.stamps) return mine.updatedAt > theirs.updatedAt ? mine : theirs;
+  const createdAt = mine.createdAt < theirs.createdAt ? mine.createdAt : theirs.createdAt;
+  const newer = mine.updatedAt > theirs.updatedAt ? mine : theirs;
+  const out: Record<string, unknown> = { id: theirs.id, createdAt, updatedAt: newer.updatedAt, updatedBy: newer.updatedBy };
+  const stamps: Record<string, Stamp> = {};
+  for (const k of keysOf(mine, theirs)) {
+    const a = fieldStamp(mine, k);
+    const b = fieldStamp(theirs, k);
+    const from = (a > b ? mine : theirs) as unknown as Record<string, unknown>;
+    const value = own(from, k);
+    if (value !== undefined) put(out, k, value);
+    const at = a > b ? a : b;
+    if (at !== createdAt) put(stamps, k, at);
+  }
+  out.stamps = stamps;
+  return out as unknown as Meta;
 }
 
 /**
- * Whether my version of record `id` beats the remote's: newer, or the remote lacks it. A record
- * the remote has but this version could not read (`skipped`) still counts as there, so an older
- * readable copy never replaces what a newer version wrote.
+ * Whether the remote has record `id` set aside as unreadable, at or after `mine`'s stamp: a
+ * record a newer version wrote, which an older readable copy must not replace.
  */
-function wins(mine: Meta, id: string, remote: DirectoryDoc, key: keyof Collections): boolean {
-  const theirs = remote[key] as Record<string, Meta>;
-  const other = Object.hasOwn(theirs, id) ? theirs[id] : undefined;
-  if (other) return mine.updatedAt > other.updatedAt;
+function unreadNewer(mine: Meta, id: string, remote: DirectoryDoc, key: keyof Collections): boolean {
   const unread = remote.skipped?.[key] as Record<string, { updatedAt?: unknown }> | undefined;
-  return !(unread && Object.hasOwn(unread, id) && String(unread[id]?.updatedAt ?? '') >= mine.updatedAt);
+  return !!unread && Object.hasOwn(unread, id) && String(unread[id]?.updatedAt ?? '') >= mine.updatedAt;
 }

@@ -87,3 +87,32 @@ describe('the directory as drive-doc-sync sees it', () => {
     expect(directoryModel.contentCount(weddingDirectory().doc)).toBe(5);
   });
 });
+
+describe('stamps in a file', () => {
+  it('reads every stamp in the one form that compares as text', () => {
+    const { doc, providers } = weddingDirectory();
+    const file = JSON.parse(JSON.stringify(toFile(doc)));
+    // Written by hand or another tool: no milliseconds, an offset instead of Z.
+    file.providers[providers.bruno].updatedAt = '2026-11-17T00:00:00Z';
+    file.providers[providers.bruno].stamps = { notes: '2026-11-17T02:00:00+02:00' };
+    const read = readDirectory(file);
+    expect(read.providers[providers.bruno]).toMatchObject({
+      updatedAt: '2026-11-17T00:00:00.000Z',
+      stamps: { notes: '2026-11-17T00:00:00.000Z' },
+    });
+    // Compared as text, the short form would sort after any stamp with milliseconds in that second.
+    expect(read.providers[providers.bruno]!.updatedAt < '2026-11-17T00:00:00.500Z').toBe(true);
+  });
+
+  it('sets aside a record stamped in the year 9000 or later, or with stamps that are not times', () => {
+    const { doc, providers } = weddingDirectory();
+    const file = JSON.parse(JSON.stringify(toFile(doc)));
+    file.providers[providers.bruno].updatedAt = '9999-12-31T23:59:59.999Z';
+    file.providers[providers.lagoo].stamps = { notes: 'yesterday' };
+    const read = readDirectory(file);
+    expect(read.providers[providers.bruno]).toBeUndefined();
+    expect(read.providers[providers.lagoo]).toBeUndefined();
+    expect(skippedCount(read)).toBe(2);
+    expect(read.providers[providers.flashbox]).toBeDefined();
+  });
+});

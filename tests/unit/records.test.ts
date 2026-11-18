@@ -17,11 +17,36 @@ describe('edits', () => {
     expect(doc.providers[providers.bruno]!.contactPerson).toBe(''); // the old version is untouched
   });
 
-  it('never stamps an edit at or below what the document already holds, even with a clock behind', () => {
+  it('never stamps an edit at or below the record it changes, even with a clock behind', () => {
     const { doc } = weddingDirectory();
     const behind = testContext(OWNER, Date.UTC(2020, 0, 1));
-    const stamp = nextStamp(doc, behind.now());
-    for (const p of Object.values(doc.providers)) expect(stamp > p.updatedAt).toBe(true);
+    for (const p of Object.values(doc.providers)) expect(nextStamp(p, behind.now()) > p.updatedAt).toBe(true);
+  });
+
+  it('keeps one record stamped far ahead from moving the stamps of any other', () => {
+    const { doc, providers, ctx } = weddingDirectory();
+    const ahead = { ...doc.providers[providers.bruno]!, updatedAt: '8999-12-31T23:59:59.999Z' };
+    const poisoned = { ...doc, providers: { ...doc.providers, [providers.bruno]: ahead } };
+    const now = ctx.now().toISOString();
+    const next = updateRecord(poisoned, 'providers', providers.lagoo, { notes: 'x' }, testContext(OWNER, Date.parse(now)));
+    expect(next.providers[providers.lagoo]!.updatedAt).toBe(now);
+  });
+
+  it('changes nothing, not even a stamp, when nothing differs (FR-03)', () => {
+    const { doc, providers, ctx } = weddingDirectory();
+    const same = doc.providers[providers.bruno]!;
+    expect(updateRecord(doc, 'providers', providers.bruno, { name: same.name, phones: [...same.phones] }, ctx)).toBe(doc);
+  });
+
+  it('stamps only the fields that changed; a record written whole keeps its date on the others', () => {
+    const { doc, providers } = weddingDirectory();
+    const before = doc.providers[providers.bruno]!;
+    const whole = { ...before, notes: 'old', updatedAt: '2026-11-16T12:00:00.000Z' }; // written by an earlier version
+    const start = { ...doc, providers: { ...doc.providers, [providers.bruno]: whole } };
+    const next = updateRecord(start, 'providers', providers.bruno, { contactPerson: 'Bruno' }, testContext(OWNER, Date.UTC(2026, 10, 17)));
+    const stamps = next.providers[providers.bruno]!.stamps!;
+    expect(stamps.contactPerson).toBe('2026-11-17T00:00:00.000Z');
+    expect(stamps.notes).toBe('2026-11-16T12:00:00.000Z');
   });
 
   it('keeps a deleted record as a marker that wins over an older edit on another device', () => {
@@ -77,5 +102,65 @@ describe('merge', () => {
     const remote = { ...doc, providers: rest, skipped: { providers: { [providers.bruno]: newer } } };
     expect(merge(doc, remote).providers[providers.bruno]).toBeUndefined();
     expect(hasLocalWins(doc, remote)).toBe(false);
+  });
+
+  it('keeps both changes when two devices change different fields of one record', () => {
+    const { doc, providers } = weddingDirectory();
+    const phone = updateRecord(doc, 'providers', providers.bruno, { notes: 'from the phone' }, testContext(OWNER, Date.UTC(2026, 10, 17)));
+    const laptop = updateRecord(
+      doc,
+      'providers',
+      providers.bruno,
+      { phones: ['0721 000 000'] },
+      testContext(OWNER, Date.UTC(2026, 10, 18)),
+    );
+    for (const merged of [merge(phone, laptop), merge(laptop, phone)]) {
+      expect(merged.providers[providers.bruno]).toMatchObject({ notes: 'from the phone', phones: ['0721 000 000'] });
+    }
+    expect(hasLocalWins(phone, laptop)).toBe(true);
+    expect(hasLocalWins(laptop, merge(phone, laptop))).toBe(false);
+  });
+
+  it('keeps a record deleted on one device when another edits it later', () => {
+    const { doc, providers } = weddingDirectory();
+    const laptop = deleteRecord(doc, 'providers', providers.lagoo, testContext(OWNER, Date.UTC(2026, 10, 17)));
+    const phone = updateRecord(doc, 'providers', providers.lagoo, { notes: 'call back' }, testContext(OWNER, Date.UTC(2026, 10, 18)));
+    expect(merge(phone, laptop).providers[providers.lagoo]!.deleted).toBe(true);
+    expect(merge(laptop, phone).providers[providers.lagoo]!.deleted).toBe(true);
+  });
+
+  it('merges a field cleared on one side (no primary category) against an edit of another', () => {
+    const { doc, providers } = weddingDirectory();
+    const p = doc.providers[providers.gradina]!;
+    expect(p.primaryCategoryId).toBeDefined();
+    const cleared = updateRecord(doc, 'providers', p.id, { primaryCategoryId: undefined }, testContext(OWNER, Date.UTC(2026, 10, 18)));
+    const noted = updateRecord(doc, 'providers', p.id, { notes: 'n' }, testContext(OWNER, Date.UTC(2026, 10, 17)));
+    for (const merged of [merge(cleared, noted), merge(noted, cleared)]) {
+      expect(merged.providers[p.id]!.primaryCategoryId).toBeUndefined();
+      expect(merged.providers[p.id]!.notes).toBe('n');
+    }
+  });
+});
+
+describe('a form left open', () => {
+  it('saves only what was changed in it, keeping a change made meanwhile elsewhere', async () => {
+    const { providerInput, saveProvider } = await import('../../src/domain/edits');
+    const { doc, providers } = weddingDirectory();
+    const opened = providerInput(doc.providers[providers.bruno]!);
+    const elsewhere = updateRecord(
+      doc,
+      'providers',
+      providers.bruno,
+      { phones: ['0721 000 000'] },
+      testContext(OWNER, Date.UTC(2026, 10, 17)),
+    );
+    const saved = saveProvider(
+      elsewhere,
+      providers.bruno,
+      opened,
+      { ...opened, notes: 'typed in the form' },
+      testContext(OWNER, Date.UTC(2026, 10, 18)),
+    );
+    expect(saved.providers[providers.bruno]).toMatchObject({ phones: ['0721 000 000'], notes: 'typed in the form' });
   });
 });

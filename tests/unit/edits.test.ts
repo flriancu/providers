@@ -12,6 +12,7 @@ import {
   nextColor,
   providerLog,
   renameLabel,
+  providerInput,
   saveProvider,
   type EditErrorCode,
 } from '../../src/domain/edits';
@@ -59,9 +60,21 @@ describe('providers', () => {
   it('keeps the primary category one of its Category labels, and drops it when they go (FR-05)', () => {
     const { doc, ctx, labels, providers } = weddingDirectory();
     const p = doc.providers[providers.gradina]!;
-    const two = saveProvider(doc, p.id, { ...p, labelIds: [labels.photo, labels.video], primaryCategoryId: labels.video }, ctx);
+    const two = saveProvider(
+      doc,
+      p.id,
+      providerInput(p),
+      { ...providerInput(p), labelIds: [labels.photo, labels.video], primaryCategoryId: labels.video },
+      ctx,
+    );
     expect(two.providers[p.id]!.primaryCategoryId).toBe(labels.video);
-    const none = saveProvider(two, p.id, { ...p, labelIds: [labels.bucharest], primaryCategoryId: labels.video }, ctx);
+    const none = saveProvider(
+      two,
+      p.id,
+      providerInput(two.providers[p.id]!),
+      { ...providerInput(p), labelIds: [labels.bucharest], primaryCategoryId: labels.video },
+      ctx,
+    );
     expect(none.providers[p.id]!.primaryCategoryId).toBeUndefined();
   });
 

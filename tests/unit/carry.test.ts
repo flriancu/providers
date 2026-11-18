@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { absorb } from '../../src/domain/absorb';
 import { demoCarry } from '../../src/domain/carry';
 import { directoryModel } from '../../src/domain/document';
-import { addLogEntry, createLabel, createProvider, emptyProvider, saveProvider } from '../../src/domain/edits';
+import { addLogEntry, createLabel, createProvider, emptyProvider, providerInput, saveProvider } from '../../src/domain/edits';
 import { labelById } from '../../src/domain/labels';
 import { FACET_IDS, live, newDirectory, type DirectoryDoc } from '../../src/domain/schema';
 import { DEMO_OWNER, sampleDirectory } from '../../src/ui/demoDirectory';
@@ -31,7 +31,7 @@ function visited() {
   doc = addLogEntry(lagoo.doc, lagoo.id, '2026-11-16', 'Asked for a quote.', ctx).doc;
   // The visitor also edited the sample and logged a call on it: still the sample.
   const sampleProvider = live(doc.providers).find((p) => p.name === 'Sample Photo Studio')!;
-  doc = saveProvider(doc, sampleProvider.id, { ...sampleProvider, notes: 'mine now?' }, ctx);
+  doc = saveProvider(doc, sampleProvider.id, providerInput(sampleProvider), { ...providerInput(sampleProvider), notes: 'mine now?' }, ctx);
   doc = addLogEntry(doc, sampleProvider.id, '2026-11-16', 'Called the sample.', ctx).doc;
   return { sample, doc };
 }
@@ -67,6 +67,32 @@ describe('carrying the demo into an account (D-25)', () => {
     expect(after.owner.googleSub).toBe(OWNER);
     // Absorbing it again changes nothing more.
     expect(directoryModel.absorb(after, demoCarry(doc, sample))).toEqual(after);
+  });
+});
+
+describe('a second visit to the demo', () => {
+  // Every demo starts its sample with the same ids; a first visit carried the sample's Photo in.
+  it('never renames back or brings back a sample label the owner changed since', async () => {
+    const { renameLabel, deleteLabel } = await import('../../src/domain/edits');
+    const first = visited();
+    const ctx = testContext(OWNER, Date.UTC(2026, 10, 17));
+    const mine = directoryModel.absorb(newDirectory(OWNER), demoCarry(first.doc, first.sample));
+    const photo = labelOf(mine, 'Photo').id;
+    const renamed = renameLabel(mine, photo, 'Photography', labelById(mine, photo)!.color, [], ctx);
+    const deleted = deleteLabel(mine, photo, ctx);
+
+    // A later visit: a newer sample, and a provider with its Photo.
+    const sample = sampleDirectory(() => new Date(Date.UTC(2026, 10, 20)));
+    const later = { ...testContext(DEMO_OWNER, Date.UTC(2026, 10, 20)), newId: () => 'second-visit' };
+    const demo = createProvider(sample, { ...emptyProvider(), name: 'Bruno', labelIds: [labelOf(sample, 'Photo').id] }, later).doc;
+
+    const afterRename = directoryModel.absorb(renamed, demoCarry(demo, sample));
+    expect(labelById(afterRename, photo)!.name).toBe('Photography');
+    const bruno = live(afterRename.providers).find((p) => p.name === 'Bruno')!;
+    expect(bruno.labelIds.map((id) => labelById(afterRename, id)!.name)).toEqual(['Photo']);
+
+    const afterDelete = directoryModel.absorb(deleted, demoCarry(demo, sample));
+    expect(afterDelete.labels[photo]!.deleted).toBe(true);
   });
 });
 

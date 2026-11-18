@@ -18,6 +18,11 @@ export interface Meta {
   /** Google account id (`sub`) of who made the last change (FR-03). */
   updatedBy: string;
   deleted?: true;
+  /**
+   * When each field changed, for the fields changed since `createdAt` (stamps.ts). Absent on a
+   * record written whole, whose fields all date from `updatedAt`.
+   */
+  stamps?: Record<string, Stamp>;
 }
 
 /**

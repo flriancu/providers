@@ -7,7 +7,7 @@
  * changes once the owner has chosen for every possible duplicate (D-12, NFR-09). Pure.
  */
 import { findDuplicates, linkKey, phoneKey, sameAs, type PossibleDuplicate, type Reason } from './duplicates';
-import { createLabel, createProvider, emptyProvider, saveProvider, type ProviderInput } from './edits';
+import { createLabel, createProvider, emptyProvider, providerInput, saveProvider, type ProviderInput } from './edits';
 import { fold } from './fold';
 import { labelById } from './labels';
 import type { EditContext } from './records';
@@ -322,7 +322,7 @@ export function applyImport(
     } else {
       const existing = own(out.providers, choice.into);
       if (!existing || existing.deleted) throw new Error(`No provider ${choice.into} to merge into`);
-      out = saveProvider(out, choice.into, mergeInput(existing, input, choice.keep), ctx);
+      out = saveProvider(out, choice.into, providerInput(existing), mergeInput(existing, input, choice.keep), ctx);
       merged++;
     }
   });
