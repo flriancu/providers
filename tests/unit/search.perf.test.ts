@@ -83,10 +83,23 @@ describe(`speed with ${N} providers (NFR-10)`, () => {
     expect(ms).toBeLessThan(BUDGET_MS);
   });
 
+  it('takes one edit into the index within the budget, without building it again', () => {
+    const search = new ProviderSearch(doc);
+    const [first] = Object.keys(doc.providers);
+    const edited = { ...doc, providers: { ...doc.providers } };
+    put(edited.providers, first!, { ...doc.providers[first!]!, name: 'Renamed Unique Zanzibar' });
+    const start = performance.now();
+    const find = search.sync(edited);
+    const ms = performance.now() - start;
+    console.log(`one edit into the index: ${ms.toFixed(0)} ms`);
+    expect(find('zanzibar')).toEqual([first]);
+    expect(ms).toBeLessThan(BUDGET_MS);
+  });
+
   it('searches within the budget, after building the index once', () => {
     const start = performance.now();
     const search = new ProviderSearch(doc);
-    console.log(`index build: ${(performance.now() - start).toFixed(0)} ms (once per directory version)`);
+    console.log(`index build: ${(performance.now() - start).toFixed(0)} ms (once per page; edits are taken in one by one after it)`);
     const within = new Set(filterProviders(doc, selection).map((p) => p.id));
     for (const q of ['gradina', 'slacii', 'flor', 'fotgraf studio', 'example123']) {
       const ms = time(() => search.search(q, within), 5);

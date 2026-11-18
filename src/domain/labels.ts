@@ -2,7 +2,7 @@ import { byFolded, fold } from './fold';
 import { live, own, type DirectoryDoc, type Label, type Provider } from './schema';
 
 /** A live label, or undefined (gone, deleted, or never there). */
-export function labelById(doc: DirectoryDoc, id: string): Label | undefined {
+export function labelById(doc: Pick<DirectoryDoc, 'labels'>, id: string): Label | undefined {
   const label = own(doc.labels, id);
   return label && !label.deleted ? label : undefined;
 }
@@ -11,7 +11,7 @@ export function labelById(doc: DirectoryDoc, id: string): Label | undefined {
  * The labels a provider carries: its own, without any deleted since (D-33: a provider without a
  * category simply has none; no placeholder label stands in).
  */
-export function effectiveLabels(doc: DirectoryDoc, provider: Provider): string[] {
+export function effectiveLabels(doc: Pick<DirectoryDoc, 'labels'>, provider: Provider): string[] {
   return provider.labelIds.filter((id) => labelById(doc, id));
 }
 

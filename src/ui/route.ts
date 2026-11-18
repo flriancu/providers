@@ -101,10 +101,25 @@ export function replaceQuery(page: Page, query: ListQuery) {
   window.dispatchEvent(new HashChangeEvent('hashchange'));
 }
 
+/** The filters' part of a query, as text: two equal ones are the same filters. */
+const filters = (q: ListQuery) => queryString({ selection: q.selection, q: '' });
+
+/**
+ * `next`, keeping the parts of `before` that did not change, as the same objects: typing in the
+ * search changes the address on every key, and the filters' counts and the list are worked out
+ * again only when what they depend on is a new object. The same address: `before` itself.
+ */
+export function steadyRoute(before: Route, next: Route): Route {
+  const selection = filters(before.query) === filters(next.query) ? before.query.selection : next.query.selection;
+  const query = selection === before.query.selection && before.query.q === next.query.q ? before.query : { ...next.query, selection };
+  const same = href(before, before.query) === href(next, next.query);
+  return same ? before : { ...next, query };
+}
+
 export function useRoute(): Route {
   const [route, setRoute] = useState(() => parseRoute(location.hash));
   useEffect(() => {
-    const onChange = () => setRoute(parseRoute(location.hash));
+    const onChange = () => setRoute((before) => steadyRoute(before, parseRoute(location.hash)));
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);

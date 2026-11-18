@@ -321,6 +321,18 @@ a {
   align-items: center;
   gap: var(--space-1);
   border-radius: var(--radius);
+  /*
+   * NFR-10: rows off screen are not laid out or painted, yet stay in find-in-page and the
+   * accessibility tree. Until drawn once, a row counts as a typical row's height ("auto" then
+   * keeps its real one), so the scroll bar stays true.
+   */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 6.8rem;
+}
+
+/* Containment clips what is drawn outside the row: the row holding focus shows its outline whole. */
+.provider-list li:focus-within {
+  content-visibility: visible;
 }
 
 .provider-list li:has(> .row-link[aria-current='true']) {

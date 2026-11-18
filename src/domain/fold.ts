@@ -10,3 +10,11 @@ export function fold(text: string): string {
 
 /** The order of names in every list: as folded, so case and diacritics never split them up. */
 export const byFolded = (a: string, b: string) => fold(a).localeCompare(fold(b));
+
+/** `items` in byFolded order of their names, each name folded once (thousands sort at once). */
+export function sortedByFolded<T>(items: readonly T[], nameOf: (item: T) => string): T[] {
+  return items
+    .map((item) => ({ item, key: fold(nameOf(item)) }))
+    .sort((a, b) => a.key.localeCompare(b.key))
+    .map(({ item }) => item);
+}

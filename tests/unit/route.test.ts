@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NO_LABEL } from '../../src/domain/filter';
-import { href, parseRoute } from '../../src/ui/route';
+import { href, parseRoute, steadyRoute } from '../../src/ui/route';
 
 describe('the address (FR-12)', () => {
   it('reads every page', () => {
@@ -38,5 +38,19 @@ describe('hostile addresses', () => {
   it('keeps a malformed escape as typed instead of failing', () => {
     expect(parseRoute('#/p/%')).toMatchObject({ page: 'provider', id: '%' });
     expect(parseRoute('#/p/%E0%A4%A/edit')).toMatchObject({ page: 'edit', id: '%E0%A4%A' });
+  });
+});
+
+describe('a route that changes only in part', () => {
+  it('keeps the same filters object while only the search changes, and the same route for the same address', () => {
+    const before = parseRoute('#/?f=facet-area~l1&q=fo');
+    const typed = steadyRoute(before, parseRoute('#/?f=facet-area~l1&q=fot'));
+    expect(typed.query.q).toBe('fot');
+    expect(typed.query.selection).toBe(before.query.selection);
+    expect(steadyRoute(before, parseRoute('#/?f=facet-area~l1&q=fo'))).toBe(before);
+    const opened = steadyRoute(before, parseRoute('#/p/x?f=facet-area~l1&q=fo'));
+    expect(opened).toMatchObject({ page: 'provider', id: 'x' });
+    expect(opened.query).toBe(before.query);
+    expect(steadyRoute(before, parseRoute('#/?f=facet-area~l2&q=fo')).query.selection).toEqual({ 'facet-area': ['l2'] });
   });
 });

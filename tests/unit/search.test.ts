@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addRecord } from '../../src/domain/records';
+import { addRecord, deleteRecord, updateRecord } from '../../src/domain/records';
 import { ProviderSearch } from '../../src/domain/search';
 import { weddingDirectory } from './fixture';
 
@@ -73,5 +73,27 @@ describe('search (FR-13, D-23)', () => {
 
   it('returns nothing for an empty query', () => {
     expect(find('   ')).toEqual([]);
+  });
+});
+
+describe('the index kept in step with edits', () => {
+  it('finds what an edit added, forgets what it removed, and hands out a new search only then', () => {
+    const { doc, ctx, providers } = weddingDirectory();
+    const index = new ProviderSearch(doc);
+    const first = index.sync(doc);
+    expect(index.sync(doc)).toBe(first); // nothing changed: the same search
+    expect(first('portfolio')).toEqual([]);
+
+    const logged = addRecord(doc, 'log', { providerId: providers.bruno, date: '2026-11-20', text: 'Sends the portfolio' }, ctx).doc;
+    const second = index.sync(logged);
+    expect(second).not.toBe(first);
+    expect(second('portfolio')).toEqual([providers.bruno]);
+
+    const renamed = updateRecord(logged, 'providers', providers.flashbox, { name: 'Lightbox' }, ctx);
+    const gone = deleteRecord(renamed, 'providers', providers.lagoo, ctx);
+    const third = index.sync(gone);
+    expect(third('lightbox')).toEqual([providers.flashbox]);
+    expect(third('flashbox')).toEqual([]);
+    expect(third('lagoo')).toEqual([]);
   });
 });

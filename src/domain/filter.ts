@@ -1,6 +1,9 @@
 import { effectiveLabels, labelById } from './labels';
 import { live, own, put, type DirectoryDoc, type Provider } from './schema';
 
+/** What filtering reads of a directory: its providers, labels and facets, never the log. */
+export type Structure = Pick<DirectoryDoc, 'providers' | 'labels' | 'facets'>;
+
 /** What is selected in the filter panel: label ids per facet id. */
 export type Selection = Record<string, readonly string[]>;
 
@@ -10,7 +13,7 @@ export const NO_SELECTION: Selection = {};
  * The selection without values that no longer exist (a label deleted, a facet gone, an old
  * bookmark): they are ignored rather than emptying the list.
  */
-export function liveSelection(doc: DirectoryDoc, selection: Selection): Selection {
+export function liveSelection(doc: Pick<DirectoryDoc, 'labels' | 'facets'>, selection: Selection): Selection {
   const out: Record<string, string[]> = {};
   for (const [facetId, ids] of Object.entries(selection)) {
     const facet = own(doc.facets, facetId);
@@ -33,7 +36,7 @@ interface Wanted {
 }
 
 /** Per facet: the label ids a provider must carry one of, or none at all. */
-function wanted(doc: DirectoryDoc, selection: Selection): Map<string, Wanted> {
+function wanted(doc: Pick<DirectoryDoc, 'labels'>, selection: Selection): Map<string, Wanted> {
   const out = new Map<string, Wanted>();
   for (const [facetId, ids] of Object.entries(selection)) {
     if (!ids.length) continue;
@@ -50,7 +53,7 @@ interface Prepared {
   facets: Set<string>;
 }
 
-function prepare(doc: DirectoryDoc): Prepared[] {
+function prepare(doc: Structure): Prepared[] {
   return live(doc.providers).map((provider) => {
     const labels = effectiveLabels(doc, provider);
     return { provider, labels: new Set(labels), facets: new Set(labels.map((id) => labelById(doc, id)!.facetId)) };
@@ -72,7 +75,7 @@ function matches(p: Prepared, want: Map<string, Wanted>, skip?: string): boolean
 }
 
 /** The providers that match the selection. */
-export function filterProviders(doc: DirectoryDoc, selection: Selection): Provider[] {
+export function filterProviders(doc: Structure, selection: Selection): Provider[] {
   const want = wanted(doc, selection);
   return prepare(doc)
     .filter((p) => matches(p, want))
@@ -87,7 +90,7 @@ export type FacetCounts = Record<string, Record<string, number>>;
  * it says how many providers ticking it would add (OR within a facet), and a value showing 0
  * can never lead to an empty list. NO_LABEL counts the providers with no label in the facet.
  */
-export function facetCounts(doc: DirectoryDoc, selection: Selection): FacetCounts {
+export function facetCounts(doc: Structure, selection: Selection): FacetCounts {
   const want = wanted(doc, selection);
   const prepared = prepare(doc);
   const out: FacetCounts = {};

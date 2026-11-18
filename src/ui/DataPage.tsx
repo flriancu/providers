@@ -5,7 +5,7 @@ import { dayOf } from '../domain/days';
 import { liveSelection } from '../domain/filter';
 import { fold } from '../domain/fold';
 import { live, own, type DirectoryDoc } from '../domain/schema';
-import { ProviderSearch } from '../domain/search';
+
 import {
   applyImport,
   conflicts,
@@ -25,6 +25,7 @@ import { LabelChip } from './LabelChip';
 import { FACET_WORDS, facetName } from './labelText';
 import { href, type Route } from './route';
 import type { Apply } from './types';
+import { useProviderSearch } from './useProviderSearch';
 import { visibleProviders } from './visible';
 
 /** Today on this device, for the export's file name. */
@@ -49,7 +50,8 @@ export function DataPage({ doc, apply, route }: { doc: DirectoryDoc; apply: Appl
   const { t, plural } = useI18n();
   const query = useMemo(() => ({ ...route.query, selection: liveSelection(doc, route.query.selection) }), [doc, route.query]);
   const all = live(doc.providers);
-  const shown = useMemo(() => visibleProviders(doc, query, new ProviderSearch(doc)), [doc, query]);
+  const find = useProviderSearch(doc);
+  const shown = useMemo(() => visibleProviders(doc, query, find), [doc, query, find]);
   const narrowed = shown.length !== all.length;
   const exportCsv = (providers: typeof all) =>
     download(`providers-${today()}.csv`, toCsv(exportRows(doc, providers, (f) => facetName(f, t))));

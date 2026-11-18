@@ -22,19 +22,19 @@ export function facetName(facet: Facet, t: T): string {
 }
 
 /** A live label's name by id; empty for a label that is gone. */
-export function labelNameById(doc: DirectoryDoc, labelId: string): string {
+export function labelNameById(doc: Pick<DirectoryDoc, 'labels'>, labelId: string): string {
   const label = labelById(doc, labelId);
   return label ? labelName(label) : '';
 }
 
 /** The category shown first for a provider: its main one, else its first; none if it has no category. */
-export function mainCategory(doc: DirectoryDoc, provider: Provider): string | undefined {
+export function mainCategory(doc: Pick<DirectoryDoc, 'labels'>, provider: Provider): string | undefined {
   const categories = effectiveLabels(doc, provider).filter((id) => labelById(doc, id)?.facetId === FACET_IDS.category);
   return provider.primaryCategoryId && categories.includes(provider.primaryCategoryId) ? provider.primaryCategoryId : categories[0];
 }
 
 /** Facets in panel order. */
-export function orderedFacets(doc: DirectoryDoc): Facet[] {
+export function orderedFacets(doc: Pick<DirectoryDoc, 'facets'>): Facet[] {
   return live(doc.facets).sort((a, b) => a.order - b.order);
 }
 

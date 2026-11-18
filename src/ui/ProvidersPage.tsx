@@ -1,32 +1,19 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { facetCounts, liveSelection, type Selection } from '../domain/filter';
-import { effectiveLabels, labelById } from '../domain/labels';
-import { live, type DirectoryDoc, type Provider } from '../domain/schema';
-import { ProviderSearch } from '../domain/search';
+import { live, type DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { ActiveFilters, chosenCount, FilterPanel, toggled } from './FilterPanel';
 import { FilterSheet } from './FilterSheet';
-import { LabelChip } from './LabelChip';
-import { labelNameById, mainCategory, orderedFacets } from './labelText';
 import { ProviderDetail } from './ProviderDetail';
 import { ProviderForm } from './ProviderForm';
+import { ProviderList } from './ProviderRow';
 import { href, ListQueryProvider, replaceQuery, type ListQuery, type Route } from './route';
 import type { Apply } from './types';
 import { hasDraft } from './drafts';
 import { useListScroll } from './useListScroll';
-import { QuickActions } from './QuickActions';
+import { useProviderSearch } from './useProviderSearch';
 import { useViewFocus } from './useViewFocus';
 import { visibleProviders } from './visible';
-
-/** A provider's labels for its row: the main category first (if any), then the others in facet order. */
-function rowLabels(doc: DirectoryDoc, p: Provider): string[] {
-  const order = new Map(orderedFacets(doc).map((f, i) => [f.id, i]));
-  const main = mainCategory(doc, p);
-  const rest = effectiveLabels(doc, p)
-    .filter((id) => id !== main)
-    .sort((a, b) => (order.get(labelById(doc, a)!.facetId) ?? 99) - (order.get(labelById(doc, b)!.facetId) ?? 99));
-  return main ? [main, ...rest] : rest;
-}
 
 /**
  * Browse (FR-10..13) in an adaptive list-detail layout (D-29): filters, list and provider side
@@ -37,12 +24,26 @@ function rowLabels(doc: DirectoryDoc, p: Provider): string[] {
 export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply: Apply; route: Route }) {
   const { t, plural } = useI18n();
   // Values that no longer exist are dropped, so an old address never empties the list.
-  const query = useMemo(() => ({ ...route.query, selection: liveSelection(doc, route.query.selection) }), [doc, route.query]);
+  // Each value is worked out again only when what it reads changes: an entry added to the log
+  // changes none of the providers, labels or groups, so the counts and the list stay as they are.
+  const structure = useMemo(
+    () => ({ providers: doc.providers, labels: doc.labels, facets: doc.facets }),
+    [doc.providers, doc.labels, doc.facets],
+  );
+  const selection = useMemo(() => liveSelection(structure, route.query.selection), [structure, route.query.selection]);
+  const query = useMemo(() => ({ ...route.query, selection }), [route.query, selection]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const all = useMemo(() => live(doc.providers), [doc]);
-  const search = useMemo(() => new ProviderSearch(doc), [doc]);
-  const counts = useMemo(() => facetCounts(doc, query.selection), [doc, query.selection]);
-  const shown = useMemo(() => visibleProviders(doc, query, search), [doc, query, search]);
+  const find = useProviderSearch(doc);
+  const counts = useMemo(() => facetCounts(structure, selection), [structure, selection]);
+  // The search box and filters answer at once; the list follows when it can, in the background,
+  // so typing never waits for thousands of rows (NFR-10).
+  const listQuery = useDeferredValue(query);
+  // Searching reads the index, which follows the log too; without a search the list needs only
+  // the structure, so an entry added to the log leaves it as it is.
+  const listFind = listQuery.q.trim() ? find : null;
+  const shown = useMemo(() => visibleProviders(structure, listQuery, listFind), [structure, listQuery, listFind]);
+  const parts = useMemo(() => ({ labels: doc.labels, facets: doc.facets }), [doc.labels, doc.facets]);
 
   const selected = route.page === 'provider' || route.page === 'edit' ? route.id : undefined;
   const showing = route.page === 'list' ? 'list' : 'detail';
@@ -52,7 +53,7 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
   const newDraft = route.page !== 'new' && hasDraft(doc.owner.googleSub, undefined);
 
   const setQuery = useCallback((next: ListQuery) => replaceQuery(route, next), [route]);
-  const setSelection = useCallback((selection: Selection) => setQuery({ ...query, selection }), [query, setQuery]);
+  const setSelection = useCallback((next: Selection) => setQuery({ ...query, selection: next }), [query, setQuery]);
   const toggle = useCallback(
     (facetId: string, labelId: string, on: boolean) => setSelection(toggled(query.selection, facetId, labelId, on)),
     [query.selection, setSelection],
@@ -114,33 +115,7 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
           ) : shown.length === 0 ? (
             <p className="muted">{t('list.noMatch')}</p>
           ) : (
-            <ul className="provider-list">
-              {shown.map((p) => {
-                return (
-                  <li key={p.id}>
-                    <a
-                      className="row-link"
-                      href={href({ page: 'provider', id: p.id }, query)}
-                      data-id={p.id}
-                      aria-current={p.id === selected ? 'true' : undefined}
-                    >
-                      <span className="row-line">
-                        <span className="provider-name">{p.name}</span>
-                        {p.contactPerson && <span className="muted"> · {p.contactPerson}</span>}
-                      </span>
-                      <span className="chips">
-                        {rowLabels(doc, p).map((id) => (
-                          <LabelChip key={id} color={labelById(doc, id)?.color ?? 'grey'}>
-                            {labelNameById(doc, id)}
-                          </LabelChip>
-                        ))}
-                      </span>
-                    </a>
-                    <QuickActions provider={p} />
-                  </li>
-                );
-              })}
-            </ul>
+            <ProviderList providers={shown} parts={parts} query={listQuery} selected={selected} />
           )}
         </section>
 

@@ -36,24 +36,18 @@ function labelWords(doc: DirectoryDoc, p: Provider): string {
     .join(' ');
 }
 
-/**
- * FR-13 search over a directory: words match from their beginning and with typos, in any order,
- * ignoring case and diacritics; every word typed must match; matches in the name rank first.
- * Label names and aliases count too, below the provider's own fields.
- * Built once per directory version, then queried as the user types.
- */
-export class ProviderSearch {
-  private readonly index = new MiniSearch<Indexed>({
-    fields: [...FIELDS],
-    processTerm: (term) => fold(term) || null,
-    searchOptions: { prefix: true, fuzzy: FUZZY, combineWith: 'AND', boost: { name: 3, contactPerson: 2, labels: 0.5 } },
-  });
-
-  constructor(doc: DirectoryDoc) {
-    const logByProvider = new Map<string, string[]>();
-    for (const entry of live(doc.log)) logByProvider.set(entry.providerId, [...(logByProvider.get(entry.providerId) ?? []), entry.text]);
-    this.index.addAll(
-      live(doc.providers).map((p) => ({
+/** What the index holds of each provider, as text. */
+function indexed(doc: DirectoryDoc): Map<string, Indexed> {
+  const logByProvider = new Map<string, string[]>();
+  for (const entry of live(doc.log)) {
+    const texts = logByProvider.get(entry.providerId);
+    if (texts) texts.push(entry.text);
+    else logByProvider.set(entry.providerId, [entry.text]);
+  }
+  return new Map(
+    live(doc.providers).map((p) => [
+      p.id,
+      {
         id: p.id,
         name: p.name,
         contactPerson: p.contactPerson,
@@ -62,8 +56,65 @@ export class ProviderSearch {
         notes: p.notes,
         log: (logByProvider.get(p.id) ?? []).join('\n'),
         labels: labelWords(doc, p),
-      })),
-    );
+      },
+    ]),
+  );
+}
+
+const sameIndexed = (a: Indexed, b: Indexed) => FIELDS.every((f) => a[f] === b[f]);
+
+/**
+ * A search over the index as it is at one moment: provider ids matching the query, best first,
+ * within the given ids. A new Finder comes with every change to the index, so what depends on
+ * search results can tell when they may have changed.
+ */
+export type Finder = (query: string, within?: ReadonlySet<string>) => string[];
+
+/**
+ * FR-13 search over a directory: words match from their beginning and with typos, in any order,
+ * ignoring case and diacritics; every word typed must match; matches in the name rank first.
+ * Label names and aliases count too, below the provider's own fields.
+ * Built once, then kept in step with the directory (`sync`): only the providers whose text
+ * changed are indexed again, so one edit in a large directory does not rebuild the whole index.
+ */
+export class ProviderSearch {
+  private readonly index = new MiniSearch<Indexed>({
+    fields: [...FIELDS],
+    processTerm: (term) => fold(term) || null,
+    searchOptions: { prefix: true, fuzzy: FUZZY, combineWith: 'AND', boost: { name: 3, contactPerson: 2, labels: 0.5 } },
+  });
+  /** What is in the index now, per provider id. */
+  private held = new Map<string, Indexed>();
+  /** A search over the index as it is now (see Finder). */
+  private finder: Finder = (query, within) => this.search(query, within);
+
+  constructor(doc: DirectoryDoc) {
+    this.held = indexed(doc);
+    this.index.addAll([...this.held.values()]);
+  }
+
+  /**
+   * Brings the index in step with `doc`: providers added, changed or gone since the last time.
+   * Returns the Finder for the index now: the same one when nothing changed.
+   */
+  sync(doc: DirectoryDoc): Finder {
+    const next = indexed(doc);
+    let changed = false;
+    for (const [id, entry] of next) {
+      const before = this.held.get(id);
+      if (before && sameIndexed(before, entry)) continue;
+      if (before) this.index.replace(entry);
+      else this.index.add(entry);
+      changed = true;
+    }
+    for (const id of this.held.keys()) {
+      if (next.has(id)) continue;
+      this.index.discard(id);
+      changed = true;
+    }
+    this.held = next;
+    if (changed) this.finder = (query, within) => this.search(query, within);
+    return this.finder;
   }
 
   /**
