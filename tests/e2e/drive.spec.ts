@@ -94,6 +94,26 @@ test.describe('wide screens', () => {
     expect(providerNames(drive.content())).toEqual(['Lagoo']);
   });
 
+  test('when this device has no room for its copy, a failed save says the change is only in the page', async ({ page }) => {
+    // The browser refuses the device copy, as it does once the directory outgrows its quota.
+    await page.addInitScript(() => {
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key: string, value: string) {
+        if (key.includes('.replica.')) throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+        setItem.call(this, key, value);
+      };
+    });
+    const drive = new FakeDrive();
+    await open(page, drive);
+    await expect(saved(page)).toBeVisible();
+    drive.failWrites = 1000;
+    await addProvider(page, 'Lagoo');
+    const alert = page.getByRole('alert');
+    await expect(alert).toContainText('The last change is not saved in Google Drive yet.');
+    await expect(alert).toContainText('closing or reloading it loses them');
+    await expect(alert).not.toContainText('kept on this device');
+  });
+
   test('signing out removes the copy on this device and goes back to the demo (D-24)', async ({ page }) => {
     const drive = new FakeDrive();
     await open(page, drive);

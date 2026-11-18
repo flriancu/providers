@@ -74,22 +74,33 @@ export function SaveStatus({ saveState }: { saveState: SaveState }) {
 }
 
 /**
- * A save that failed, under the header: what happened, where the changes are, and the one thing
- * to do (try again, or reconnect when the Google session ran out).
+ * A save that failed, under the header: what happened, the one thing to do (try again, or
+ * reconnect when the Google session ran out), and where the changes are meanwhile: on this
+ * device, or, when its storage refused the copy (`copyKept`), only in this page. Changes on
+ * their way to Drive with no device copy are flagged too, since closing the page would lose them.
  */
 export function SaveAlert({
   saveState,
   saveError,
+  copyKept,
   account,
   sync,
 }: {
   saveState: SaveState;
   saveError: unknown;
+  copyKept: boolean;
   account: Extract<Account, { kind: 'google' }>;
   sync: DirectorySync;
 }) {
   const { t } = useI18n();
   const [failed, setFailed] = useState<SignInFailure | null>(null);
+  const where = t(copyKept ? 'save.keptHere' : 'save.notKept');
+  if (saveState === 'saving' && !copyKept)
+    return (
+      <div className="notice notice-error" role="alert">
+        <p>{where}</p>
+      </div>
+    );
   if (saveState !== 'error' && saveState !== 'signin') return null;
   const reconnect = () =>
     void account.reconnect().then((reason) => {
@@ -101,7 +112,7 @@ export function SaveAlert({
       {saveState === 'error' ? (
         <>
           <p>
-            <strong>{t('save.failed')}</strong> {t(driveMessage(saveError))}
+            <strong>{t('save.failed')}</strong> {t(driveMessage(saveError))} {where}
           </p>
           <button type="button" className="secondary" onClick={() => void sync.flush()}>
             {t('load.retry')}
@@ -109,7 +120,9 @@ export function SaveAlert({
         </>
       ) : (
         <>
-          <p>{t('save.expired')}</p>
+          <p>
+            {t('save.expired')} {where}
+          </p>
           <button type="button" onClick={reconnect}>
             {t('auth.reconnect')}
           </button>

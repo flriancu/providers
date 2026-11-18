@@ -39,7 +39,10 @@ export const ro: Record<MessageKey, string> = {
   'save.saved': 'Salvat',
   'save.saving': 'Se salvează…',
   'save.failed': 'Ultima modificare nu e încă salvată în Google Drive.',
-  'save.expired': 'Sesiunea Google a expirat, așa că modificările nu ajung în Google Drive. Rămân pe acest dispozitiv până te reconectezi.',
+  'save.expired': 'Sesiunea Google a expirat, așa că modificările nu ajung în Google Drive. Reconectează-te ca să le salvezi.',
+  'save.notKept':
+    'Acest dispozitiv nu are loc pentru o copie a modificărilor tale, așa că ele sunt doar în această pagină: dacă o închizi sau o reîncarci, se pierd.',
+  'save.keptHere': 'Între timp, modificările tale rămân pe acest dispozitiv.',
   'load.opening': 'Se deschide catalogul…',
   'load.failed': 'Catalogul tău din Google Drive nu a putut fi deschis.',
   'load.offline':
@@ -49,14 +52,12 @@ export const ro: Record<MessageKey, string> = {
   'load.startNew': 'Începe un catalog nou',
   'load.startNewNote': 'Un catalog nou pornește gol. Fișierul vechi rămâne neatins.',
   'load.details': 'Detalii tehnice',
-  'drive.network':
-    'Google Drive nu răspunde. Modificările tale rămân pe acest dispozitiv; aplicația reîncearcă singură și le salvează când revine legătura.',
-  'drive.google': 'Google Drive are o problemă acum. Modificările tale rămân pe acest dispozitiv; aplicația reîncearcă singură.',
-  'drive.conflict': 'Alt dispozitiv salva în același timp. Modificările tale rămân pe acest dispozitiv; aplicația reîncearcă singură.',
+  'drive.network': 'Google Drive nu răspunde. Aplicația reîncearcă singură și salvează modificările când revine legătura.',
+  'drive.google': 'Google Drive are o problemă acum. Aplicația reîncearcă singură.',
+  'drive.conflict': 'Alt dispozitiv salva în același timp. Aplicația reîncearcă singură.',
   'drive.forbidden':
-    'Google Drive a refuzat modificarea: poate e plin spațiul sau aplicația nu mai are acces. Modificările tale rămân pe acest dispozitiv. Eliberează spațiu în Google Drive sau deconectează-te și conectează-te din nou ca să dai acces aplicației.',
-  'drive.tooBig':
-    'Catalogul e prea mare pentru a fi salvat în Google Drive. Modificările tale rămân pe acest dispozitiv. Șterge ce nu mai folosești, apoi reîncearcă.',
+    'Google Drive a refuzat modificarea: poate e plin spațiul sau aplicația nu mai are acces. Eliberează spațiu în Google Drive sau deconectează-te și conectează-te din nou ca să dai acces aplicației.',
+  'drive.tooBig': 'Catalogul e prea mare pentru a fi salvat în Google Drive. Șterge ce nu mai folosești, apoi reîncearcă.',
   'drive.removed':
     'Fișierul catalogului e în coșul de gunoi din Google Drive. Restaurează-l din Google Drive și reîncearcă, sau începe un catalog nou.',
   'drive.missing':
@@ -65,8 +66,8 @@ export const ro: Record<MessageKey, string> = {
   'drive.owner': 'Fișierul catalogului aparține altui cont Google. Deconectează-te, apoi conectează-te cu contul care l-a creat.',
   'drive.unsupported':
     'Fișierul catalogului a fost scris de o versiune mai nouă a aplicației sau e deteriorat. Nimic din el nu a fost schimbat. Reîncarcă pagina ca să ai cea mai nouă versiune a aplicației.',
-  'drive.auth': 'Sesiunea Google a expirat. Modificările tale rămân pe acest dispozitiv; reconectează-te ca să le salvezi.',
-  'drive.generic': 'Ceva n-a mers. Modificările tale rămân pe acest dispozitiv. Reîncearcă sau reîncarcă pagina.',
+  'drive.auth': 'Sesiunea Google a expirat. Reconectează-te ca să salvezi modificările.',
+  'drive.generic': 'Ceva n-a mers. Reîncearcă sau reîncarcă pagina.',
   'notice.carried': 'Ce ai adăugat în demonstrație este acum în catalogul tău.',
   'notice.skipped':
     'Unele înregistrări din fișierul catalogului nu pot fi citite de această versiune a aplicației ({count}). Rămân neschimbate în fișier.',

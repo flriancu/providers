@@ -48,7 +48,7 @@ export function useDirectory(connection: Connection) {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!sync.dirty) return;
       void sync.flush();
-      e.preventDefault(); // the browser asks "leave the page?"; this device's copy keeps the change either way
+      e.preventDefault(); // the browser asks "leave the page?": the change is not in Drive yet, and perhaps in no device copy either
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', onLeave);

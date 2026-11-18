@@ -60,7 +60,7 @@ function Shell() {
 function Directory({ connection }: { connection: Connection }) {
   const { t } = useI18n();
   const route = useRoute();
-  const { doc, apply, saveState, saveError, loadError, notices, sync } = useDirectory(connection);
+  const { doc, apply, saveState, saveError, copyKept, loadError, notices, sync } = useDirectory(connection);
   const onLabels = route.page === 'labels';
   // Signing out saves first; what did not reach Drive stays on this device for the next sign-in.
   const base = connection.account;
@@ -88,7 +88,9 @@ function Directory({ connection }: { connection: Connection }) {
         {account.kind === 'google' && doc && <SaveStatus saveState={saveState} />}
         <AccountBar account={account} />
       </header>
-      {account.kind === 'google' && doc && <SaveAlert saveState={saveState} saveError={saveError} account={account} sync={sync} />}
+      {account.kind === 'google' && doc && (
+        <SaveAlert saveState={saveState} saveError={saveError} copyKept={copyKept} account={account} sync={sync} />
+      )}
       <ActionErrors />
       {account.kind === 'demo' && (
         <p className="demo-note" role="note">
