@@ -343,3 +343,25 @@ test('a link of another scheme shows as text, never as a link or a website butto
   const row = page.locator('.provider-list li').filter({ hasText: 'Odd Links' });
   await expect(row.getByRole('link', { name: /Open the website/ })).toHaveCount(0);
 });
+
+test('a new provider that looks like one already here waits for a choice: save both, or add to it (FR-23)', async ({ page }) => {
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('sample photo studio');
+  await page.getByRole('button', { name: 'Save the provider' }).click();
+  const doubt = page.getByRole('alert').filter({ hasText: 'This provider may already be in the directory.' });
+  await expect(doubt).toContainText('Looks like Sample Photo Studio, already in the directory (same name).');
+  await doubt.getByRole('button', { name: 'Save as a new provider' }).click();
+  await expect(page.getByRole('heading', { level: 2, name: 'sample photo studio' })).toBeVisible();
+
+  await page.evaluate(() => (location.hash = '#/new'));
+  await page.getByLabel('Name', { exact: true }).fill('Studio X');
+  await page.getByRole('textbox', { name: 'Phone number', exact: true }).fill('+40 000 000 000');
+  await page.getByRole('textbox', { name: 'Email address', exact: true }).fill('x@example.com');
+  await page.getByRole('button', { name: 'Save the provider' }).click();
+  await page.getByRole('button', { name: 'Add these details to Sample Photo Studio' }).click();
+  const detail = page.getByRole('article');
+  await expect(detail.getByRole('heading', { name: 'Sample Photo Studio' })).toBeVisible();
+  await expect(detail.getByRole('link', { name: 'x@example.com' })).toBeVisible();
+  await page.evaluate(() => (location.hash = '#/'));
+  await expect(page.locator('.provider-list .provider-name').filter({ hasText: 'Studio X' })).toHaveCount(0);
+});

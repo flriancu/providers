@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useMemo, useState } from 'react';
-import { facetCounts, liveSelection, type Selection } from '../domain/filter';
+import { facetCounts, filterProviders, liveSelection, type Selection } from '../domain/filter';
 import { live, type DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { ActiveFilters, chosenCount, FilterPanel, toggled } from './FilterPanel';
@@ -35,7 +35,15 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
   const [sheetOpen, setSheetOpen] = useState(false);
   const all = useMemo(() => live(doc.providers), [doc]);
   const find = useProviderSearch(doc);
-  const counts = useMemo(() => facetCounts(structure, selection), [structure, selection]);
+  // FR-11: with a search, the counts are of what it finds, so no value leads to an empty list.
+  const q = route.query.q.trim();
+  const found = useMemo(() => (q ? new Set(find(q)) : undefined), [q, find]);
+  const counts = useMemo(() => facetCounts(structure, selection, found), [structure, selection, found]);
+  // What "Show N providers" says in the filters panel: the filters and the search, as the list.
+  const matching = useMemo(
+    () => (sheetOpen ? filterProviders(structure, selection).filter((p) => !found || found.has(p.id)).length : 0),
+    [sheetOpen, structure, selection, found],
+  );
   // The search box and filters answer at once; the list follows when it can, in the background,
   // so typing never waits for thousands of rows (NFR-10).
   const listQuery = useDeferredValue(query);
@@ -127,7 +135,16 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
           {route.page === 'list' && <p className="muted placeholder">{t('detail.none')}</p>}
         </section>
 
-        {sheetOpen && <FilterSheet doc={doc} selection={query.selection} setSelection={setSelection} close={() => setSheetOpen(false)} />}
+        {sheetOpen && (
+          <FilterSheet
+            doc={doc}
+            selection={query.selection}
+            counts={counts}
+            matching={matching}
+            setSelection={setSelection}
+            close={() => setSheetOpen(false)}
+          />
+        )}
       </div>
     </ListQueryProvider>
   );

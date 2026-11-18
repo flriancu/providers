@@ -98,3 +98,14 @@ describe('ids that are names of built-in properties', () => {
     expect(hall?.[NO_LABEL]).toBe(1);
   });
 });
+
+describe('counts with a search (FR-11)', () => {
+  it('counts only the providers the search found, so no value leads to an empty list', () => {
+    const { doc, labels, providers } = weddingDirectory();
+    const found = new Set([providers.gradina, providers.flashbox]);
+    const counts = facetCounts(doc, NO_SELECTION, found);
+    expect(counts[FACET_IDS.category]?.[labels.photo]).toBe(1); // Bruno is Photo too, but not found
+    expect(counts[FACET_IDS.category]?.[labels.video]).toBe(1);
+    expect(counts[FACET_IDS.category]?.[labels.plumber]).toBe(0);
+  });
+});

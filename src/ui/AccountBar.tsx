@@ -2,6 +2,7 @@ import type { SaveState } from 'drive-doc-sync';
 import { useState } from 'react';
 import { DRIVE_APP } from '../config';
 import { useI18n } from '../i18n';
+import { hasDrafts } from './drafts';
 import { driveMessage, errorDetail, signInMessage } from './driveErrors';
 import { HeaderMenu } from './HeaderMenu';
 import { LanguageSelect, ThemeSelect } from './LanguageSelect';
@@ -44,10 +45,46 @@ function AccountMenu({ account }: { account: Extract<Account, { kind: 'google' }
       <p className="help">{t('account.where', { file: DRIVE_APP.fileName })}</p>
       <LanguageSelect shown />
       <ThemeSelect shown />
-      <button type="button" className="secondary" onClick={() => account.signOut()}>
+      <SignOut account={account} />
+    </HeaderMenu>
+  );
+}
+
+/**
+ * Sign out. A provider form with changes not saved is dropped on sign-out (drafts are cleared,
+ * so the next person on this device does not see them): that is said first, with a way back.
+ */
+function SignOut({ account }: { account: Extract<Account, { kind: 'google' }> }) {
+  const { t } = useI18n();
+  const [asking, setAsking] = useState(false);
+  if (!asking)
+    return (
+      <button type="button" className="secondary" onClick={() => (hasDrafts(account.sub) ? setAsking(true) : account.signOut())}>
         {t('auth.signOut')}
       </button>
-    </HeaderMenu>
+    );
+  return (
+    <div className="notice" role="alert">
+      <p>{t('auth.signOutDrafts')}</p>
+      <div className="actions">
+        <button
+          type="button"
+          className="secondary"
+          onClick={(e) => {
+            setAsking(false);
+            // Back to the form: the menu closes as with Escape, focus on its button.
+            const menu = e.currentTarget.closest('details');
+            if (menu) menu.open = false;
+            menu?.querySelector('summary')?.focus();
+          }}
+        >
+          {t('auth.signOutKeep')}
+        </button>
+        <button type="button" className="danger" onClick={() => account.signOut()}>
+          {t('auth.signOutAnyway')}
+        </button>
+      </div>
+    </div>
   );
 }
 

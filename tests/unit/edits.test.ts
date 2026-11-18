@@ -20,7 +20,8 @@ import {
 import { addRecord } from '../../src/domain/records';
 import { FACET_IDS, live } from '../../src/domain/schema';
 import { FACET_WORDS as WORDS } from '../../src/ui/labelText';
-import { weddingDirectory } from './fixture';
+import { merge } from '../../src/domain/merge';
+import { testContext, weddingDirectory } from './fixture';
 
 const fails = (code: EditErrorCode, fn: () => unknown) => {
   let error: unknown;
@@ -200,5 +201,28 @@ describe('facets', () => {
     const { doc, ctx, labels } = weddingDirectory();
     fails('nameSemicolon', () => createLabel(doc, { facetId: FACET_IDS.lists, name: 'Call back; urgent' }, ctx));
     fails('nameSemicolon', () => renameLabel(doc, labels.photo, 'Photo; video', 'blue', [], ctx));
+  });
+});
+
+describe('the same label made on two devices', () => {
+  it('is one label once they sync', () => {
+    const { doc } = weddingDirectory();
+    const phone = createLabel(doc, { facetId: FACET_IDS.lists, name: 'Call back' }, testContext('sub-owner', Date.UTC(2026, 10, 17)));
+    const laptop = createLabel(doc, { facetId: FACET_IDS.lists, name: 'call  BACK' }, testContext('sub-owner', Date.UTC(2026, 10, 18)));
+    expect(phone.id).toBe(laptop.id);
+    const merged = merge(phone.doc, laptop.doc);
+    expect(live(merged.labels).filter((l) => l.facetId === FACET_IDS.lists && l.name.toLowerCase().includes('call'))).toHaveLength(1);
+  });
+
+  it('comes back as the same label when made again after a delete, and as a new one after a rename', () => {
+    const { doc, ctx } = weddingDirectory();
+    const first = createLabel(doc, { facetId: FACET_IDS.lists, name: 'Call back' }, ctx);
+    const again = createLabel(deleteLabel(first.doc, first.id, ctx), { facetId: FACET_IDS.lists, name: 'Call back' }, ctx);
+    expect(again.id).toBe(first.id);
+    expect(again.doc.labels[first.id]!.deleted).toBeUndefined();
+    const renamed = renameLabel(first.doc, first.id, 'Called', 'red', [], ctx);
+    const fresh = createLabel(renamed, { facetId: FACET_IDS.lists, name: 'Call back' }, ctx);
+    expect(fresh.id).not.toBe(first.id);
+    expect(fresh.doc.labels[first.id]!.name).toBe('Called');
   });
 });

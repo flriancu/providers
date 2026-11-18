@@ -1,7 +1,10 @@
 import { useEffect, useId, useState } from 'react';
+import { findDuplicates, type PossibleDuplicate } from '../domain/duplicates';
 import {
+  cleanProvider,
   createLabel,
   createProvider,
+  EditError,
   emptyProvider,
   providerInput,
   saveProvider,
@@ -9,7 +12,9 @@ import {
   type ProviderInput,
 } from '../domain/edits';
 import { labelById } from '../domain/labels';
+import type { EditContext } from '../domain/records';
 import { FACET_IDS, own, type DirectoryDoc } from '../domain/schema';
+import { mergeInput } from '../domain/transfer';
 import { useI18n } from '../i18n';
 import { clearDraft, readDraft, sameInput, writeDraft } from './drafts';
 import { ColorDot } from './LabelChip';
@@ -28,7 +33,7 @@ import { useOncePerRender } from './useOncePerRender';
  * change made meanwhile on another device to another field stays.
  */
 export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: Apply; id?: string }) {
-  const { t } = useI18n();
+  const { t, list } = useI18n();
   const found = id ? own(doc.providers, id) : undefined;
   const existing = found && !found.deleted ? found : undefined;
   const owner = doc.owner.googleSub;
@@ -53,6 +58,8 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [changed]);
   const [error, setError] = useState<EditErrorCode | null>(null);
+  /** Look-alikes found for exactly this input; any change to the form puts them away. */
+  const [doubts, setDoubts] = useState<{ input: ProviderInput; found: PossibleDuplicate[] } | null>(null);
   const ids = useId();
   const once = useOncePerRender();
   const query = useListQuery();
@@ -76,15 +83,14 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
     else if (created) toggle(created, true);
   };
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /** Saves, then opens the provider saved; `change` returns the document and the provider's id. */
+  const save = (change: (d: DirectoryDoc, ctx: EditContext) => { doc: DirectoryDoc; id: string }) =>
     once(() => {
-      let target = id;
+      let target = '';
       const code = apply((d, ctx) => {
-        if (id) return saveProvider(d, id, base, input, ctx);
-        const created = createProvider(d, input, ctx);
-        target = created.id;
-        return created.doc;
+        const done = change(d, ctx);
+        target = done.id;
+        return done.doc;
       });
       setError(code);
       if (code || !target) return false;
@@ -92,7 +98,24 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
       go({ page: 'provider', id: target }, query);
       return true;
     });
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (id) return save((d, ctx) => ({ doc: saveProvider(d, id, base, input, ctx), id }));
+    // FR-23: a new provider that looks like one already here waits for the owner's choice.
+    const clean = cleanProvider(doc, input);
+    const lookalikes = clean.name ? findDuplicates(doc, clean) : [];
+    if (lookalikes.length && doubts?.input !== input) return setDoubts({ input, found: lookalikes });
+    save((d, ctx) => createProvider(d, input, ctx));
   };
+  /** FR-24: the form's details added to a provider already there, which keeps its own single values. */
+  const addTo = (into: string) =>
+    save((d, ctx) => {
+      const target = own(d.providers, into);
+      if (!target || target.deleted) throw new EditError('notFound');
+      return { doc: saveProvider(d, into, providerInput(target), mergeInput(target, input, {}), ctx), id: into };
+    });
+  const reasons = (r: readonly string[]) => list(r.map((x) => t(`import.reason.${x as 'name'}`)));
 
   const textField = (key: 'name' | 'contactPerson' | 'address', label: string, required = false) => (
     <label>
@@ -192,6 +215,31 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
         {t('field.notes')}
         <textarea rows={4} value={input.notes} onChange={(e) => set('notes', e.target.value)} />
       </label>
+      {doubts?.input === input && (
+        <div className="notice" role="alert">
+          <p>
+            <strong>{t('form.dupHeading')}</strong>
+          </p>
+          <ul className="plain">
+            {doubts.found.map(({ provider: p, reasons: r }) => (
+              <li key={p.id}>
+                <p>{t('import.likeProvider', { name: p.name, reasons: reasons(r) })}</p>
+                <div className="actions">
+                  <button type="button" className="secondary" onClick={() => addTo(p.id)}>
+                    {t('form.dupMerge', { name: p.name })}
+                  </button>
+                  <a className="button secondary" href={href({ page: 'provider', id: p.id }, query)}>
+                    {t('form.dupOpen', { name: p.name })}
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <button type="button" onClick={() => save((d, ctx) => createProvider(d, input, ctx))}>
+            {t('form.dupKeepBoth')}
+          </button>
+        </div>
+      )}
       <div className="actions">
         <button type="submit">{t('form.save')}</button>
         <a className="button secondary" href={cancel} onClick={() => clearDraft(owner, id)}>

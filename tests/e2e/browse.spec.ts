@@ -77,6 +77,16 @@ test.describe('wide screens: filters in their own column', () => {
     await expect(filters.getByRole('checkbox', { name: 'Bucharest, 0 providers' })).toBeDisabled();
   });
 
+  test('with a search, each count is of what the search found (FR-11)', async ({ page }) => {
+    await setUp(page);
+    const filters = page.getByRole('complementary', { name: 'Filters' });
+    await page.getByRole('searchbox', { name: 'Search providers' }).fill('lagoo');
+    await expect(names(page)).toHaveText(['Lagoo']);
+    // Photo has 2 providers, but neither is Lagoo: ticking it would empty the list.
+    await expect(filters.getByRole('checkbox', { name: 'Photo, 0 providers' })).toBeVisible();
+    await expect(filters.getByRole('checkbox', { name: 'Cluj, 1 provider' })).toBeVisible();
+  });
+
   test('searches within the filters, tolerating typos (FR-13)', async ({ page }) => {
     await setUp(page);
     const search = page.getByRole('searchbox', { name: 'Search providers' });

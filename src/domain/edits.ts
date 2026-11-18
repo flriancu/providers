@@ -6,7 +6,7 @@ import { columnClash, isOwnWord, type FacetWords } from './columns';
 import { isDay } from './days';
 import { fold } from './fold';
 import { labelById } from './labels';
-import { addRecord, deleteRecord, updateRecord, type EditContext } from './records';
+import { addRecord, deleteRecord, restoreRecord, updateRecord, type EditContext } from './records';
 import { sameValue } from './stamps';
 import { FACET_IDS, LABEL_COLORS, live, own, type DirectoryDoc, type ISODate, type LabelColor, type Provider } from './schema';
 
@@ -209,17 +209,34 @@ export function createLabel(
   if (!facet || facet.deleted) throw new EditError('notFound');
   const name = cleanLabelName(input.name);
   assertNameFree(doc, input.facetId, name);
-  return addRecord(
-    doc,
-    'labels',
-    {
-      facetId: input.facetId,
-      name,
-      color: input.color ?? nextColor(doc),
-      aliases: cleanAliases(input.aliases ?? []),
-    },
-    ctx,
-  );
+  const fields = { facetId: input.facetId, name, color: input.color ?? nextColor(doc), aliases: cleanAliases(input.aliases ?? []) };
+  // Two devices making "Photo" in one group make the same record, which merges into one label.
+  const id = labelIdOf(input.facetId, name);
+  const before = own(doc.labels, id);
+  if (!before) return addRecord(doc, 'labels', fields, { ...ctx, newId: () => id });
+  // Made before and deleted since: the same label comes back.
+  if (before.deleted) return { doc: updateRecord(restoreRecord(doc, 'labels', id, ctx), 'labels', id, fields, ctx), id };
+  // The id is a label renamed since: this one gets an id of its own.
+  return addRecord(doc, 'labels', fields, ctx);
+}
+
+/**
+ * The id a new label gets from its group and its name as folded ("l-" and a 53-bit hash,
+ * cyrb53), the same on every device: like the starting groups' fixed ids (FACET_IDS), it lets
+ * two devices that make the same label before they sync end up with one.
+ */
+export function labelIdOf(facetId: string, name: string): string {
+  const text = `${facetId}\u0000${fold(name)}`;
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return `l-${(4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)}`;
 }
 
 /**

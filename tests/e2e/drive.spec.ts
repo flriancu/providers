@@ -114,6 +114,23 @@ test.describe('wide screens', () => {
     await expect(alert).not.toContainText('kept on this device');
   });
 
+  test('signing out with a form not saved asks first, and Keep editing keeps it', async ({ page }) => {
+    const drive = new FakeDrive();
+    await open(page, drive);
+    await expect(saved(page)).toBeVisible();
+    await page.getByRole('link', { name: 'Add a provider' }).click();
+    await page.getByLabel('Name', { exact: true }).fill('Half typed');
+    await page.getByLabel('Account: ana@example.test').click();
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page.getByText('A provider form has changes that are not saved. Signing out discards them.')).toBeVisible();
+    await page.getByRole('button', { name: 'Keep editing' }).click();
+    await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Half typed');
+    await page.getByLabel('Account: ana@example.test').click();
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.getByRole('button', { name: 'Sign out and discard them' }).click();
+    await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
+  });
+
   test('signing out removes the copy on this device and goes back to the demo (D-24)', async ({ page }) => {
     const drive = new FakeDrive();
     await open(page, drive);

@@ -1,11 +1,9 @@
 import type { ReactNode } from 'react';
+import { mailtoHref, telHref } from '../domain/contact';
 import { firstLinks, handleOf, webHref } from '../domain/links';
 import type { Provider } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { GlobeIcon, InstagramIcon, MailIcon, PhoneIcon, TikTokIcon } from './icons';
-
-/** A phone number as a tel: address: digits and a leading +, as phones dial them. */
-const telOf = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`;
 
 /** A link firstLinks chose, as the address to open: always a web address (links.ts). */
 const webOf = (link: string) => webHref(link) ?? '';
@@ -30,11 +28,12 @@ const SLOTS: { key: string; icon: ReactNode }[] = [
 export function QuickActions({ provider }: { provider: Provider }) {
   const { t } = useI18n();
   const links = firstLinks(provider.links);
-  const phone = provider.phones[0];
-  const email = provider.emails[0];
+  // The first phone that can be called and the first address that can be written to.
+  const phone = provider.phones.find((p) => telHref(p));
+  const email = provider.emails.find((e) => mailtoHref(e));
   const targets: ({ href: string; name: string; external?: true } | null)[] = [
-    phone ? { href: telOf(phone), name: t('quick.call', { phone }) } : null,
-    email ? { href: `mailto:${email.trim()}`, name: t('quick.email', { email }) } : null,
+    phone ? { href: telHref(phone)!, name: t('quick.call', { phone }) } : null,
+    email ? { href: mailtoHref(email)!, name: t('quick.email', { email }) } : null,
     links.website ? { href: webOf(links.website), name: t('quick.website', { site: links.website }), external: true } : null,
     links.instagram
       ? { href: webOf(links.instagram), name: t('quick.instagram', { handle: handleOf(links.instagram) }), external: true }

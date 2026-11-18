@@ -264,7 +264,10 @@ function LabelEditor({ doc, apply, label, done }: { doc: DirectoryDoc; apply: Ap
 function AddLabel({ doc, apply, facet }: { doc: DirectoryDoc; apply: Apply; facet: Facet }) {
   const { t } = useI18n();
   const [name, setName] = useState('');
-  const [color, setColor] = useState<LabelColor>(() => nextColor(doc));
+  // D-41: until the owner picks one, the colour is the least used now, over every group's
+  // labels, worked out from the directory as it is, not as it was when the page opened.
+  const [chosen, setColor] = useState<LabelColor | null>(null);
+  const color = chosen ?? nextColor(doc);
   const [aliases, setAliases] = useState('');
   const [error, setError] = useState<EditErrorCode | null>(null);
   return (
@@ -274,17 +277,12 @@ function AddLabel({ doc, apply, facet }: { doc: DirectoryDoc; apply: Apply; face
         className="inline-form"
         onSubmit={(e) => {
           e.preventDefault();
-          let added: DirectoryDoc | null = null;
-          const code = apply((d, ctx) => {
-            added = createLabel(d, { facetId: facet.id, name, color, aliases: splitAliases(aliases) }, ctx).doc;
-            return added;
-          });
+          const code = apply((d, ctx) => createLabel(d, { facetId: facet.id, name, color, aliases: splitAliases(aliases) }, ctx).doc);
           setError(code);
-          if (!code && added) {
+          if (!code) {
             setName('');
             setAliases('');
-            // The next label starts with the next least-used colour.
-            setColor(nextColor(added));
+            setColor(null); // the next label starts with the least-used colour again
           }
         }}
       >

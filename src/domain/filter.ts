@@ -89,10 +89,11 @@ export type FacetCounts = Record<string, Record<string, number>>;
  * FR-11: the count next to each value. A value's count ignores its own facet's selection, so
  * it says how many providers ticking it would add (OR within a facet), and a value showing 0
  * can never lead to an empty list. NO_LABEL counts the providers with no label in the facet.
+ * `within`: the providers a search found; only they count, as only they can be shown.
  */
-export function facetCounts(doc: Structure, selection: Selection): FacetCounts {
+export function facetCounts(doc: Structure, selection: Selection, within?: ReadonlySet<string>): FacetCounts {
   const want = wanted(doc, selection);
-  const prepared = prepare(doc);
+  const prepared = within ? prepare(doc).filter((p) => within.has(p.provider.id)) : prepare(doc);
   const out: FacetCounts = {};
   for (const facet of live(doc.facets)) {
     const counts: Record<string, number> = { [NO_LABEL]: 0 };

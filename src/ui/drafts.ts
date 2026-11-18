@@ -58,6 +58,15 @@ export function clearDraft(owner: string, id: string | undefined) {
   }
 }
 
+/** Whether any provider form of the account holds changes not saved (signing out would drop them). */
+export function hasDrafts(owner: string): boolean {
+  try {
+    return Object.keys(sessionStorage).some((key) => key.startsWith(prefix(owner)));
+  } catch {
+    return false; // storage blocked: no drafts were kept
+  }
+}
+
 /** Every draft of an account (at sign-out). */
 export function clearDrafts(owner: string) {
   try {

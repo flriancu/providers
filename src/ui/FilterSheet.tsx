@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { facetCounts, filterProviders, type Selection } from '../domain/filter';
+import { useEffect, useRef } from 'react';
+import type { FacetCounts, Selection } from '../domain/filter';
 import type { DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { chosenCount, FilterPanel, toggled } from './FilterPanel';
@@ -14,17 +14,20 @@ import { chosenCount, FilterPanel, toggled } from './FilterPanel';
 export function FilterSheet({
   doc,
   selection,
+  counts,
+  matching,
   setSelection,
   close,
 }: {
   doc: DirectoryDoc;
   selection: Selection;
+  /** The page's counts and how many providers the filters and the search leave: one source for both. */
+  counts: FacetCounts;
+  matching: number;
   setSelection: (s: Selection) => void;
   close: () => void;
 }) {
   const { t, plural } = useI18n();
-  const counts = useMemo(() => facetCounts(doc, selection), [doc, selection]);
-  const matching = useMemo(() => filterProviders(doc, selection).length, [doc, selection]);
   const dialog = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
 

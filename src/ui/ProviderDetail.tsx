@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { deleteProvider } from '../domain/edits';
 import { effectiveLabels, labelById } from '../domain/labels';
+import { mailtoHref, telHref } from '../domain/contact';
 import { webHref } from '../domain/links';
 import { own, type DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
@@ -65,15 +66,17 @@ export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: A
         <dd>{provider.contactPerson || nothing}</dd>
         <dt>{t('field.phones')}</dt>
         <dd>
-          {list(provider.phones, (p) => (
-            <a href={`tel:${p.replace(/[^\d+]/g, '')}`}>{p}</a>
-          ))}
+          {list(provider.phones, (p) => {
+            const call = telHref(p);
+            return call ? <a href={call}>{p}</a> : p;
+          })}
         </dd>
         <dt>{t('field.emails')}</dt>
         <dd>
-          {list(provider.emails, (e) => (
-            <a href={`mailto:${e}`}>{e}</a>
-          ))}
+          {list(provider.emails, (e) => {
+            const write = mailtoHref(e);
+            return write ? <a href={write}>{e}</a> : e;
+          })}
         </dd>
         <dt>{t('field.links')}</dt>
         <dd>

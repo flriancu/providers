@@ -82,3 +82,11 @@ test('lists rarely used labels and adds a label group (D-15)', async ({ page }) 
   await page.getByRole('button', { name: 'Add label group' }).click();
   await expect(facet(page, 'Price band')).toBeVisible();
 });
+
+test('a new label takes the colour least used now, also in another group added to just after (D-41)', async ({ page }) => {
+  // The demo's labels are blue, green and orange: red is least used, then yellow.
+  await addLabel(facet(page, 'Lists'), 'Call back');
+  await expect(facet(page, 'Lists').locator('.chip[data-color="red"]', { hasText: 'Call back' })).toBeVisible();
+  await addLabel(facet(page, 'Area'), 'Cluj');
+  await expect(facet(page, 'Area').locator('.chip[data-color="yellow"]', { hasText: 'Cluj' })).toBeVisible();
+});
