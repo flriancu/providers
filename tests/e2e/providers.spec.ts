@@ -431,3 +431,15 @@ test("another site's script error, whose details the browser hides, is not shown
   await page.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { message: 'Script error.', filename: '', error: null })));
   await expect(page.getByText(/That did not work because of an error/)).toHaveCount(0);
 });
+
+test('the form shows each label as its chip, as the list, the filters and the provider do (D-31)', async ({ page }) => {
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  const form = page.locator('form.provider-form');
+  const photo = form.locator('label.check', { has: page.getByRole('checkbox', { name: 'Photo', exact: true }) });
+  await expect(photo.locator('.chip[data-color]')).toHaveText('Photo');
+  // The labels the search offers are chips too.
+  const area = form.getByRole('group', { name: 'Area' });
+  await area.getByRole('button', { name: '+ Add a label' }).click();
+  await area.getByRole('combobox', { name: /Find or add a label/ }).fill('BUCH');
+  await expect(area.getByRole('option', { name: 'Bucharest' }).locator('.chip[data-color]')).toHaveText('Bucharest');
+});

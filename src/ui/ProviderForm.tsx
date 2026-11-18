@@ -17,7 +17,7 @@ import { FACET_IDS, own, type DirectoryDoc } from '../domain/schema';
 import { conflicts, mergeInput, type SingleField } from '../domain/transfer';
 import { useI18n } from '../i18n';
 import { clearDraft, readDraft, sameInput, writeDraft } from './drafts';
-import { ColorDot } from './LabelChip';
+import { LabelChip } from './LabelChip';
 import { LabelPicker } from './LabelPicker';
 import { ListField } from './ListField';
 import { facetLabels, facetName, labelName, labelNameById, orderedFacets } from './labelText';
@@ -199,8 +199,8 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
               {labels.map((label) => (
                 <label key={label.id} className="check">
                   <input type="checkbox" checked={input.labelIds.includes(label.id)} onChange={(e) => toggle(label.id, e.target.checked)} />
-                  <ColorDot color={label.color} />
-                  {labelName(label)}
+                  {/* As everywhere else: the label as its chip (D-31). */}
+                  <LabelChip color={label.color}>{labelName(label)}</LabelChip>
                 </label>
               ))}
               <LabelPicker

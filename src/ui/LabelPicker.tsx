@@ -4,7 +4,7 @@ import { fold } from '../domain/fold';
 import { matchLabels } from '../domain/labels';
 import { live, type DirectoryDoc, type Label } from '../domain/schema';
 import { useI18n } from '../i18n';
-import { ColorDot } from './LabelChip';
+import { LabelChip } from './LabelChip';
 import { labelName } from './labelText';
 
 /** A label to tick, or a new label to create with the typed name. */
@@ -102,8 +102,7 @@ function PickerField({ doc, facetId, groupName, chosen, choose, create, close }:
             >
               {item.kind === 'label' ? (
                 <>
-                  <ColorDot color={item.label.color} />
-                  {labelName(item.label)}
+                  <LabelChip color={item.label.color}>{labelName(item.label)}</LabelChip>
                 </>
               ) : (
                 t('form.createLabel', { name: item.name })
