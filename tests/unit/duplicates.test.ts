@@ -48,3 +48,11 @@ describe('likely duplicates (FR-23)', () => {
     expect(phoneKey('n/a')).toBe('');
   });
 });
+
+describe('link paths and case', () => {
+  it('compare profile names without case, and other paths with it', () => {
+    expect(linkKey('https://www.instagram.com/Bruno.Foto/')).toBe(linkKey('instagram.com/bruno.foto'));
+    expect(linkKey('https://youtu.be/AbCdEf')).not.toBe(linkKey('https://youtu.be/abcdef'));
+    expect(linkKey('https://Example.ro/Oferta')).not.toBe(linkKey('https://example.ro/oferta'));
+  });
+});

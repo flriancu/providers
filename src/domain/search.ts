@@ -16,12 +16,26 @@ interface Indexed {
   contactPerson: string;
   address: string;
   links: string;
+  /** Phones as written and as digits (the last nine too, so 0721..., +40 721... all find it); emails. */
+  contacts: string;
   notes: string;
   log: string;
   labels: string;
 }
 
-const FIELDS = ['name', 'contactPerson', 'address', 'links', 'notes', 'log', 'labels'] as const;
+const FIELDS = ['name', 'contactPerson', 'address', 'links', 'contacts', 'notes', 'log', 'labels'] as const;
+
+/** A phone's forms in the index: as written, its digits, and its last nine digits (phoneKey). */
+const phoneWords = (phone: string) => {
+  const digits = phone.replace(/\D/g, '');
+  return [phone, digits, digits.slice(-9)];
+};
+
+/** A run of nine digits or more typed in the search: its last nine, as phones are indexed. */
+const searchTerm = (term: string) => {
+  const folded = fold(term);
+  return /^\+?\d{9,}$/.test(folded) ? folded.replace(/\D/g, '').slice(-9) : folded || null;
+};
 
 /**
  * The words a provider's labels add: each label's name and aliases, so "foto" finds a provider
@@ -53,6 +67,7 @@ function indexed(doc: DirectoryDoc): Map<string, Indexed> {
         contactPerson: p.contactPerson,
         address: p.address,
         links: p.links.join(' '),
+        contacts: [...p.phones.flatMap(phoneWords), ...p.emails].join(' '),
         notes: p.notes,
         log: (logByProvider.get(p.id) ?? []).join('\n'),
         labels: labelWords(doc, p),
@@ -81,7 +96,13 @@ export class ProviderSearch {
   private readonly index = new MiniSearch<Indexed>({
     fields: [...FIELDS],
     processTerm: (term) => fold(term) || null,
-    searchOptions: { prefix: true, fuzzy: FUZZY, combineWith: 'AND', boost: { name: 3, contactPerson: 2, labels: 0.5 } },
+    searchOptions: {
+      prefix: true,
+      fuzzy: FUZZY,
+      combineWith: 'AND',
+      boost: { name: 3, contactPerson: 2, labels: 0.5 },
+      processTerm: searchTerm,
+    },
   });
   /** What is in the index now, per provider id. */
   private held = new Map<string, Indexed>();

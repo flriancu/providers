@@ -15,8 +15,10 @@ export function useViewFocus(page: string, id: string | undefined) {
     // Nothing opened (first view, or the same view drawn again): focus stays where it is.
     if (!before || (before.page === page && before.id === id)) return;
     if (page === 'list') {
-      if (before.id)
-        document.querySelector<HTMLElement>(`.provider-list a[data-id="${CSS.escape(before.id)}"]`)?.focus({ preventScroll: true });
+      // The row of the provider just seen; gone (deleted), the list's heading.
+      const row = before.id && document.querySelector<HTMLElement>(`.provider-list a[data-id="${CSS.escape(before.id)}"]`);
+      if (row) row.focus({ preventScroll: true });
+      else if (before.id) document.getElementById('list-heading')?.focus({ preventScroll: true });
       return;
     }
     document.querySelector<HTMLElement>('.detail-pane h2')?.focus({ preventScroll: true });

@@ -226,3 +226,28 @@ describe('the same label made on two devices', () => {
     expect(fresh.doc.labels[first.id]!.name).toBe('Called');
   });
 });
+
+describe('names that show nothing', () => {
+  it('are refused, like an empty name', () => {
+    const { doc, ctx } = weddingDirectory();
+    fails('nameRequired', () => createProvider(doc, { ...emptyProvider(), name: '\u200B \u200D' }, ctx));
+    fails('nameRequired', () => createLabel(doc, { facetId: FACET_IDS.lists, name: '\u200B' }, ctx));
+    expect(createProvider(doc, { ...emptyProvider(), name: '👩‍🎤 Band' }, ctx).id).toBeTruthy(); // a joiner inside a name is fine
+  });
+});
+
+describe('a label this version cannot read', () => {
+  it('stays on a provider whose other labels are edited', () => {
+    const { doc, ctx, providers, labels } = weddingDirectory();
+    const p = doc.providers[providers.bruno]!;
+    const withUnread = {
+      ...doc,
+      providers: { ...doc.providers, [p.id]: { ...p, labelIds: [...p.labelIds, 'from-newer'] } },
+      skipped: { labels: { 'from-newer': { id: 'from-newer' } } },
+    };
+    const before = providerInput(withUnread.providers[p.id]!);
+    const saved = saveProvider(withUnread, p.id, before, { ...before, labelIds: [...before.labelIds, labels.shortlist] }, ctx);
+    expect(saved.providers[p.id]!.labelIds).toContain('from-newer');
+    expect(saved.providers[p.id]!.labelIds).toContain(labels.shortlist);
+  });
+});

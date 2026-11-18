@@ -5,7 +5,8 @@ test('the page says what it is and that the demo keeps nothing, in the chosen la
   await page.goto('./');
   await expect(page.getByRole('heading', { level: 1, name: 'Providers directory' })).toBeVisible();
   await expect(page.getByRole('note')).toHaveText(
-    'Demo: nothing you add here is saved. Sign in with Google to keep your directory in your own Google Drive.',
+    'A private directory of product and service providers: their contact details, labels to find them, and notes on every conversation. ' +
+      'Demo: nothing you add here is saved. Sign in with Google to keep your directory in your own Google Drive.',
   );
   await chooseLanguage(page, 'ro');
   await expect(page.getByRole('heading', { level: 1, name: 'Catalog de furnizori' })).toBeVisible();

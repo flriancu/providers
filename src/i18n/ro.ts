@@ -67,8 +67,10 @@ export const ro: Record<MessageKey, string> = {
     'Fișierul catalogului nu mai există în Google Drive. Reîncearcă să-l cauți; dacă a dispărut, poți începe un catalog nou.',
   'drive.missingCopy': 'Catalogul tău nu mai e în Google Drive, nici în coșul de gunoi. Pe acest dispozitiv a rămas o copie a lui.',
   'drive.owner': 'Fișierul catalogului aparține altui cont Google. Deconectează-te, apoi conectează-te cu contul care l-a creat.',
+  'drive.damaged':
+    'Fișierul catalogului este deteriorat și nu poate fi citit. Nimic din el nu a fost schimbat. Poți restaura o versiune anterioară a lui în Google Drive sau poți începe un catalog nou.',
   'drive.unsupported':
-    'Fișierul catalogului a fost scris de o versiune mai nouă a aplicației sau e deteriorat. Nimic din el nu a fost schimbat. Reîncarcă pagina ca să ai cea mai nouă versiune a aplicației.',
+    'Fișierul catalogului a fost scris de o versiune mai nouă a aplicației. Nimic din el nu a fost schimbat. Reîncarcă pagina ca să ai cea mai nouă versiune a aplicației.',
   'drive.auth': 'Sesiunea Google a expirat. Reconectează-te ca să salvezi modificările.',
   'drive.generic': 'Ceva n-a mers. Reîncearcă sau reîncarcă pagina.',
   'notice.carried': 'Ce ai adăugat în demonstrație este acum în catalogul tău.',
@@ -244,7 +246,8 @@ export const ro: Record<MessageKey, string> = {
   'import.problems': 'Rândurile fără nume sunt lăsate deoparte (rândurile {lines}).',
   'import.chooseFirst': 'Alege mai întâi pentru {rows}',
   'import.run': 'Importă {providers}',
-  'import.done': 'Import făcut: {added} adăugați, {merged} uniți, {skipped} lăsate deoparte; {labels} create.',
+  'import.done':
+    'Import făcut. Furnizori adăugați: {addedCount}; furnizori uniți: {mergedCount}; rânduri lăsate deoparte: {skippedCount}; etichete create: {labelsCount}.',
   'import.line': 'Rândul {line}',
   'import.reason.name': 'același nume',
   'import.reason.phone': 'același telefon',

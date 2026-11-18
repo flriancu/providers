@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { NO_LABEL, type FacetCounts, type Selection } from '../domain/filter';
 import { labelById } from '../domain/labels';
 import { own, type DirectoryDoc, type Facet, type Label } from '../domain/schema';
-import { useI18n } from '../i18n';
+import { useI18n, type I18n } from '../i18n';
 import { LabelChip } from './LabelChip';
 import { facetName, facetLabels, labelName, orderedFacets } from './labelText';
 
@@ -10,6 +10,12 @@ import { facetName, facetLabels, labelName, orderedFacets } from './labelText';
 const SHOWN = 8;
 
 export type Toggle = (facetId: string, labelId: string, on: boolean) => void;
+
+/**
+ * A group's name inside "No ...": the interface's word in lower case ("No category"); a name the
+ * owner gave as they wrote it ("No DJ equipment").
+ */
+const noneWord = (facet: Facet, t: I18n['t']) => (facet.name ? facet.name : facetName(facet, t).toLocaleLowerCase());
 
 /** True when a value is selected. */
 const isOn = (selection: Selection, facetId: string, labelId: string) => (own(selection, facetId) ?? []).includes(labelId);
@@ -65,7 +71,7 @@ function FacetFilter({
       {visible.map((r) => {
         const count = own(counts, r.id) ?? 0;
         const on = isOn(selection, facet.id, r.id);
-        const valueName = r.label ? labelName(r.label) : t('filter.none', { facet: name.toLocaleLowerCase() });
+        const valueName = r.label ? labelName(r.label) : t('filter.none', { facet: noneWord(facet, t) });
         return (
           <label key={r.id} className={`check filter-value${count === 0 && !on ? ' empty' : ''}`}>
             {/* Spoken as "Photo, 2 providers"; the screen shows the name and the bare number. */}
@@ -111,7 +117,7 @@ export function ActiveFilters({
       {chosen.map(({ facetId, labelId }) => {
         const label = labelById(doc, labelId);
         const facet = own(doc.facets, facetId);
-        const text = label ? labelName(label) : facet ? t('filter.none', { facet: facetName(facet, t).toLocaleLowerCase() }) : labelId;
+        const text = label ? labelName(label) : facet ? t('filter.none', { facet: noneWord(facet, t) }) : labelId;
         return (
           <button
             key={`${facetId}-${labelId}`}

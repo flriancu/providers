@@ -20,3 +20,19 @@ describe('translations', () => {
     expect(html('ro')).not.toContain('{label}');
   });
 });
+
+describe('Romanian summaries', () => {
+  it('name each count, so no word has to agree with the number', () => {
+    const text = translate('ro', 'import.done', {
+      added: '',
+      merged: '',
+      skipped: '',
+      labels: '',
+      addedCount: 1,
+      mergedCount: 0,
+      skippedCount: 2,
+      labelsCount: 1,
+    });
+    expect(text).toBe('Import făcut. Furnizori adăugați: 1; furnizori uniți: 0; rânduri lăsate deoparte: 2; etichete create: 1.');
+  });
+});

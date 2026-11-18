@@ -80,7 +80,7 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
 
         <section className="pane list-pane" aria-labelledby="list-heading">
           <div className="pane-header">
-            <h2 id="list-heading">
+            <h2 id="list-heading" tabIndex={-1}>
               {t('list.heading')}{' '}
               <span className="count">
                 {narrowed

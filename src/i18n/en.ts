@@ -62,8 +62,10 @@ export const en = {
     'Your directory file no longer exists in Google Drive. Try again to look for it; if it is gone, you can start a new directory.',
   'drive.missingCopy': 'Your directory is no longer in Google Drive, not even in the trash. This device still has a copy of it.',
   'drive.owner': 'This directory file belongs to another Google account. Sign out, then sign in with the account that made it.',
+  'drive.damaged':
+    'The directory file is damaged and cannot be read. Nothing in it was changed. You can restore an earlier version of it in Google Drive, or start a new directory.',
   'drive.unsupported':
-    'The directory file was written by a newer version of the app, or it is damaged. Nothing in it was changed. Reload the page to get the newest version of the app.',
+    'The directory file was written by a newer version of the app. Nothing in it was changed. Reload the page to get the newest version of the app.',
   'drive.auth': 'The Google session expired. Reconnect to save your changes.',
   'drive.generic': 'Something went wrong. Try again, or reload the page.',
   'notice.carried': 'What you added in the demo is now in your directory.',

@@ -90,3 +90,14 @@ test('a new label takes the colour least used now, also in another group added t
   await addLabel(facet(page, 'Area'), 'Cluj');
   await expect(facet(page, 'Area').locator('.chip[data-color="yellow"]', { hasText: 'Cluj' })).toBeVisible();
 });
+
+test('"No ..." keeps the capitals of a group the owner named', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'the filter column shows on wide screens');
+  const add = page.locator('details.add-label').filter({ hasText: '+ Add a label group' });
+  await add.locator('summary').click();
+  await add.getByLabel('Label group name').fill('DJ equipment');
+  await add.getByRole('button', { name: 'Add label group' }).click();
+  await page.getByRole('link', { name: 'Providers' }).click();
+  await expect(page.getByRole('complementary', { name: 'Filters' }).getByText('No DJ equipment', { exact: true })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Filters' }).getByText('No category')).toBeVisible();
+});

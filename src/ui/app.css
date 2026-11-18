@@ -68,6 +68,9 @@ h2,
 h3 {
   line-height: 1.25;
   margin: 0;
+  /* A provider's name can be one long word: it breaks rather than widen the page (NFR-06). */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 h1 {
   font-size: 1.25rem;

@@ -13,7 +13,10 @@ import { useOncePerRender } from './useOncePerRender';
  */
 export function LogSection({ doc, apply, providerId }: { doc: DirectoryDoc; apply: Apply; providerId: string }) {
   const { t, date } = useI18n();
-  const [day, setDay] = useState(todayIso);
+  // Today until a day is chosen, read when shown: a tab left open past midnight dates new
+  // entries on the new day.
+  const [chosenDay, setDay] = useState<string | null>(null);
+  const day = chosenDay ?? todayIso();
   const [text, setText] = useState('');
   const [error, setError] = useState<EditErrorCode | null>(null);
   /** The entry just deleted, while its Undo is offered. */

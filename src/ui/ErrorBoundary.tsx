@@ -84,8 +84,14 @@ export function ActionErrors() {
   const { t } = useI18n();
   const [error, setError] = useState<unknown>(null);
   useEffect(() => {
-    const onError = (e: ErrorEvent) => setError(e.error ?? e.message);
-    const onRejection = (e: PromiseRejectionEvent) => setError(e.reason);
+    // Not an error from a script at another address: an extension's runs in the page too
+    // (chrome-extension://, moz-extension://), and its failures are not the app's.
+    const onError = (e: ErrorEvent) => {
+      if (!e.filename || e.filename.startsWith(location.origin)) setError(e.error ?? e.message);
+    };
+    const onRejection = (e: PromiseRejectionEvent) => {
+      if (!/-extension:\/\//.test(String((e.reason as Error | null)?.stack ?? ''))) setError(e.reason);
+    };
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
     return () => {

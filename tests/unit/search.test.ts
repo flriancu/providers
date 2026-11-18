@@ -93,7 +93,31 @@ describe('the index kept in step with edits', () => {
     const gone = deleteRecord(renamed, 'providers', providers.lagoo, ctx);
     const third = index.sync(gone);
     expect(third('lightbox')).toEqual([providers.flashbox]);
-    expect(third('flashbox')).toEqual([]);
+    expect(third('lightbox flashbox')).toEqual([providers.flashbox]); // new name, and the email it keeps
     expect(third('lagoo')).toEqual([]);
+  });
+});
+
+describe('finding by contact details', () => {
+  it('finds a provider by a phone number in any of its usual forms, and by email', () => {
+    const { doc, ctx } = weddingDirectory();
+    const added = addRecord(
+      doc,
+      'providers',
+      {
+        name: 'Phoned',
+        contactPerson: '',
+        phones: ['+40 744 555 666'],
+        emails: ['office@phoned.ro'],
+        links: [],
+        address: '',
+        notes: '',
+        labelIds: [],
+      },
+      ctx,
+    );
+    const find = new ProviderSearch(added.doc);
+    for (const q of ['0744 555 666', '0744555666', '+40744555666', '744 555', 'office@phoned.ro', 'phoned.ro'])
+      expect(find.search(q)[0]).toBe(added.id);
   });
 });

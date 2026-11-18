@@ -4,7 +4,7 @@
  */
 import { columnClash, isOwnWord, type FacetWords } from './columns';
 import { isDay } from './days';
-import { fold } from './fold';
+import { fold, isBlank } from './fold';
 import { labelById } from './labels';
 import { addRecord, deleteRecord, restoreRecord, updateRecord, type EditContext } from './records';
 import { sameValue } from './stamps';
@@ -88,8 +88,10 @@ const cleanList = (values: string[]) => [...new Set(values.map((v) => v.trim()).
  * labels: the only one if there is just one (FR-05).
  */
 export function cleanProvider(doc: DirectoryDoc, input: ProviderInput): ProviderInput {
-  const labelIds = [...new Set(input.labelIds)].filter((id) => labelById(doc, id));
-  const categories = labelIds.filter((id) => labelById(doc, id)!.facetId === FACET_IDS.category);
+  // A label a newer version wrote, set aside as unreadable here (migrate.ts), stays on the provider.
+  const unread = doc.skipped?.labels ?? {};
+  const labelIds = [...new Set(input.labelIds)].filter((id) => labelById(doc, id) || Object.hasOwn(unread, id));
+  const categories = labelIds.filter((id) => labelById(doc, id)?.facetId === FACET_IDS.category);
   const primary =
     input.primaryCategoryId && categories.includes(input.primaryCategoryId)
       ? input.primaryCategoryId
@@ -113,7 +115,7 @@ export function cleanProvider(doc: DirectoryDoc, input: ProviderInput): Provider
 
 export function createProvider(doc: DirectoryDoc, input: ProviderInput, ctx: EditContext): { doc: DirectoryDoc; id: string } {
   const clean = cleanProvider(doc, input);
-  if (!clean.name) throw new EditError('nameRequired');
+  if (isBlank(clean.name)) throw new EditError('nameRequired');
   return addRecord(doc, 'providers', clean, ctx);
 }
 
@@ -126,7 +128,7 @@ export function saveProvider(doc: DirectoryDoc, id: string, base: ProviderInput,
   const before = own(doc.providers, id);
   if (!before || before.deleted) throw new EditError('notFound');
   const clean = cleanProvider(doc, input);
-  if (!clean.name) throw new EditError('nameRequired');
+  if (isBlank(clean.name)) throw new EditError('nameRequired');
   const from = cleanProvider(doc, base);
   const changes = Object.fromEntries(PROVIDER_FIELDS.filter((k) => !sameValue(from[k], clean[k])).map((k) => [k, clean[k]]));
   return updateRecord(doc, 'providers', id, changes, ctx);
@@ -160,10 +162,10 @@ export function providerLog(doc: DirectoryDoc, providerId: string) {
     .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
 }
 
-/** A name as stored: trimmed, and required (D-30: one name, as typed). */
+/** A name as stored: trimmed, and required, with something that shows (D-30: one name, as typed). */
 function cleanName(name: string): string {
   const clean = name.trim();
-  if (!clean) throw new EditError('nameRequired');
+  if (isBlank(clean)) throw new EditError('nameRequired');
   return clean;
 }
 

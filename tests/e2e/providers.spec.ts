@@ -365,3 +365,34 @@ test('a new provider that looks like one already here waits for a choice: save b
   await page.evaluate(() => (location.hash = '#/'));
   await expect(page.locator('.provider-list .provider-name').filter({ hasText: 'Studio X' })).toHaveCount(0);
 });
+
+test('after a provider is deleted, focus is on the list, not lost', async ({ page, isMobile }) => {
+  await addProvider(page, 'Lagoo');
+  await page.getByRole('button', { name: 'Delete provider' }).click();
+  await page.getByRole('button', { name: 'Delete Lagoo', exact: true }).click();
+  await expect(page.getByRole('link', { name: /Lagoo/ })).toBeHidden();
+  if (!isMobile) await expect(page.getByRole('heading', { level: 2, name: /^Providers/ })).toBeFocused();
+  expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
+});
+
+test('the log dates a new entry today, as the clock says now, after midnight too', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-20T23:59:00') });
+  await page.reload();
+  await page.getByRole('link', { name: /Sample Photo Studio/ }).click();
+  const log = page.getByRole('region', { name: 'Conversations and notes' });
+  await expect(log.getByRole('button', { name: /^Date / })).toHaveText(/Friday,? 20 November 2026/);
+  await page.clock.runFor(2 * 60 * 1000); // past midnight, the page still open
+  await log.getByLabel('What happened').fill('Late call');
+  await expect(log.getByRole('button', { name: /^Date / })).toHaveText(/Saturday,? 21 November 2026/);
+});
+
+test("an error from a browser extension is not shown as the app's", async ({ page }) => {
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new ErrorEvent('error', { message: 'boom', filename: 'chrome-extension://abc/content.js', error: new Error('boom') }),
+    ),
+  );
+  await expect(page.getByText(/That did not work because of an error/)).toHaveCount(0);
+  await page.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { message: 'ours', filename: `${location.origin}/assets/x.js` })));
+  await expect(page.getByText(/That did not work because of an error/)).toBeVisible();
+});

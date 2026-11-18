@@ -8,6 +8,9 @@ export function fold(text: string): string {
   return text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en').replace(/\s+/g, ' ').trim();
 }
 
+/** Whether text shows nothing: only white space and invisible marks (zero-width space, joiners). */
+export const isBlank = (text: string) => !/[^\s\p{Cf}]/u.test(text);
+
 /** The order of names in every list: as folded, so case and diacritics never split them up. */
 export const byFolded = (a: string, b: string) => fold(a).localeCompare(fold(b));
 

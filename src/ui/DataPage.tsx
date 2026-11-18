@@ -146,6 +146,10 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
         merged: plural('providers', r.merged),
         skipped: plural('rows', r.skipped),
         labels: plural('labels', r.labelsCreated),
+        addedCount: r.added,
+        mergedCount: r.merged,
+        skippedCount: r.skipped,
+        labelsCount: r.labelsCreated,
       });
       return r.doc;
     });

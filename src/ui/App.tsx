@@ -94,7 +94,7 @@ function Directory({ connection }: { connection: Connection }) {
       <ActionErrors />
       {account.kind === 'demo' && (
         <p className="demo-note" role="note">
-          {t(account.unsavedOnDevice ? 'auth.unsavedOnDevice' : 'app.demo')}
+          {account.unsavedOnDevice ? t('auth.unsavedOnDevice') : `${t('app.intro')} ${t('app.demo')}`}
         </p>
       )}
       {account.kind === 'demo' && account.error && (

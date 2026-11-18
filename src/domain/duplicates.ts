@@ -1,5 +1,5 @@
 import { byFolded, fold } from './fold';
-import { toUrl } from './links';
+import { linkKind, toUrl } from './links';
 import { live, type DirectoryDoc, type Provider } from './schema';
 
 /** Why two providers look like the same one (FR-23). */
@@ -27,16 +27,20 @@ const TRACKING = /^(utm_.*|fbclid|gclid|igsh|igshid|si|ref)$/i;
 
 /**
  * A link without its scheme, a leading "www.", tracking parameters, the fragment and a trailing
- * slash, in lower case: https://www.Example.ro/?utm_source=x and example.ro compare equal, while
- * two Instagram profiles (same host, different path) do not, nor two Facebook pages that differ
- * only in their query (facebook.com/profile.php?id=1 and ?id=2).
+ * slash, its host in lower case: https://www.Example.ro/?utm_source=x and example.ro compare
+ * equal, while two Instagram profiles (same host, different path) do not, nor two Facebook pages
+ * that differ only in their query (facebook.com/profile.php?id=1 and ?id=2). The path keeps its
+ * case, except on networks whose account names ignore it (instagram.com/Bruno is /bruno).
  */
 export function linkKey(link: string): string {
   const url = toUrl(link);
   if (!url) return fold(link);
   const kept = [...url.searchParams].filter(([k]) => !TRACKING.test(k)).sort(([a], [b]) => a.localeCompare(b));
   const query = kept.length ? `?${new URLSearchParams(kept).toString()}` : '';
-  return `${url.hostname.toLowerCase().replace(/^www\./, '')}${url.pathname.replace(/\/+$/, '').toLowerCase()}${query}`;
+  // Account names on these networks ignore case; elsewhere a path's case can matter (youtu.be/AbC).
+  const path = url.pathname.replace(/\/+$/, '');
+  const caseless = ['instagram', 'tiktok', 'facebook', 'allweddings'].includes(linkKind(link));
+  return `${url.hostname.toLowerCase().replace(/^www\./, '')}${caseless ? path.toLowerCase() : path}${query}`;
 }
 
 const nonEmpty = (keys: string[]) => new Set(keys.filter((k) => k !== ''));

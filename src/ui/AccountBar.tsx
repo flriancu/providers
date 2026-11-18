@@ -176,7 +176,8 @@ export function LoadError({ error, account, sync }: { error: unknown; account: A
   const [failed, setFailed] = useState<SignInFailure | null>(null);
   const google = account.kind === 'google' ? account : null;
   const expired = (error as { needsSignIn?: boolean } | null)?.needsSignIn === true;
-  const gone = driveMessage(error) === 'drive.removed' || driveMessage(error) === 'drive.missingCopy';
+  // Gone, deleted or unreadable: a new directory is a way on, as the messages say.
+  const gone = ['drive.removed', 'drive.missing', 'drive.missingCopy', 'drive.damaged'].includes(driveMessage(error));
   const reconnect = () =>
     void google?.reconnect().then((reason) => {
       setFailed(reason);

@@ -18,7 +18,7 @@ export function driveMessage(e: unknown): MessageKey {
   if (e instanceof DocumentMissingError) return 'drive.missingCopy';
   if (e instanceof FileGoneError) return e.reason === 'trashed' ? 'drive.removed' : 'drive.missing';
   if (e instanceof OtherOwnerError) return 'drive.owner';
-  if (e instanceof UnsupportedDocumentError) return 'drive.unsupported';
+  if (e instanceof UnsupportedDocumentError) return e.reason === 'version' ? 'drive.unsupported' : 'drive.damaged';
   if (e instanceof SaveConflictError) return 'drive.conflict';
   if (e instanceof DriveError) {
     if (e.status === 0) return 'drive.network';
