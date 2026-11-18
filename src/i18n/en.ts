@@ -199,10 +199,10 @@ export const en = {
 
   'err.nameRequired': 'Fill in a name.',
   'err.labelNameTaken': 'That name is already used here.',
-  'err.nameSemicolon': 'A label name cannot hold a semicolon: in an exported file it separates labels.',
+  'err.nameSemicolon': 'A label name cannot hold a semicolon or a line break: in an exported file they separate labels.',
   'err.nameIsField': 'That name is a column of the exported file, such as Name, Phones or Notes. Choose another.',
   'err.importStale':
-    'The directory changed while you were choosing: a provider to merge into is no longer there. The preview now shows the file against the directory as it is; check it and import again.',
+    'The directory changed while you were choosing (on another device or in another tab). The preview now shows the file against the directory as it is; check it and import again.',
   'err.sameLabel': 'Choose a different label.',
   'err.otherFacet': 'Labels can only be merged within one label group.',
 
@@ -245,6 +245,8 @@ export const en = {
     'Lines {lines} have more values than the file has columns, so their values may be in the wrong columns. A value with a comma needs quotes around it.',
   'import.damagedChars':
     'Some characters in this file could not be read and show as �. Check those rows, or save the file again from the spreadsheet as "CSV UTF-8".',
+  'import.quotes':
+    'Lines {lines} have a quote that is not closed, or not at the start of a value, so what follows may have been read as one value. Put the whole value in quotes, or remove the quote, and choose the file again.',
   'import.encoding':
     'This file is not saved as UTF-8, so it was read as Central European (Windows-1250). If letters look wrong, save it from the spreadsheet as "CSV UTF-8" and choose it again.',
   'import.newLabels': 'The import creates {labels}:',

@@ -66,6 +66,53 @@ export function sameAs(a: Candidate, b: Candidate): Reason[] {
   return reasons;
 }
 
+/** What a candidate can be recognised by, each with the reason a match on it gives (as sameAs). */
+function keysOf(c: Candidate): [Reason, string][] {
+  const name = fold(c.name);
+  return [
+    ...(name ? [['name', name] as [Reason, string]] : []),
+    ...[...nonEmpty(c.phones.flatMap(phoneKeys))].map((k): [Reason, string] => ['phone', k]),
+    ...[...nonEmpty(c.emails.map(fold))].map((k): [Reason, string] => ['email', k]),
+    ...[...nonEmpty(c.links.map(linkKey))].map((k): [Reason, string] => ['link', k]),
+  ];
+}
+
+const REASONS: readonly Reason[] = ['name', 'phone', 'email', 'link'];
+
+/**
+ * Look-alikes found by what they can be recognised by, as sameAs finds them, but looked up
+ * rather than compared pair by pair: a file of 10,000 rows against 10,000 providers is a lookup
+ * per row, not a hundred million comparisons.
+ */
+export class LookalikeIndex<T> {
+  private readonly byKey = new Map<string, T[]>();
+
+  add(item: T, candidate: Candidate) {
+    for (const [reason, key] of keysOf(candidate)) {
+      const k = `${reason} ${key}`;
+      const items = this.byKey.get(k);
+      if (items) items.push(item);
+      else this.byKey.set(k, [item]);
+    }
+  }
+
+  /** Every item that looks like the candidate, with its reasons in sameAs's order. */
+  find(candidate: Candidate): { item: T; reasons: Reason[] }[] {
+    const found = new Map<T, Set<Reason>>();
+    for (const [reason, key] of keysOf(candidate))
+      for (const item of this.byKey.get(`${reason} ${key}`) ?? []) {
+        const reasons = found.get(item);
+        if (reasons) reasons.add(reason);
+        else found.set(item, new Set([reason]));
+      }
+    return [...found].map(([item, reasons]) => ({ item, reasons: REASONS.filter((r) => reasons.has(r)) }));
+  }
+}
+
+/** Look-alikes as FR-23 lists them: most reasons first, then by name. */
+export const byLikeness = (out: PossibleDuplicate[]) =>
+  out.sort((a, b) => b.reasons.length - a.reasons.length || byFolded(a.provider.name, b.provider.name));
+
 /**
  * FR-23: live providers that look like the candidate, with every reason found. Nothing is merged
  * here: the owner decides (D-12). `exclude`: the candidate's own id, when it is already in the
@@ -78,5 +125,5 @@ export function findDuplicates(doc: DirectoryDoc, candidate: Candidate, exclude?
     const reasons = sameAs(candidate, p);
     if (reasons.length) out.push({ provider: p, reasons });
   }
-  return out.sort((a, b) => b.reasons.length - a.reasons.length || byFolded(a.provider.name, b.provider.name));
+  return byLikeness(out);
 }

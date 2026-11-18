@@ -175,7 +175,7 @@ function cleanName(name: string): string {
  */
 function cleanLabelName(name: string): string {
   const clean = cleanName(name);
-  if (clean.includes(';')) throw new EditError('nameSemicolon');
+  if (/[;\r\n]/.test(clean)) throw new EditError('nameSemicolon');
   return clean;
 }
 

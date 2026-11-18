@@ -9,9 +9,9 @@
  */
 import { FIELDS, fieldOf, namesFacet, type FacetWords, type Field } from './columns';
 import { unescapeCell } from './csv';
-import { findDuplicates, linkKey, phoneKey, sameAs, type PossibleDuplicate, type Reason } from './duplicates';
+import { byLikeness, linkKey, LookalikeIndex, phoneKey, type PossibleDuplicate, type Reason } from './duplicates';
 import { createLabel, createProvider, EditError, emptyProvider, providerInput, saveProvider, type ProviderInput } from './edits';
-import { fold } from './fold';
+import { fold, isBlank } from './fold';
 import { labelById } from './labels';
 import type { EditContext } from './records';
 import { FACET_IDS, live, own, type DirectoryDoc, type Facet, type Provider } from './schema';
@@ -84,8 +84,10 @@ export interface ImportRow {
   problem?: 'nameRequired';
   /** Providers already in the directory that look like this row (FR-23). */
   duplicates: PossibleDuplicate[];
-  /** An earlier row of the same file that looks like this one. */
+  /** The first earlier row of the same file that looks like this one. */
   sameAsRow?: { line: number; reasons: Reason[] };
+  /** Every earlier row that looks like this one, by line (sameAsRow is the first). */
+  likeRows?: number[];
 }
 
 export interface ImportPlan {
@@ -101,6 +103,11 @@ export interface ImportPlan {
    * not in quotes, which moves every later value one column on.
    */
   misaligned: number[];
+  /**
+   * The directory's providers, labels and groups as they were when the plan was made: applied to
+   * another version, the plan may add a provider twice or drop a label (applyImport refuses).
+   */
+  basis: Pick<DirectoryDoc, 'providers' | 'labels' | 'facets'>;
 }
 
 /**
@@ -120,7 +127,9 @@ function existingLabel(doc: DirectoryDoc, facetId: string, text: string) {
  * a renamed group is also found by its own name.
  */
 export function planImport(doc: DirectoryDoc, csv: readonly (readonly string[])[], facetWords: FacetWords): ImportPlan {
-  const [header = [], ...body] = csv;
+  const [rawHeader = [], ...body] = csv;
+  // Titles are escaped like any value: a group named "+Partners" is written "'+Partners".
+  const header = rawHeader.map(unescapeCell);
   const facets = live(doc.facets);
   const field = new Map<number, Field>();
   const facetAt = new Map<number, string>();
@@ -144,6 +153,10 @@ export function planImport(doc: DirectoryDoc, csv: readonly (readonly string[])[
 
   const rows: ImportRow[] = [];
   const misaligned: number[] = [];
+  // Look-alikes by lookup, not pair by pair (duplicates.ts): providers here, and earlier rows.
+  const providers = new LookalikeIndex<Provider>();
+  for (const p of live(doc.providers)) providers.add(p, p);
+  const earlierRows = new LookalikeIndex<ImportRow>();
   body.forEach((raw, n) => {
     const cells = raw.map(unescapeCell);
     if (cells.slice(header.length).some((c) => c.trim())) misaligned.push(n + 2);
@@ -161,6 +174,8 @@ export function planImport(doc: DirectoryDoc, csv: readonly (readonly string[])[
       return { label };
     };
     let primaryText = '';
+    /** Labels the row asks for, by group: taken only for a row that will be imported. */
+    const asked: [string, string][] = [];
     cells.forEach((cell, i) => {
       const f = field.get(i);
       if (f === 'phones' || f === 'emails') input[f] = split(cell);
@@ -168,31 +183,44 @@ export function planImport(doc: DirectoryDoc, csv: readonly (readonly string[])[
       else if (f === 'primary') primaryText = cell;
       else if (f) input[f] = cell.trim();
       const facetId = facetAt.get(i);
-      if (facetId) for (const name of split(cell)) addLabel(facetId, name);
+      if (facetId) for (const name of split(cell)) asked.push([facetId, name]);
     });
-    // The main category is a Category label; one not listed among the row's categories joins
-    // them. A cell with several takes the first as the main one, the others as categories.
+    // A name that shows nothing (only invisible characters) is no name: the row is not imported.
+    const named = !isBlank(input.name);
     let newPrimary: NewLabel | undefined;
-    const [main, ...more] = split(primaryText);
-    if (main) {
-      const { id, label } = addLabel(FACET_IDS.category, main);
-      if (id) input.primaryCategoryId = id;
-      newPrimary = label;
-      for (const name of more) addLabel(FACET_IDS.category, name);
+    if (named) {
+      // A label cell that shows nothing asks for no label.
+      for (const [facetId, name] of asked) if (!isBlank(name)) addLabel(facetId, name);
+      // The main category is a Category label; one not listed among the row's categories joins
+      // them. A cell with several takes the first as the main one, the others as categories.
+      const [main, ...more] = split(primaryText).filter((v) => !isBlank(v));
+      if (main) {
+        const { id, label } = addLabel(FACET_IDS.category, main);
+        if (id) input.primaryCategoryId = id;
+        newPrimary = label;
+        for (const name of more) addLabel(FACET_IDS.category, name);
+      }
     }
     const row: ImportRow = {
       line: n + 2,
       input,
       newLabels,
       ...(newPrimary && { newPrimary }),
-      ...(!input.name && { problem: 'nameRequired' as const }),
-      duplicates: input.name ? findDuplicates(doc, input) : [],
+      ...(!named && { problem: 'nameRequired' as const }),
+      duplicates: named ? byLikeness(providers.find(input).map(({ item, reasons }) => ({ provider: item, reasons }))) : [],
     };
-    const earlier = rows.find((r) => !r.problem && sameAs(input, r.input).length);
-    if (earlier && input.name) row.sameAsRow = { line: earlier.line, reasons: sameAs(input, earlier.input) };
+    if (named) {
+      const like = earlierRows.find(input).sort((a, b) => a.item.line - b.item.line);
+      if (like.length) {
+        row.sameAsRow = { line: like[0]!.item.line, reasons: like[0]!.reasons };
+        row.likeRows = like.map(({ item }) => item.line);
+      }
+      earlierRows.add(row, input);
+    }
     rows.push(row);
   });
-  return { rows, newLabels: [...allNew.values()], ignoredColumns, noNameColumn, misaligned };
+  const basis = { providers: doc.providers, labels: doc.labels, facets: doc.facets };
+  return { rows, newLabels: [...allNew.values()], ignoredColumns, noNameColumn, misaligned, basis };
 }
 
 // --- choices and applying ---------------------------------------------------------------------
@@ -293,6 +321,10 @@ export function applyImport(
   ctx: EditContext,
 ): ImportResult {
   if (choices.length !== plan.rows.length || choices.some((c) => c === null)) throw new Error('Every row needs a choice before importing');
+  // Made for another version of the directory (a change on another device meanwhile): the
+  // look-alikes and labels it shows may be wrong, so the owner looks again.
+  const { basis } = plan;
+  if (basis.providers !== doc.providers || basis.labels !== doc.labels || basis.facets !== doc.facets) throw new EditError('importStale');
   let out = doc;
   let labelsCreated = 0;
   const created = new Map<NewLabel, string>();

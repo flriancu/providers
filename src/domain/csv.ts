@@ -25,21 +25,28 @@ function headerSeparator(text: string): string | null {
 }
 
 /**
- * Rows of fields; blank lines are left out. No separator found means one column: a list of
+ * Rows of fields, and the rows (0 is the header) with a quote that is not closed or not where
+ * a value starts ("La Mama" Restaurant), which can make the rest of the line, or of the file,
+ * one value. Blank lines are left out. A header with no separator means one column: a list of
  * names whose commas belong to the names.
  */
-export function parseCsv(input: string): string[][] {
+export function readCsv(input: string): { rows: string[][]; quoteProblems: number[] } {
   let text = input;
   while (text.startsWith(BOM)) text = text.slice(1);
   // Excel's "sep=;" first line names the separator.
   const named = /^sep=(.)\r?\n/i.exec(text);
   if (named) text = text.slice(named[0].length);
   const read = (delimiter: string) => Papa.parse<string[]>(text, { delimiter, delimitersToGuess: SEPARATORS, skipEmptyLines: 'greedy' });
-  let result = read(named && SEPARATORS.includes(named[1]!) ? named[1]! : '');
-  // Not guessed (a short row, a list of names): the header says; with none in it, one column.
-  if (result.errors.some((e) => e.code === 'UndetectableDelimiter')) result = read(headerSeparator(text) ?? Papa.RECORD_SEP);
-  return result.data;
+  const fromHeader = headerSeparator(text);
+  let result = read(named && SEPARATORS.includes(named[1]!) ? named[1]! : fromHeader === null ? Papa.RECORD_SEP : '');
+  // Not guessed (a short row): the header says.
+  if (result.errors.some((e) => e.code === 'UndetectableDelimiter')) result = read(fromHeader ?? Papa.RECORD_SEP);
+  const quoteProblems = [...new Set(result.errors.filter((e) => e.type === 'Quotes' && e.row !== undefined).map((e) => e.row!))];
+  return { rows: result.data, quoteProblems };
 }
+
+/** Rows of fields (readCsv, without its notes). */
+export const parseCsv = (input: string): string[][] => readCsv(input).rows;
 
 /** How a file's bytes were read as text; 'utf-8-damaged': UTF-8 with a few bytes that are not. */
 export type CsvEncoding = 'utf-8' | 'utf-8-damaged' | 'utf-16' | 'windows-1250';

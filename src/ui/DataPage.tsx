@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
-import { decodeCsv, parseCsv, toCsv, type CsvEncoding } from '../domain/csv';
+import { decodeCsv, readCsv, toCsv, type CsvEncoding } from '../domain/csv';
 import { dayOf } from '../domain/days';
 import { liveSelection } from '../domain/filter';
 import { fold } from '../domain/fold';
@@ -91,7 +91,7 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<EditErrorCode | null>(null);
   /** The file's rows and how its bytes were read, kept to plan again if the directory changes. */
-  const [csv, setCsv] = useState<{ rows: string[][]; encoding: CsvEncoding } | null>(null);
+  const [csv, setCsv] = useState<{ rows: string[][]; encoding: CsvEncoding; quoteProblems: number[] } | null>(null);
 
   const preview = (rows: string[][], against: DirectoryDoc) => {
     const next = planImport(against, rows, FACET_WORDS);
@@ -104,9 +104,9 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
     setError(null);
     if (!f) return;
     const { text, encoding } = decodeCsv(new Uint8Array(await f.arrayBuffer()));
-    const rows = parseCsv(text);
+    const { rows, quoteProblems } = readCsv(text);
     setFile(f.name);
-    setCsv({ rows, encoding });
+    setCsv({ rows, encoding, quoteProblems });
     preview(rows, doc);
   };
   const choose = (i: number, c: ImportChoice) => setChoices((cs) => cs.map((x, j) => (j === i ? c : x)));
@@ -118,13 +118,16 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
    * updating providers from a file (new labels, more contacts) is then one click. A row that
    * repeats an earlier one of the file goes into the same provider, after it.
    */
-  const sameName = plan
-    ? plan.rows.flatMap((r, i) =>
-        choices[i] === null && r.duplicates.length === 1 && r.duplicates[0]!.reasons.includes('name')
-          ? [{ i, into: r.duplicates[0]!.provider.id }]
-          : [],
-      )
-    : [];
+  const sameName: { i: number; into: string }[] = [];
+  /** Where each row of "Merge all" goes, by line: a repeated row joins only when all its look-alikes do. */
+  const going = new Map<number, string>();
+  plan?.rows.forEach((r, i) => {
+    if (choices[i] !== null || r.duplicates.length !== 1 || !r.duplicates[0]!.reasons.includes('name')) return;
+    const into = r.duplicates[0]!.provider.id;
+    if (!(r.likeRows ?? []).every((line) => going.get(line) === into)) return;
+    going.set(r.line, into);
+    sameName.push({ i, into });
+  });
   /** Decides rows at once; they fold into one line, which takes the focus their buttons had. */
   const decide = (decided: Map<number, ImportChoice>) => {
     flushSync(() => {
@@ -227,6 +230,9 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
                 </p>
               )}
               {csv?.encoding === 'windows-1250' && <p className="help">{t('import.encoding')}</p>}
+              {csv && csv.quoteProblems.length > 0 && (
+                <p className="help">{t('import.quotes', { lines: list(csv.quoteProblems.map((r) => String(r + 1))) })}</p>
+              )}
               {csv?.encoding === 'utf-8-damaged' && <p className="help">{t('import.damagedChars')}</p>}
               {plan.misaligned.length > 0 && <p className="help">{t('import.misaligned', { lines: list(plan.misaligned.map(String)) })}</p>}
               {plan.ignoredColumns.length > 0 && <p className="help">{t('import.ignored', { columns: plan.ignoredColumns.join(', ') })}</p>}

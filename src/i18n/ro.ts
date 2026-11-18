@@ -205,10 +205,11 @@ export const ro: Record<MessageKey, string> = {
 
   'err.nameRequired': 'Completează un nume.',
   'err.labelNameTaken': 'Numele acesta e deja folosit aici.',
-  'err.nameSemicolon': 'Numele unei etichete nu poate conține punct și virgulă: într-un fișier exportat, acesta separă etichetele.',
+  'err.nameSemicolon':
+    'Numele unei etichete nu poate conține punct și virgulă sau un rând nou: într-un fișier exportat, acestea separă etichetele.',
   'err.nameIsField': 'Numele acesta este o coloană a fișierului exportat, precum Nume, Telefoane sau Note. Alege altul.',
   'err.importStale':
-    'Catalogul s-a schimbat cât timp alegeai: un furnizor în care urma să unești nu mai există. Previzualizarea arată acum fișierul față de catalogul de acum; verific-o și importă din nou.',
+    'Catalogul s-a schimbat cât timp alegeai (pe alt dispozitiv sau în alt tab). Previzualizarea arată acum fișierul față de catalogul de acum; verific-o și importă din nou.',
   'err.sameLabel': 'Alege altă etichetă.',
   'err.otherFacet': 'Etichetele se pot uni doar în același grup de etichete.',
 
@@ -252,6 +253,8 @@ export const ro: Record<MessageKey, string> = {
     'Rândurile {lines} au mai multe valori decât coloanele fișierului, așa că valorile lor pot fi în coloane greșite. O valoare cu virgulă trebuie pusă între ghilimele.',
   'import.damagedChars':
     'Unele caractere din fișier nu au putut fi citite și apar ca �. Verifică acele rânduri sau salvează din nou fișierul din foaia de calcul ca „CSV UTF-8”.',
+  'import.quotes':
+    'Rândurile {lines} au ghilimele neînchise sau care nu sunt la începutul unei valori, așa că ce urmează poate fi citit ca o singură valoare. Pune toată valoarea între ghilimele sau scoate ghilimelele și alege din nou fișierul.',
   'import.encoding':
     'Fișierul nu este salvat ca UTF-8, așa că a fost citit ca Europa Centrală (Windows-1250). Dacă literele arată greșit, salvează-l din foaia de calcul ca „CSV UTF-8” și alege-l din nou.',
   'import.newLabels': 'Importul creează {labels}:',

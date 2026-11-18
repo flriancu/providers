@@ -110,3 +110,22 @@ describe(`speed with ${N} providers (NFR-10)`, () => {
     }
   });
 });
+
+describe('import preview with 10,000 rows (NFR-10)', () => {
+  it('finds the look-alikes of every row by lookup, not by comparing every pair', async () => {
+    const { exportRows, planImport, facetWordsFrom } = await import('../../src/domain/transfer');
+    const { parseCsv, toCsv } = await import('../../src/domain/csv');
+    const doc = syntheticDirectory();
+    const rows = parseCsv(toCsv(exportRows(doc, Object.values(doc.providers), (f) => f.name || f.key!)));
+    const start = performance.now();
+    const plan = planImport(
+      doc,
+      rows,
+      facetWordsFrom([{ 'facet.category': 'category', 'facet.area': 'area', 'facet.source': 'source', 'facet.lists': 'lists' }]),
+    );
+    const ms = performance.now() - start;
+    console.log(`import preview, ${plan.rows.length} rows onto ${N} providers: ${ms.toFixed(0)} ms`);
+    expect(plan.rows.every((r) => r.duplicates.length >= 1)).toBe(true); // each row is a provider already here
+    expect(ms).toBeLessThan(2_000); // 367 ms here; pair by pair it took 972 s
+  });
+});

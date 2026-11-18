@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 const BOM = String.fromCharCode(0xfeff);
-import { decodeCsv, parseCsv, toCsv } from '../../src/domain/csv';
-import { createLabel, createProvider, deleteProvider, EditError, emptyProvider } from '../../src/domain/edits';
+import { decodeCsv, parseCsv, readCsv, toCsv } from '../../src/domain/csv';
+import { createFacet, createLabel, createProvider, deleteProvider, EditError, emptyProvider } from '../../src/domain/edits';
 import { labelById } from '../../src/domain/labels';
 import { FACET_IDS, live, newDirectory, type DirectoryDoc, type Facet } from '../../src/domain/schema';
 import {
@@ -308,5 +308,48 @@ describe('CSV edge cases from re-verification', () => {
     expect(decodeCsv(damaged).text.startsWith('Grădina, Sălcii, Ștefan')).toBe(true);
     const utf16 = Uint8Array.from([0xff, 0xfe, ...[...'Ană'].flatMap((c) => [c.charCodeAt(0) & 0xff, c.charCodeAt(0) >> 8])]);
     expect(decodeCsv(utf16)).toEqual({ text: 'Ană', encoding: 'utf-16' });
+  });
+});
+
+describe('rows and cells that show nothing, and other files from re-verification', () => {
+  it('leaves out a row whose name shows nothing, and asks for no label from a cell that shows nothing, without stopping the import', () => {
+    const { plan, result } = importAll(newDirectory(OWNER), 'Name,Lists\n\u200b,Ghost\nReal,\u2060\n');
+    expect(plan.rows[0]!.problem).toBe('nameRequired');
+    expect(plan.newLabels).toEqual([]); // neither the left-out row's label nor the invisible one
+    expect(names(result.doc)).toEqual(['Real']);
+  });
+
+  it("keeps a group's column whose name starts like a formula through export and import", () => {
+    const ctx = testContext();
+    let doc = createFacet(newDirectory(OWNER), '+Partners', WORDS, ctx).doc;
+    const group = live(doc.facets).find((f) => f.name === '+Partners')!;
+    const label = createLabel(doc, { facetId: group.id, name: 'Gold' }, ctx);
+    doc = createProvider(label.doc, { ...emptyProvider(), name: 'P', labelIds: [label.id] }, ctx).doc;
+    const text = toCsv(exportRows(doc, live(doc.providers), title));
+    const plan = planImport(doc, parseCsv(text), WORDS);
+    expect(plan.ignoredColumns).toEqual([]);
+    expect(plan.rows[0]!.input.labelIds).toEqual([label.id]);
+  });
+
+  it('reads a list whose names hold several commas as one column, as its header says', () => {
+    expect(parseCsv('Name\nPop, Ion, Jr\nFoto, Video, SRL\n')).toEqual([['Name'], ['Pop, Ion, Jr'], ['Foto, Video, SRL']]);
+  });
+
+  it('names the lines with a quote that is not closed or not at the start of a value', () => {
+    const { quoteProblems } = readCsv('Name,Notes\n"La Mama" Restaurant,good\nLagoo,ok\nFlashbox,fine\n');
+    expect(quoteProblems.length).toBeGreaterThan(0);
+  });
+
+  it('refuses a preview made for another version of the directory (a label added elsewhere meanwhile)', () => {
+    const { doc, ctx } = weddingDirectory();
+    const plan = planImport(doc, parseCsv('Name,Lists\nNew one,Call back\n'), WORDS);
+    const changed = createLabel(doc, { facetId: FACET_IDS.lists, name: 'Call back' }, ctx).doc;
+    let error: unknown;
+    try {
+      applyImport(changed, plan, plan.rows.map(defaultChoice), ctx);
+    } catch (e) {
+      error = e;
+    }
+    expect(error instanceof EditError && error.code).toBe('importStale');
   });
 });

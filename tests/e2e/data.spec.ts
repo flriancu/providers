@@ -121,3 +121,14 @@ test('the rows still to decide can all be added, or all left out, at once', asyn
   await preview.getByRole('button', { name: 'Leave out the 2 rows still to decide' }).click();
   await expect(fold).toHaveText('2 rows to leave out');
 });
+
+test('"Merge all" leaves out a repeated row that also looks like a row being added separately', async ({ page }) => {
+  await openData(page);
+  await chooseCsv(page, 'Name\nLagoo\n');
+  await page.getByRole('button', { name: 'Import 1 provider' }).click();
+  // Line 4 repeats Lagoo by name, and shares a phone with line 3, which is a new provider.
+  await chooseCsv(page, 'Name,Phones\nLagoo,\nNew One,0700 000 001\nLagoo,0700 000 001\nSample Photo Studio,\n');
+  const preview = page.getByLabel('What importing vendors.csv would do');
+  await expect(preview.getByRole('button', { name: 'Merge 2 rows into the provider with the same name' })).toBeVisible();
+  await expect(preview.getByRole('button', { name: /^Merge 3 rows/ })).toHaveCount(0);
+});
