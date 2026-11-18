@@ -113,4 +113,35 @@ test.describe('phones: filters open over the page (D-34)', () => {
     await page.keyboard.press('Escape');
     await expect(names(page)).toHaveText(['Flashbox']);
   });
+
+  test('while the panel is open, Tab never reaches the page behind it', async ({ page }) => {
+    await setUp(page);
+    await page.getByRole('button', { name: 'Filters', exact: true }).click();
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    await expect(sheet).toBeVisible();
+    const outside = () =>
+      page.evaluate(() => {
+        const active = document.activeElement;
+        return !!active && active !== document.body && !document.querySelector('dialog.sheet')!.contains(active);
+      });
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press(i % 2 ? 'Shift+Tab' : 'Tab');
+      expect(await outside()).toBe(false);
+    }
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press('Tab');
+      expect(await outside()).toBe(false);
+    }
+  });
+});
+
+test('on a tablet, the filters panel closes with a tap beside it, and focus returns to the Filters button', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await setUp(page);
+  await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Filters' });
+  await expect(sheet).toBeVisible();
+  await page.mouse.click(100, 500); // the dimmed page beside the panel
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Filters', exact: true })).toBeFocused();
 });

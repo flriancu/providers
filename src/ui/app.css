@@ -1302,25 +1302,36 @@ details.add-label summary {
   opacity: 0.6;
 }
 
-/* The filters over the page: full screen on a phone, a side panel from 600 px. */
-.sheet-layer {
+/*
+ * The filters over the page, a modal <dialog>: full screen on a phone, a side panel from 600 px.
+ * The browser's own dialog box (margin, border, size limits) gives way to the panel; the page
+ * behind does not scroll while it is open.
+ */
+.sheet {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--text);
+  background: var(--surface);
 }
 
-.sheet-backdrop {
-  position: absolute;
-  inset: 0;
+.sheet[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet::backdrop {
   background: rgb(0 0 0 / 0.4);
 }
 
-.sheet {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
+html:has(.sheet[open]) {
+  overflow: hidden;
 }
 
 @media (min-width: 600px) {
