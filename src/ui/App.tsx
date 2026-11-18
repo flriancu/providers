@@ -57,6 +57,13 @@ function Shell() {
   return <Directory key={connection.key} connection={connection} />;
 }
 
+/** What each notice says once the directory is open. */
+const NOTICE_TEXT = {
+  carried: 'notice.carried',
+  skipped: 'notice.skipped',
+  unreadableFiles: 'notice.unreadableFiles',
+} as const;
+
 function Directory({ connection }: { connection: Connection }) {
   const { t } = useI18n();
   const route = useRoute();
@@ -109,7 +116,7 @@ function Directory({ connection }: { connection: Connection }) {
       )}
       {notices.map((n) => (
         <div key={n.kind} className="notice" role="status">
-          <p>{n.kind === 'carried' ? t('notice.carried') : t('notice.skipped', { count: n.count })}</p>
+          <p>{t(NOTICE_TEXT[n.kind], { count: n.count })}</p>
           <button type="button" className="link-button" onClick={() => sync.dismissNotice(n.kind)}>
             {t('notice.dismiss')}
           </button>

@@ -74,6 +74,8 @@ export const ro: Record<MessageKey, string> = {
   'drive.auth': 'Sesiunea Google a expirat. Reconectează-te ca să salvezi modificările.',
   'drive.generic': 'Ceva n-a mers. Reîncearcă sau reîncarcă pagina.',
   'notice.carried': 'Ce ai adăugat în demonstrație este acum în catalogul tău.',
+  'notice.unreadableFiles':
+    'Fișiere de catalog din Google Drive care nu au putut fi citite: {count}. Au fost lăsate cum sunt; e deschis cel mai vechi fișier care a putut fi citit.',
   'notice.skipped':
     'Unele înregistrări din fișierul catalogului nu pot fi citite de această versiune a aplicației ({count}). Rămân neschimbate în fișier.',
   'notice.dismiss': 'Închide',

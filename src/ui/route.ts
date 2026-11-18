@@ -96,23 +96,34 @@ export function go(page: Page, query?: ListQuery) {
 }
 
 /**
- * How often the address follows typing, at most. Browsers limit history changes: WebKit refuses
- * more than 100 in 10 seconds (SecurityError) and Firefox drops some, so one per keystroke loses
- * characters to fast typing or key repeat. The app's route follows every key at once (QUERY_EVENT).
+ * How many times the address may change in a window of time. Browsers limit history changes:
+ * WebKit refuses more than 100 in 10 seconds (SecurityError) and Firefox drops some, so one per
+ * keystroke lost characters to fast typing or key repeat. Below this the address changes at once;
+ * past it, it waits for the window to make room. The app's route follows every key at once
+ * either way (QUERY_EVENT).
  */
-const ADDRESS_EVERY_MS = 150;
+const ADDRESS_WRITES = 80;
+const ADDRESS_WINDOW_MS = 10_000;
 /** The route as the app shows it, ahead of the address while the address waits to be written. */
 const QUERY_EVENT = 'providers:query';
 let pendingAddress: string | null = null;
 let addressTimer: ReturnType<typeof setTimeout> | undefined;
-let lastWrite = 0;
+/** When the address changed, within the last window. */
+const writes: number[] = [];
 
 function writeAddress() {
   clearTimeout(addressTimer);
   if (pendingAddress === null) return;
   history.replaceState(history.state, '', pendingAddress);
   pendingAddress = null;
-  lastWrite = Date.now();
+  writes.push(Date.now());
+}
+
+/** How long before the address may change again: 0 while the window has room. */
+function addressWait(): number {
+  const now = Date.now();
+  while (writes.length && writes[0]! <= now - ADDRESS_WINDOW_MS) writes.shift();
+  return writes.length < ADDRESS_WRITES ? 0 : writes[0]! + ADDRESS_WINDOW_MS - now;
 }
 
 /** A real navigation (a link, Back): an address still waiting from the old page must not overwrite it. */
@@ -123,13 +134,14 @@ function dropPendingAddress() {
 
 /**
  * Changes the list's filters or search without a new history entry per keystroke or tick: the
- * app follows at once; the address follows within ADDRESS_EVERY_MS, and when the page is left.
+ * app follows at once; the address too, unless it changed ADDRESS_WRITES times in the window,
+ * and then as soon as there is room again, or when the page is left.
  */
 export function replaceQuery(page: Page, query: ListQuery) {
   pendingAddress = href(page, query);
   window.dispatchEvent(new CustomEvent(QUERY_EVENT, { detail: pendingAddress }));
   clearTimeout(addressTimer);
-  const wait = lastWrite + ADDRESS_EVERY_MS - Date.now();
+  const wait = addressWait();
   if (wait <= 0) writeAddress();
   else addressTimer = setTimeout(writeAddress, wait);
 }

@@ -69,6 +69,8 @@ export const en = {
   'drive.auth': 'The Google session expired. Reconnect to save your changes.',
   'drive.generic': 'Something went wrong. Try again, or reload the page.',
   'notice.carried': 'What you added in the demo is now in your directory.',
+  'notice.unreadableFiles':
+    'Directory files in your Google Drive that could not be read: {count}. They were left as they are; the oldest one that could be read is open.',
   'notice.skipped':
     'Some records in your directory file cannot be read by this version of the app ({count}). They stay unchanged in the file.',
   'notice.dismiss': 'Dismiss',
