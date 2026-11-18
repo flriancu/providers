@@ -93,7 +93,7 @@ export const ro: Record<MessageKey, string> = {
   'list.shownOf': '{n} din {total}',
   'list.noMatch': 'Niciun furnizor nu se potrivește. Scoate un filtru sau schimbă căutarea.',
   'search.label': 'Caută furnizori',
-  'search.placeholder': 'Nume, note, etichete…',
+  'search.placeholder': 'Nume, telefon, e-mail, note, etichete…',
   'filter.heading': 'Filtre',
   'filter.open': 'Filtre',
   'filter.openCount': 'Filtre ({count} alese)',
@@ -140,6 +140,9 @@ export const ro: Record<MessageKey, string> = {
   'form.newHeading': 'Furnizor nou',
   'form.editHeading': 'Modifică {name}',
   'form.save': 'Salvează furnizorul',
+  'form.dupKeeps': '{name} își păstrează valorile pentru {fields}: adăugarea acestor date nu le schimbă.',
+  'data.exportOne': 'Exportă furnizorul',
+  'data.exportShownOne': 'Exportă furnizorul afișat în listă',
   'form.dupHeading': 'Furnizorul acesta poate fi deja în catalog.',
   'form.dupMerge': 'Adaugă aceste date la {name}',
   'form.dupOpen': 'Deschide {name}',
@@ -247,6 +250,8 @@ export const ro: Record<MessageKey, string> = {
   'import.ignored': 'Aceste coloane nu corespund niciunui câmp sau grup de etichete și nu se importă: {columns}.',
   'import.misaligned':
     'Rândurile {lines} au mai multe valori decât coloanele fișierului, așa că valorile lor pot fi în coloane greșite. O valoare cu virgulă trebuie pusă între ghilimele.',
+  'import.damagedChars':
+    'Unele caractere din fișier nu au putut fi citite și apar ca �. Verifică acele rânduri sau salvează din nou fișierul din foaia de calcul ca „CSV UTF-8”.',
   'import.encoding':
     'Fișierul nu este salvat ca UTF-8, așa că a fost citit ca Europa Centrală (Windows-1250). Dacă literele arată greșit, salvează-l din foaia de calcul ca „CSV UTF-8” și alege-l din nou.',
   'import.newLabels': 'Importul creează {labels}:',

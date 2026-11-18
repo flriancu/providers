@@ -199,6 +199,7 @@ a {
 }
 
 .notice {
+  overflow-wrap: anywhere;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1400,4 +1401,10 @@ label .chip,
 
 .help .chip {
   font-size: 1em;
+}
+
+/* The list while it catches up with the search: dimmed only if that lasts past a moment. */
+.list-frame[aria-busy='true'] {
+  opacity: 0.55;
+  transition: opacity 0.2s 0.2s;
 }

@@ -408,3 +408,25 @@ test('the calendar fits a 360 px screen whole: every day and both month arrows (
   expect(right).toBeLessThanOrEqual(360);
   await expect(calendar.getByRole('button', { name: /next month/i })).toBeInViewport();
 });
+
+test('the duplicate warning waits for a choice: Enter again saves nothing, and Save as new saves once', async ({ page }) => {
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  const name = page.getByLabel('Name', { exact: true });
+  await name.fill('sample photo studio');
+  await name.press('Enter');
+  const doubt = page.getByRole('alert').filter({ hasText: 'This provider may already be in the directory.' });
+  await expect(doubt).toBeFocused();
+  await page.keyboard.press('Enter'); // on the notice, not on Save
+  await name.press('Enter'); // back in the field, Enter again
+  await expect(doubt).toBeVisible();
+  await doubt.getByRole('button', { name: 'Save as a new provider' }).evaluate((b: HTMLElement) => (b.click(), b.click()));
+  await expect(page.getByRole('heading', { level: 2, name: 'sample photo studio' })).toBeVisible();
+  await page.evaluate(() => (location.hash = '#/'));
+  // Two providers, not three: the sample and the one saved as new (equal names, so in either order).
+  await expect(page.locator('.provider-list .provider-name')).toHaveCount(2);
+});
+
+test("another site's script error, whose details the browser hides, is not shown as the app's", async ({ page }) => {
+  await page.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { message: 'Script error.', filename: '', error: null })));
+  await expect(page.getByText(/That did not work because of an error/)).toHaveCount(0);
+});

@@ -88,7 +88,7 @@ export const en = {
   'list.shownOf': '{n} of {total}',
   'list.noMatch': 'No provider matches. Remove a filter or change the search.',
   'search.label': 'Search providers',
-  'search.placeholder': 'Name, notes, labels…',
+  'search.placeholder': 'Name, phone, email, notes, labels…',
   'filter.heading': 'Filters',
   'filter.open': 'Filters',
   'filter.openCount': 'Filters ({count} chosen)',
@@ -135,6 +135,9 @@ export const en = {
   'form.newHeading': 'New provider',
   'form.editHeading': 'Edit {name}',
   'form.save': 'Save the provider',
+  'form.dupKeeps': '{name} keeps its own {fields}: adding these details does not change them.',
+  'data.exportOne': 'Export the provider',
+  'data.exportShownOne': 'Export the provider shown in the list',
   'form.dupHeading': 'This provider may already be in the directory.',
   'form.dupMerge': 'Add these details to {name}',
   'form.dupOpen': 'Open {name}',
@@ -240,6 +243,8 @@ export const en = {
   'import.ignored': 'These columns match no field or label group and are not imported: {columns}.',
   'import.misaligned':
     'Lines {lines} have more values than the file has columns, so their values may be in the wrong columns. A value with a comma needs quotes around it.',
+  'import.damagedChars':
+    'Some characters in this file could not be read and show as �. Check those rows, or save the file again from the spreadsheet as "CSV UTF-8".',
   'import.encoding':
     'This file is not saved as UTF-8, so it was read as Central European (Windows-1250). If letters look wrong, save it from the spreadsheet as "CSV UTF-8" and choose it again.',
   'import.newLabels': 'The import creates {labels}:',

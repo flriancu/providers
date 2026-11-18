@@ -62,7 +62,8 @@ test.describe('wide screens: filters in their own column', () => {
 
     // The address keeps the query through a reload (the demo itself starts over: only the sample remains).
     await filters.getByRole('checkbox', { name: /^Bucharest,/ }).check();
-    expect(page.url()).toContain('f=');
+    // The address follows within 125 ms (route.ts): wait for it to hold just this filter.
+    await expect.poll(() => decodeURIComponent(page.url())).toMatch(/[?&]f=facet-area~[^&]+$/);
     await page.reload();
     await expect(names(page)).toHaveText(['Sample Photo Studio']);
     await expect(page.getByRole('button', { name: 'Remove filter Bucharest' })).toBeVisible();
@@ -124,6 +125,18 @@ test.describe('phones: filters open over the page (D-34)', () => {
     await expect(names(page)).toHaveText(['Flashbox']);
   });
 
+  test('Back with the panel open leaves the panel behind; the page behind works', async ({ page }) => {
+    await setUp(page); // ends on the list, after opening Flashbox
+    await page.getByRole('link', { name: /Lagoo/ }).click();
+    await page.getByRole('link', { name: 'Back to the list' }).click();
+    await page.getByRole('button', { name: 'Filters', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Filters' })).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole('dialog', { name: 'Filters' })).toBeHidden();
+    await page.getByRole('article').getByRole('link', { name: 'Edit' }).click();
+    await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Lagoo');
+  });
+
   test('while the panel is open, Tab never reaches the page behind it', async ({ page }) => {
     await setUp(page);
     await page.getByRole('button', { name: 'Filters', exact: true }).click();
@@ -143,6 +156,19 @@ test.describe('phones: filters open over the page (D-34)', () => {
       expect(await outside()).toBe(false);
     }
   });
+});
+
+test('on a tablet, a drag that starts inside the filters panel and ends beside it leaves it open', async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await setUp(page);
+  await page.getByRole('button', { name: 'Filters', exact: true }).click();
+  const sheet = page.getByRole('dialog', { name: 'Filters' });
+  const box = (await sheet.locator('.sheet-header').boundingBox())!;
+  await page.mouse.move(box.x + 20, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(100, 500, { steps: 5 });
+  await page.mouse.up();
+  await expect(sheet).toBeVisible();
 });
 
 test('on a tablet, the filters panel closes with a tap beside it, and focus returns to the Filters button', async ({ page }) => {

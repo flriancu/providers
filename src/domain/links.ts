@@ -14,8 +14,12 @@ const HOSTS: [RegExp, Exclude<LinkKind, 'website'>][] = [
   [/(^|\.)allweddings\.ro$/, 'allweddings'],
 ];
 
-/** A scheme and "//" at the start: the link says where it goes. */
-const SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
+/**
+ * A scheme at the start: the link says what it is (https:, mailto:, tel:0721), with or without
+ * "//" ("https:/x.ro" opens x.ro, as browsers read it). A host with a dot, or localhost, and a
+ * port ("example.ro:8080") is an address without one.
+ */
+const SCHEME = /^(?![^:/]*\.[^:/]*:\d|localhost:\d)[a-z][a-z0-9+.-]*:/i;
 
 /** The link as a URL, with https:// added when it has no scheme; null when it is not an address. */
 export function toUrl(link: string): URL | null {

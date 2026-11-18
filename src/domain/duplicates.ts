@@ -1,3 +1,4 @@
+import { phoneNumbers } from './contact';
 import { byFolded, fold } from './fold';
 import { linkKind, toUrl } from './links';
 import { live, type DirectoryDoc, type Provider } from './schema';
@@ -21,6 +22,9 @@ export function phoneKey(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   return digits.length > 9 ? digits.slice(-9) : digits;
 }
+
+/** The numbers in a phone field ("0721 234 567, 0722 000 111" holds two), each by its phoneKey. */
+const phoneKeys = (field: string) => phoneNumbers(field).map(phoneKey);
 
 /** Query parameters that only track a visit (campaign, click or share ids): they never tell pages apart. */
 const TRACKING = /^(utm_.*|fbclid|gclid|igsh|igshid|si|ref)$/i;
@@ -51,12 +55,12 @@ const nonEmpty = (keys: string[]) => new Set(keys.filter((k) => k !== ''));
  */
 export function sameAs(a: Candidate, b: Candidate): Reason[] {
   const name = fold(a.name);
-  const phones = nonEmpty(a.phones.map(phoneKey));
+  const phones = nonEmpty(a.phones.flatMap(phoneKeys));
   const emails = nonEmpty(a.emails.map(fold));
   const links = nonEmpty(a.links.map(linkKey));
   const reasons: Reason[] = [];
   if (name !== '' && fold(b.name) === name) reasons.push('name');
-  if (b.phones.some((x) => phones.has(phoneKey(x)))) reasons.push('phone');
+  if (b.phones.some((x) => phoneKeys(x).some((k) => phones.has(k)))) reasons.push('phone');
   if (b.emails.some((x) => emails.has(fold(x)))) reasons.push('email');
   if (b.links.some((x) => links.has(linkKey(x)))) reasons.push('link');
   return reasons;

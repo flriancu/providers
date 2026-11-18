@@ -55,3 +55,15 @@ describe('what a link opens', () => {
     expect(firstLinks(['file:///C:/x', 'javascript://%0Aalert(1)', 'b.ro'])).toEqual({ website: 'b.ro' });
   });
 });
+
+describe('links typed with a scheme', () => {
+  it('reads mailto: and tel: as what they are, not as a website', () => {
+    expect(webHref('mailto:ana@example.net')).toBeNull();
+    expect(webHref('tel:0721')).toBeNull();
+  });
+
+  it('opens https:/x as browsers do, and a host with a port as a website', () => {
+    expect(webHref('https:/x.example')).toBe('https:/x.example');
+    expect(webHref('example.ro:8080/oferta')).toBe('https://example.ro:8080/oferta');
+  });
+});

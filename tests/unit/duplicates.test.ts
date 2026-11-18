@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findDuplicates, linkKey, phoneKey, type Candidate } from '../../src/domain/duplicates';
+import { findDuplicates, linkKey, phoneKey, sameAs, type Candidate } from '../../src/domain/duplicates';
 import { weddingDirectory } from './fixture';
 
 /** A Facebook page without a custom name: only its query tells it apart. */
@@ -54,5 +54,17 @@ describe('link paths and case', () => {
     expect(linkKey('https://www.instagram.com/Bruno.Foto/')).toBe(linkKey('instagram.com/bruno.foto'));
     expect(linkKey('https://youtu.be/AbCdEf')).not.toBe(linkKey('https://youtu.be/abcdef'));
     expect(linkKey('https://Example.ro/Oferta')).not.toBe(linkKey('https://example.ro/oferta'));
+  });
+});
+
+describe('phones in a field with two numbers or a note', () => {
+  it('are each compared', () => {
+    const base = { name: 'A', contactPerson: '', emails: [], links: [], address: '', notes: '', labelIds: [] };
+    expect(sameAs({ ...base, phones: ['0721 234 567'] }, { ...base, name: 'B', phones: ['0722 000 111, 0721 234 567'] })).toEqual([
+      'phone',
+    ]);
+    expect(sameAs({ ...base, phones: ['0733 111 222'] }, { ...base, name: 'B', phones: ['0733 111 222 (după ora 18)'] })).toEqual([
+      'phone',
+    ]);
   });
 });

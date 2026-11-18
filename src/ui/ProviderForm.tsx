@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { findDuplicates, type PossibleDuplicate } from '../domain/duplicates';
 import {
   cleanProvider,
@@ -14,7 +14,7 @@ import {
 import { labelById } from '../domain/labels';
 import type { EditContext } from '../domain/records';
 import { FACET_IDS, own, type DirectoryDoc } from '../domain/schema';
-import { mergeInput } from '../domain/transfer';
+import { conflicts, mergeInput, type SingleField } from '../domain/transfer';
 import { useI18n } from '../i18n';
 import { clearDraft, readDraft, sameInput, writeDraft } from './drafts';
 import { ColorDot } from './LabelChip';
@@ -24,6 +24,14 @@ import { facetLabels, facetName, labelName, labelNameById, orderedFacets } from 
 import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
 import { useOncePerRender } from './useOncePerRender';
+
+/** A single field's name, for "keeps its own ..." in the look-alike notice. */
+const FIELD_WORD = {
+  name: 'field.name',
+  contactPerson: 'field.contactPerson',
+  address: 'field.address',
+  notes: 'field.notes',
+} as const satisfies Record<SingleField, string>;
 
 /**
  * Create (no `id`) or edit a provider. Lists have one field per value (ListField). What is typed
@@ -60,6 +68,12 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
   const [error, setError] = useState<EditErrorCode | null>(null);
   /** Look-alikes found for exactly this input; any change to the form puts them away. */
   const [doubts, setDoubts] = useState<{ input: ProviderInput; found: PossibleDuplicate[] } | null>(null);
+  const left = useRef(false);
+  // The look-alikes take the focus when they show: the next key acts on them, not on Save again.
+  const doubtsNotice = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (doubts) doubtsNotice.current?.focus();
+  }, [doubts]);
   const ids = useId();
   const once = useOncePerRender();
   const query = useListQuery();
@@ -86,6 +100,8 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
   /** Saves, then opens the provider saved; `change` returns the document and the provider's id. */
   const save = (change: (d: DirectoryDoc, ctx: EditContext) => { doc: DirectoryDoc; id: string }) =>
     once(() => {
+      // Saved once, the form is on its way out: a click before the page changes saves nothing more.
+      if (left.current) return false;
       let target = '';
       const code = apply((d, ctx) => {
         const done = change(d, ctx);
@@ -94,6 +110,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
       });
       setError(code);
       if (code || !target) return false;
+      left.current = true;
       clearDraft(owner, id);
       go({ page: 'provider', id: target }, query);
       return true;
@@ -105,7 +122,8 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
     // FR-23: a new provider that looks like one already here waits for the owner's choice.
     const clean = cleanProvider(doc, input);
     const lookalikes = clean.name ? findDuplicates(doc, clean) : [];
-    if (lookalikes.length && doubts?.input !== input) return setDoubts({ input, found: lookalikes });
+    // A look-alike waits for a choice in the notice, however often Save is pressed.
+    if (lookalikes.length) return setDoubts({ input, found: lookalikes });
     save((d, ctx) => createProvider(d, input, ctx));
   };
   /** FR-24: the form's details added to a provider already there, which keeps its own single values. */
@@ -216,7 +234,7 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
         <textarea rows={4} value={input.notes} onChange={(e) => set('notes', e.target.value)} />
       </label>
       {doubts?.input === input && (
-        <div className="notice" role="alert">
+        <div className="notice" role="alert" tabIndex={-1} ref={doubtsNotice}>
           <p>
             <strong>{t('form.dupHeading')}</strong>
           </p>
@@ -224,6 +242,15 @@ export function ProviderForm({ doc, apply, id }: { doc: DirectoryDoc; apply: App
             {doubts.found.map(({ provider: p, reasons: r }) => (
               <li key={p.id}>
                 <p>{t('import.likeProvider', { name: p.name, reasons: reasons(r) })}</p>
+                {/* FR-24: adding keeps the provider's own single values; say which differ. */}
+                {conflicts(p, cleanProvider(doc, input)).length > 0 && (
+                  <p className="help">
+                    {t('form.dupKeeps', {
+                      name: p.name,
+                      fields: list(conflicts(p, cleanProvider(doc, input)).map((f) => t(FIELD_WORD[f]).toLocaleLowerCase())),
+                    })}
+                  </p>
+                )}
                 <div className="actions">
                   <button type="button" className="secondary" onClick={() => addTo(p.id)}>
                     {t('form.dupMerge', { name: p.name })}

@@ -283,3 +283,30 @@ describe('a preview that went stale', () => {
     expect(error instanceof EditError && error.code).toBe('importStale');
   });
 });
+
+describe('CSV edge cases from re-verification', () => {
+  it('gives back a value typed with an apostrophe and a formula character', () => {
+    const value = "'=1+1 is how the price was written";
+    const { result } = importAll(
+      newDirectory(OWNER),
+      toCsv([
+        ['Name', 'Notes'],
+        ['P', value],
+      ]),
+    );
+    expect(live(result.doc.providers)[0]!.notes).toBe(value);
+  });
+
+  it('reads a file whose rows are not all as long as the header by its header', () => {
+    expect(parseCsv('Name,Phone\nAna,0722\nBob\n')).toEqual([['Name', 'Phone'], ['Ana', '0722'], ['Bob']]);
+  });
+
+  it('reads UTF-8 with one stray byte as UTF-8, and UTF-16 by its byte-order mark', () => {
+    const utf8 = new TextEncoder().encode('Grădina, Sălcii, Ștefan');
+    const damaged = Uint8Array.from([...utf8, 0x96]); // a Windows dash pasted in
+    expect(decodeCsv(damaged)).toMatchObject({ encoding: 'utf-8-damaged' });
+    expect(decodeCsv(damaged).text.startsWith('Grădina, Sălcii, Ștefan')).toBe(true);
+    const utf16 = Uint8Array.from([0xff, 0xfe, ...[...'Ană'].flatMap((c) => [c.charCodeAt(0) & 0xff, c.charCodeAt(0) >> 8])]);
+    expect(decodeCsv(utf16)).toEqual({ text: 'Ană', encoding: 'utf-16' });
+  });
+});

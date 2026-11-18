@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fold } from '../../src/domain/fold';
+import { fold, isBlank } from '../../src/domain/fold';
 
 describe('fold', () => {
   it('ignores case, diacritics and extra white space', () => {
@@ -13,5 +13,13 @@ describe('fold', () => {
 
   it('keeps letters without diacritics as they are', () => {
     expect(fold('AIFUNBOX CABINĂ FOTO CU AI')).toBe('aifunbox cabina foto cu ai');
+  });
+});
+
+describe('invisible characters', () => {
+  it('never tell two names apart, and a name of them alone is empty', () => {
+    expect(fold('Sample\u200bPhoto Studio')).toBe(fold('SamplePhoto Studio'));
+    expect(isBlank('\u0301\u0308')).toBe(true); // combining marks with no letter
+    expect(isBlank('é')).toBe(false);
   });
 });

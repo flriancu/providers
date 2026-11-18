@@ -1,5 +1,5 @@
 import type { SaveState } from 'drive-doc-sync';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DRIVE_APP } from '../config';
 import { useI18n } from '../i18n';
 import { hasDrafts } from './drafts';
@@ -57,6 +57,11 @@ function AccountMenu({ account }: { account: Extract<Account, { kind: 'google' }
 function SignOut({ account }: { account: Extract<Account, { kind: 'google' }> }) {
   const { t } = useI18n();
   const [asking, setAsking] = useState(false);
+  // Shown, the question takes the focus, on its safe answer.
+  const keep = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (asking) keep.current?.focus();
+  }, [asking]);
   if (!asking)
     return (
       <button type="button" className="secondary" onClick={() => (hasDrafts(account.sub) ? setAsking(true) : account.signOut())}>
@@ -68,6 +73,7 @@ function SignOut({ account }: { account: Extract<Account, { kind: 'google' }> })
       <p>{t('auth.signOutDrafts')}</p>
       <div className="actions">
         <button
+          ref={keep}
           type="button"
           className="secondary"
           onClick={(e) => {

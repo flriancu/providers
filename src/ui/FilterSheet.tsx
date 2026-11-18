@@ -40,6 +40,8 @@ export function FilterSheet({
   }, []);
 
   const dismiss = () => dialog.current?.close();
+  /** A press that started on the backdrop: a drag from inside the panel ending there is not a tap outside. */
+  const pressedOutside = useRef(false);
   const onClose = () => {
     document.querySelector<HTMLButtonElement>('.filter-button')?.focus();
     close();
@@ -55,7 +57,8 @@ export function FilterSheet({
       aria-labelledby="sheet-heading"
       onClose={onClose}
       // A tap on the backdrop reaches the dialog itself; inside, the panel's parts fill it.
-      onClick={(e) => e.target === e.currentTarget && dismiss()}
+      onPointerDown={(e) => (pressedOutside.current = e.target === e.currentTarget)}
+      onClick={(e) => e.target === e.currentTarget && pressedOutside.current && dismiss()}
     >
       <div className="sheet-header">
         <h2 id="sheet-heading">{t('filter.heading')}</h2>

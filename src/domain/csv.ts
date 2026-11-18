@@ -14,6 +14,17 @@ const BOM = String.fromCharCode(0xfeff);
 const SEPARATORS = [',', ';', '\t'];
 
 /**
+ * The separator the header line uses most, outside quotes; null when it has none. For a file
+ * whose rows do not all have the same number of fields, which Papa Parse cannot guess from.
+ */
+function headerSeparator(text: string): string | null {
+  const header = text.split(/\r?\n|\r/, 1)[0]!.replace(/"[^"]*"/g, '');
+  const counts = SEPARATORS.map((sep) => header.split(sep).length - 1);
+  const most = Math.max(...counts);
+  return most > 0 ? SEPARATORS[counts.indexOf(most)]! : null;
+}
+
+/**
  * Rows of fields; blank lines are left out. No separator found means one column: a list of
  * names whose commas belong to the names.
  */
@@ -25,39 +36,55 @@ export function parseCsv(input: string): string[][] {
   if (named) text = text.slice(named[0].length);
   const read = (delimiter: string) => Papa.parse<string[]>(text, { delimiter, delimitersToGuess: SEPARATORS, skipEmptyLines: 'greedy' });
   let result = read(named && SEPARATORS.includes(named[1]!) ? named[1]! : '');
-  if (result.errors.some((e) => e.code === 'UndetectableDelimiter')) result = read(Papa.RECORD_SEP);
+  // Not guessed (a short row, a list of names): the header says; with none in it, one column.
+  if (result.errors.some((e) => e.code === 'UndetectableDelimiter')) result = read(headerSeparator(text) ?? Papa.RECORD_SEP);
   return result.data;
 }
 
-/** How a file's bytes were read as text. */
-export type CsvEncoding = 'utf-8' | 'windows-1250';
+/** How a file's bytes were read as text; 'utf-8-damaged': UTF-8 with a few bytes that are not. */
+export type CsvEncoding = 'utf-8' | 'utf-8-damaged' | 'utf-16' | 'windows-1250';
 
 /**
- * A file's text. UTF-8 when the bytes are valid UTF-8; otherwise the file came from a
+ * A file's text. UTF-16 when it starts with UTF-16's byte-order mark (spreadsheets' "Unicode
+ * text"); UTF-8 when the bytes are UTF-8, and also when only a few are not (a stray byte from a
+ * copy and paste), which show as the replacement character; otherwise the file came from a
  * spreadsheet saving in the system's code page, which for Romanian Windows is Windows-1250
  * (Central European), and it is read as that, so its diacritics are not lost.
  */
 export function decodeCsv(bytes: Uint8Array): { text: string; encoding: CsvEncoding } {
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return { text: new TextDecoder('utf-16le').decode(bytes), encoding: 'utf-16' };
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return { text: new TextDecoder('utf-16be').decode(bytes), encoding: 'utf-16' };
   try {
     return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes), encoding: 'utf-8' };
   } catch {
+    // Mostly UTF-8 (more characters read well than not): UTF-8 with damage, not another code page.
+    const lossy = new TextDecoder('utf-8').decode(bytes);
+    let bad = 0;
+    let good = 0;
+    for (const ch of lossy) {
+      const code = ch.codePointAt(0)!;
+      if (code === 0xfffd) bad++;
+      else if (code > 0x7f) good++;
+    }
+    if (good > bad) return { text: lossy, encoding: 'utf-8-damaged' };
     return { text: new TextDecoder('windows-1250').decode(bytes), encoding: 'windows-1250' };
   }
 }
 
 /**
  * A value as it was before writing escaped it: Papa Parse's `escapeFormulae` puts an apostrophe
- * before a value a spreadsheet would run as a formula (OWASP, "CSV Injection"); reading takes it
- * off again when one of those characters follows.
+ * before a value a spreadsheet would run as a formula (OWASP, "CSV Injection"), and before one
+ * that already started with an apostrophe and such a character (toCsv); reading takes one off.
  */
-export const unescapeCell = (value: string) => (/^'[=+\-@\t\r]/.test(value) ? value.slice(1) : value);
+export const unescapeCell = (value: string) => (/^''?[=+\-@\t\r]/.test(value) ? value.slice(1) : value);
 
 /**
  * A CSV file's text: comma-separated, CRLF line ends, a byte-order mark first so a spreadsheet
  * opens the diacritics correctly, and every value that starts like a formula (=, +, -, @) written
  * as text, so opening the file runs nothing. Phone numbers starting with + are among them; a
- * spreadsheet would otherwise show an error in their place.
+ * spreadsheet would otherwise show an error in their place. A value that already starts with an
+ * apostrophe and one of those characters gets one more, so reading gives it back as it was.
  */
 export function toCsv(rows: readonly (readonly string[])[]): string {
-  return BOM + Papa.unparse(rows as string[][], { escapeFormulae: true, newline: '\r\n' }) + '\r\n';
+  return BOM + Papa.unparse(rows as string[][], { escapeFormulae: /^'?[=+\-@\t\r]/, newline: '\r\n' }) + '\r\n';
 }

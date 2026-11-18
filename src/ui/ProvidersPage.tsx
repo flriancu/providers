@@ -32,7 +32,12 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
   );
   const selection = useMemo(() => liveSelection(structure, route.query.selection), [structure, route.query.selection]);
   const query = useMemo(() => ({ ...route.query, selection }), [route.query, selection]);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  // The filters sheet belongs to the page it was opened on: Back or a link elsewhere closes it.
+  const page = `${route.page}:${route.page === 'provider' || route.page === 'edit' ? route.id : ''}`;
+  const [sheetFor, setSheetFor] = useState<string | null>(null);
+  if (sheetFor !== null && sheetFor !== page) setSheetFor(null);
+  const sheetOpen = sheetFor === page;
+  const setSheetOpen = (open: boolean) => setSheetFor(open ? page : null);
   const all = useMemo(() => live(doc.providers), [doc]);
   const find = useProviderSearch(doc);
   // FR-11: with a search, the counts are of what it finds, so no value leads to an empty list.
@@ -123,7 +128,11 @@ export function ProvidersPage({ doc, apply, route }: { doc: DirectoryDoc; apply:
           ) : shown.length === 0 ? (
             <p className="muted">{t('list.noMatch')}</p>
           ) : (
-            <ProviderList providers={shown} parts={parts} query={listQuery} selected={selected} />
+            // While the list catches up with the search, it takes no keys or clicks: a row of the
+            // old list would open the wrong provider. It dims only if that lasts (app.css).
+            <div className="list-frame" inert={listQuery !== query} aria-busy={listQuery !== query}>
+              <ProviderList providers={shown} parts={parts} query={listQuery} selected={selected} />
+            </div>
           )}
         </section>
 

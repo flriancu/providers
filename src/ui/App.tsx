@@ -113,7 +113,12 @@ function Directory({ connection }: { connection: Connection }) {
       <ActionErrors />
       {account.kind === 'demo' && (
         <p className="demo-note" role="note">
-          {account.unsavedOnDevice ? t('auth.unsavedOnDevice') : `${t('app.intro')} ${t('app.demo')}`}
+          {/* What the app is, on the list only: on every page it would take a third of a phone's screen. */}
+          {account.unsavedOnDevice
+            ? t('auth.unsavedOnDevice')
+            : route.page === 'list'
+              ? `${t('app.intro')} ${t('app.demo')}`
+              : t('app.demo')}
         </p>
       )}
       {account.kind === 'demo' && account.error && (

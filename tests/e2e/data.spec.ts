@@ -15,10 +15,7 @@ async function chooseCsv(page: Page, csv: string) {
 
 test('exports every provider to a CSV file with every field and label group (FR-22)', async ({ page }) => {
   await openData(page);
-  const [download] = await Promise.all([
-    page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Export all 1 provider' }).click(),
-  ]);
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export the provider' }).click()]);
   expect(download.suggestedFilename()).toMatch(/^providers-\d{4}-\d{2}-\d{2}\.csv$/);
   const text = await readFile(await download.path(), 'utf8');
   expect(text).toContain('Name,Contact person,Phones,Emails,Links,Address,Notes,Main category,Category,Area,Source,Lists');

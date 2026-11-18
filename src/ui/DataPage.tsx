@@ -68,11 +68,11 @@ export function DataPage({ doc, apply, route }: { doc: DirectoryDoc; apply: Appl
         <p className="help">{t('data.exportHelp')}</p>
         <div className="actions">
           <button type="button" disabled={!all.length} onClick={() => exportCsv(all)}>
-            {t('data.exportAll', { providers: plural('providers', all.length) })}
+            {all.length === 1 ? t('data.exportOne') : t('data.exportAll', { providers: plural('providers', all.length) })}
           </button>
           {narrowed && (
             <button type="button" className="secondary" disabled={!shown.length} onClick={() => exportCsv(shown)}>
-              {t('data.exportShown', { providers: plural('providers', shown.length) })}
+              {shown.length === 1 ? t('data.exportShownOne') : t('data.exportShown', { providers: plural('providers', shown.length) })}
             </button>
           )}
         </div>
@@ -227,6 +227,7 @@ function ImportSection({ doc, apply }: { doc: DirectoryDoc; apply: Apply }) {
                 </p>
               )}
               {csv?.encoding === 'windows-1250' && <p className="help">{t('import.encoding')}</p>}
+              {csv?.encoding === 'utf-8-damaged' && <p className="help">{t('import.damagedChars')}</p>}
               {plan.misaligned.length > 0 && <p className="help">{t('import.misaligned', { lines: list(plan.misaligned.map(String)) })}</p>}
               {plan.ignoredColumns.length > 0 && <p className="help">{t('import.ignored', { columns: plan.ignoredColumns.join(', ') })}</p>}
               {plan.newLabels.length > 0 && (

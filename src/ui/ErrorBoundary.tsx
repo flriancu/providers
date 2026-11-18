@@ -85,9 +85,11 @@ export function ActionErrors() {
   const [error, setError] = useState<unknown>(null);
   useEffect(() => {
     // Not an error from a script at another address: an extension's runs in the page too
-    // (chrome-extension://, moz-extension://), and its failures are not the app's.
+    // (chrome-extension://, moz-extension://), and another site's reaches the page with its
+    // details hidden ("Script error.", no file, no error object). Neither failure is the app's.
     const onError = (e: ErrorEvent) => {
-      if (!e.filename || e.filename.startsWith(location.origin)) setError(e.error ?? e.message);
+      const foreign = e.filename ? !e.filename.startsWith(location.origin) : e.error == null;
+      if (!foreign) setError(e.error ?? e.message);
     };
     const onRejection = (e: PromiseRejectionEvent) => {
       if (!/-extension:\/\//.test(String((e.reason as Error | null)?.stack ?? ''))) setError(e.reason);
