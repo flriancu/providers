@@ -1,4 +1,5 @@
 import { UnsupportedDocumentError } from 'drive-doc-sync/errors';
+import { isDay } from './days';
 import {
   COLLECTION_KEYS,
   put,
@@ -35,7 +36,7 @@ function readStamp(v: unknown): string | null {
 }
 
 const isStamp = (v: unknown): v is string => readStamp(v) !== null;
-const isDate = (v: unknown): v is string => isString(v) && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+const isDate = (v: unknown): v is string => isString(v) && isDay(v);
 const oneOf = (values: readonly string[]) => (v: unknown) => isString(v) && values.includes(v);
 const optional = (v: unknown, check: (x: unknown) => boolean) => v === undefined || check(v);
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { firstLinks, handleOf } from '../domain/links';
+import { firstLinks, handleOf, webHref } from '../domain/links';
 import type { Provider } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { GlobeIcon, InstagramIcon, MailIcon, PhoneIcon, TikTokIcon } from './icons';
@@ -7,8 +7,8 @@ import { GlobeIcon, InstagramIcon, MailIcon, PhoneIcon, TikTokIcon } from './ico
 /** A phone number as a tel: address: digits and a leading +, as phones dial them. */
 const telOf = (phone: string) => `tel:${phone.replace(/[^\d+]/g, '')}`;
 
-/** A web address with a scheme, so the browser opens it as a site and not as a path in this app. */
-const webOf = (link: string) => (/^[a-z][a-z0-9+.-]*:\/\//i.test(link.trim()) ? link.trim() : `https://${link.trim()}`);
+/** A link firstLinks chose, as the address to open: always a web address (links.ts). */
+const webOf = (link: string) => webHref(link) ?? '';
 
 /** The slots, in the order they are shown, each with its icon. */
 const SLOTS: { key: string; icon: ReactNode }[] = [

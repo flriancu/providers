@@ -1,3 +1,4 @@
+import { dayOf } from '../domain/days';
 import { addLogEntry, createLabel, createProvider, emptyProvider } from '../domain/edits';
 import type { EditContext } from '../domain/records';
 import { FACET_IDS, newDirectory, type DirectoryDoc } from '../domain/schema';
@@ -46,6 +47,6 @@ export function demoDirectory(owner: string, ctx: EditContext): DirectoryDoc {
     ctx,
   );
   doc = added.doc;
-  const today = ctx.now().toISOString().slice(0, 10);
+  const today = dayOf(ctx.now());
   return addLogEntry(doc, added.id, today, 'Called to ask about dates and prices.', ctx).doc;
 }

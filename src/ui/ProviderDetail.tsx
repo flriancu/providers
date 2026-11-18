@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { deleteProvider } from '../domain/edits';
 import { effectiveLabels, labelById } from '../domain/labels';
+import { webHref } from '../domain/links';
 import { own, type DirectoryDoc } from '../domain/schema';
 import { useI18n } from '../i18n';
 import { hasDraft } from './drafts';
@@ -9,9 +10,6 @@ import { facetName, labelNameById, orderedFacets } from './labelText';
 import { LogSection } from './LogSection';
 import { go, href, useListQuery } from './route';
 import type { Apply } from './types';
-
-/** Opens a link from someone else's data safely: only web addresses become links. */
-const webUrl = (link: string) => (/^https?:\/\//i.test(link) ? link : `https://${link}`);
 
 export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: Apply; id: string }) {
   const { t } = useI18n();
@@ -79,11 +77,17 @@ export function ProviderDetail({ doc, apply, id }: { doc: DirectoryDoc; apply: A
         </dd>
         <dt>{t('field.links')}</dt>
         <dd>
-          {list(provider.links, (l) => (
-            <a href={webUrl(l)} target="_blank" rel="noopener noreferrer">
-              {l}
-            </a>
-          ))}
+          {/* Only web addresses become links; anything else shows as the text it is. */}
+          {list(provider.links, (l) => {
+            const site = webHref(l);
+            return site ? (
+              <a href={site} target="_blank" rel="noopener noreferrer">
+                {l}
+              </a>
+            ) : (
+              l
+            );
+          })}
         </dd>
         <dt>{t('field.address')}</dt>
         <dd>{provider.address || nothing}</dd>

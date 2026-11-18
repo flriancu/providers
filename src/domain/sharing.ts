@@ -1,4 +1,4 @@
-import { fold } from './fold';
+import { byFolded, fold } from './fold';
 import { effectiveLabels, labelById } from './labels';
 import { live, own, type DirectoryDoc, type LabelColor, type Provider, type Share } from './schema';
 
@@ -40,7 +40,7 @@ export function labelSnapshot(doc: DirectoryDoc, labelId: string, now: Date): La
   if (!label) throw new Error(`No label ${labelId}`);
   const providers = live(doc.providers)
     .filter((p) => effectiveLabels(doc, p).includes(labelId))
-    .sort((a, b) => fold(a.name).localeCompare(fold(b.name)))
+    .sort((a, b) => byFolded(a.name, b.name))
     .map((p): ListedProvider => ({
       id: p.id,
       name: p.name,

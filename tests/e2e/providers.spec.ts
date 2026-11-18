@@ -330,3 +330,16 @@ test('a hostile address opens the list instead of stopping the app', async ({ pa
     await expect(page.locator('.app-header')).toBeVisible();
   }
 });
+
+test('a link of another scheme shows as text, never as a link or a website button', async ({ page }) => {
+  await page.getByRole('link', { name: 'Add a provider' }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Odd Links');
+  await page.getByRole('textbox', { name: 'Website or social profile', exact: true }).fill('javascript://%0Aalert(1)');
+  await page.getByRole('button', { name: 'Save the provider' }).click();
+  const detail = page.getByRole('article');
+  await expect(detail.getByText('javascript://%0Aalert(1)')).toBeVisible();
+  await expect(detail.getByRole('link', { name: 'javascript://%0Aalert(1)' })).toHaveCount(0);
+  await page.evaluate(() => (location.hash = '#/'));
+  const row = page.locator('.provider-list li').filter({ hasText: 'Odd Links' });
+  await expect(row.getByRole('link', { name: /Open the website/ })).toHaveCount(0);
+});

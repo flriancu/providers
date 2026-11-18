@@ -1,5 +1,5 @@
 import { filterProviders } from '../domain/filter';
-import { fold } from '../domain/fold';
+import { byFolded } from '../domain/fold';
 import type { DirectoryDoc, Provider } from '../domain/schema';
 import type { ProviderSearch } from '../domain/search';
 import type { ListQuery } from './route';
@@ -10,7 +10,7 @@ import type { ListQuery } from './route';
  */
 export function visibleProviders(doc: DirectoryDoc, query: ListQuery, search: ProviderSearch): Provider[] {
   const filtered = filterProviders(doc, query.selection);
-  if (!query.q.trim()) return filtered.sort((a, b) => fold(a.name).localeCompare(fold(b.name)));
+  if (!query.q.trim()) return filtered.sort((a, b) => byFolded(a.name, b.name));
   const byId = new Map(filtered.map((p) => [p.id, p]));
   return search.search(query.q, new Set(byId.keys())).map((id) => byId.get(id)!);
 }

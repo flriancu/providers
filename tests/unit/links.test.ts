@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstLinks, handleOf, linkKind } from '../../src/domain/links';
+import { firstLinks, handleOf, linkKind, webHref } from '../../src/domain/links';
 
 describe('what a link is', () => {
   it('tells profiles on known networks from a website, with or without scheme or "www"', () => {
@@ -32,5 +32,26 @@ describe('what a link is', () => {
         'not an address at all',
       ]),
     ).toEqual({ instagram: 'https://www.instagram.com/a/', website: 'a.ro', tiktok: 'https://www.tiktok.com/@a' });
+  });
+});
+
+describe('what a link opens', () => {
+  it('opens web addresses only, with https:// added when the scheme is missing', () => {
+    expect(webHref('https://www.example.com')).toBe('https://www.example.com');
+    expect(webHref('http://a.ro/x')).toBe('http://a.ro/x');
+    expect(webHref(' gradina.ro ')).toBe('https://gradina.ro');
+  });
+
+  it('never makes a link of another scheme, from a person or an imported file', () => {
+    const others = [
+      'javascript://%0Aalert(1)',
+      'javascript:alert(1)',
+      'file:///C:/Windows/win.ini',
+      'intent://scan#Intent;end',
+      'ms-msdt://x',
+      'not an address',
+    ];
+    expect(others.filter((link) => webHref(link) !== null)).toEqual([]);
+    expect(firstLinks(['file:///C:/x', 'javascript://%0Aalert(1)', 'b.ro'])).toEqual({ website: 'b.ro' });
   });
 });

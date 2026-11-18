@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type RefObject } from 'react';
 import { flushSync } from 'react-dom';
 import { decodeCsv, parseCsv, toCsv, type CsvEncoding } from '../domain/csv';
+import { dayOf } from '../domain/days';
 import { liveSelection } from '../domain/filter';
 import { fold } from '../domain/fold';
 import { live, own, type DirectoryDoc } from '../domain/schema';
@@ -27,7 +28,7 @@ import type { Apply } from './types';
 import { visibleProviders } from './visible';
 
 /** Today on this device, for the export's file name. */
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => dayOf(new Date());
 
 /** Saves text as a file in the browser's downloads. */
 function download(name: string, text: string) {

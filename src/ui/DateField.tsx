@@ -2,6 +2,7 @@ import { DayPicker } from '@daypicker/react';
 import { enGB, ro } from '@daypicker/react/locale';
 import '@daypicker/react/style.css';
 import { useEffect, useId, useRef, useState } from 'react';
+import { dayOf } from '../domain/days';
 import { useI18n } from '../i18n';
 
 /** DayPicker works with local Date objects; the app with whole-day ISO strings (YYYY-MM-DD). */
@@ -10,12 +11,10 @@ function toDate(iso: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function toIso(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
+const toIso = dayOf;
 
 /** Today on this device, as a calendar day. */
-export const todayIso = () => toIso(new Date());
+export const todayIso = () => dayOf(new Date());
 
 /**
  * One calendar day, shown in words ("Monday, 16 November 2026") on a button that opens a month

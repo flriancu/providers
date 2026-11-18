@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { effectiveLabels, matchLabels, rarelyUsedLabels } from '../../src/domain/labels';
-import { FACET_IDS } from '../../src/domain/schema';
-import { label, weddingDirectory } from './fixture';
+import { createLabel } from '../../src/domain/edits';
+import { FACET_IDS, newDirectory } from '../../src/domain/schema';
+import { facetLabels } from '../../src/ui/labelText';
+import { label, OWNER, testContext, weddingDirectory } from './fixture';
 
 describe('labels', () => {
   it('gives a provider only its own labels: none stands in for a missing category (D-33)', () => {
@@ -35,5 +37,14 @@ describe('labels', () => {
       ['Shortlist', 1],
       ['Video', 1],
     ]);
+  });
+});
+
+describe('label order', () => {
+  it("lists a group's labels in the order every other list uses, ignoring case, diacritics and doubled spaces", () => {
+    const ctx = testContext();
+    let doc = newDirectory(OWNER);
+    for (const name of ['Foto  Video', 'foto studio', 'Ăla', 'Bun']) doc = createLabel(doc, { facetId: FACET_IDS.lists, name }, ctx).doc;
+    expect(facetLabels(doc, FACET_IDS.lists).map((l) => l.name)).toEqual(['Ăla', 'Bun', 'foto studio', 'Foto  Video']);
   });
 });

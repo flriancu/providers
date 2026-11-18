@@ -7,3 +7,6 @@
 export function fold(text: string): string {
   return text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en').replace(/\s+/g, ' ').trim();
 }
+
+/** The order of names in every list: as folded, so case and diacritics never split them up. */
+export const byFolded = (a: string, b: string) => fold(a).localeCompare(fold(b));

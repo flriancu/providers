@@ -14,15 +14,30 @@ const HOSTS: [RegExp, Exclude<LinkKind, 'website'>][] = [
   [/(^|\.)allweddings\.ro$/, 'allweddings'],
 ];
 
+/** A scheme and "//" at the start: the link says where it goes. */
+const SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
+
 /** The link as a URL, with https:// added when it has no scheme; null when it is not an address. */
 export function toUrl(link: string): URL | null {
   const trimmed = link.trim();
   if (!trimmed) return null;
   try {
-    return new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    return new URL(SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`);
   } catch {
     return null;
   }
+}
+
+/**
+ * The address to open for a link: http or https only, with https:// added when it has no scheme;
+ * null for anything else (javascript:, file:, intent:, or text that is no address). Links come
+ * from people and imported files, so no other scheme ever becomes a link.
+ */
+export function webHref(link: string): string | null {
+  const url = toUrl(link);
+  if (url?.protocol !== 'http:' && url?.protocol !== 'https:') return null;
+  const trimmed = link.trim();
+  return SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
 export function linkKind(link: string): LinkKind {
@@ -39,11 +54,11 @@ export function handleOf(link: string): string {
   return decodeOrKeep(first).replace(/^@/, '');
 }
 
-/** A provider's first link of each kind, in the order they are stored. */
+/** A provider's first web link of each kind, in the order they are stored. */
 export function firstLinks(links: readonly string[]): Partial<Record<LinkKind, string>> {
   const out: Partial<Record<LinkKind, string>> = {};
   for (const link of links) {
-    if (!toUrl(link)) continue;
+    if (!webHref(link)) continue;
     const kind = linkKind(link);
     out[kind] ??= link;
   }

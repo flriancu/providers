@@ -4,6 +4,7 @@ import { directoryModel, type DirectoryNotice } from '../domain/document';
 import { EditError } from '../domain/edits';
 import type { EditContext } from '../domain/records';
 import type { DirectoryDoc } from '../domain/schema';
+import { newId } from './ids';
 import type { Connection } from './useAccount';
 
 export type DirectorySync = DocumentSync<DirectoryDoc, DirectoryNotice>;
@@ -62,7 +63,7 @@ export function useDirectory(connection: Connection) {
     };
   }, [sync, persistent]);
 
-  const context = useCallback((): EditContext => ({ by, now: () => new Date(), newId: () => crypto.randomUUID() }), [by]);
+  const context = useCallback((): EditContext => ({ by, now: () => new Date(), newId }), [by]);
 
   /**
    * Applies a change; an EditError comes back as its code for the form to show, anything else

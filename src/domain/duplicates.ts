@@ -1,4 +1,5 @@
-import { fold } from './fold';
+import { byFolded, fold } from './fold';
+import { toUrl } from './links';
 import { live, type DirectoryDoc, type Provider } from './schema';
 
 /** Why two providers look like the same one (FR-23). */
@@ -31,20 +32,11 @@ const TRACKING = /^(utm_.*|fbclid|gclid|igsh|igshid|si|ref)$/i;
  * only in their query (facebook.com/profile.php?id=1 and ?id=2).
  */
 export function linkKey(link: string): string {
-  const trimmed = link.trim();
-  let host = '';
-  let path = '';
-  let query = '';
-  try {
-    const url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
-    host = url.hostname;
-    path = url.pathname;
-    const kept = [...url.searchParams].filter(([k]) => !TRACKING.test(k)).sort(([a], [b]) => a.localeCompare(b));
-    query = kept.length ? `?${new URLSearchParams(kept).toString()}` : '';
-  } catch {
-    return fold(trimmed);
-  }
-  return `${host.toLowerCase().replace(/^www\./, '')}${path.replace(/\/+$/, '').toLowerCase()}${query}`;
+  const url = toUrl(link);
+  if (!url) return fold(link);
+  const kept = [...url.searchParams].filter(([k]) => !TRACKING.test(k)).sort(([a], [b]) => a.localeCompare(b));
+  const query = kept.length ? `?${new URLSearchParams(kept).toString()}` : '';
+  return `${url.hostname.toLowerCase().replace(/^www\./, '')}${url.pathname.replace(/\/+$/, '').toLowerCase()}${query}`;
 }
 
 const nonEmpty = (keys: string[]) => new Set(keys.filter((k) => k !== ''));
@@ -78,5 +70,5 @@ export function findDuplicates(doc: DirectoryDoc, candidate: Candidate, exclude?
     const reasons = sameAs(candidate, p);
     if (reasons.length) out.push({ provider: p, reasons });
   }
-  return out.sort((a, b) => b.reasons.length - a.reasons.length || fold(a.provider.name).localeCompare(fold(b.provider.name)));
+  return out.sort((a, b) => b.reasons.length - a.reasons.length || byFolded(a.provider.name, b.provider.name));
 }

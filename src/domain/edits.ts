@@ -3,6 +3,7 @@
  * or throws EditError with a code the interface turns into a sentence.
  */
 import { columnClash, isOwnWord, type FacetWords } from './columns';
+import { isDay } from './days';
 import { fold } from './fold';
 import { labelById } from './labels';
 import { addRecord, deleteRecord, updateRecord, type EditContext } from './records';
@@ -138,9 +139,6 @@ export function deleteProvider(doc: DirectoryDoc, id: string, ctx: EditContext):
   return out;
 }
 
-const isISODate = (d: string) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d)) && new Date(d).toISOString().slice(0, 10) === d;
-
 export function addLogEntry(
   doc: DirectoryDoc,
   providerId: string,
@@ -150,7 +148,7 @@ export function addLogEntry(
 ): { doc: DirectoryDoc; id: string } {
   const provider = own(doc.providers, providerId);
   if (!provider || provider.deleted) throw new EditError('notFound');
-  if (!isISODate(date)) throw new EditError('badDate');
+  if (!isDay(date)) throw new EditError('badDate');
   if (!text.trim()) throw new EditError('logTextRequired');
   return addRecord(doc, 'log', { providerId, date, text: text.trim() }, ctx);
 }

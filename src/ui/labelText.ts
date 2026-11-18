@@ -1,4 +1,5 @@
 import { facetWordsFrom } from '../domain/columns';
+import { byFolded } from '../domain/fold';
 import { effectiveLabels, labelById } from '../domain/labels';
 import { FACET_IDS, live, type DirectoryDoc, type Facet, type Label, type Provider } from '../domain/schema';
 import type { I18n } from '../i18n';
@@ -41,5 +42,5 @@ export function orderedFacets(doc: DirectoryDoc): Facet[] {
 export function facetLabels(doc: DirectoryDoc, facetId: string): Label[] {
   return live(doc.labels)
     .filter((l) => l.facetId === facetId)
-    .sort((a, b) => labelName(a).localeCompare(labelName(b)));
+    .sort((a, b) => byFolded(labelName(a), labelName(b)));
 }

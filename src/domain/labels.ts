@@ -1,4 +1,4 @@
-import { fold } from './fold';
+import { byFolded, fold } from './fold';
 import { live, own, type DirectoryDoc, type Label, type Provider } from './schema';
 
 /** A live label, or undefined (gone, deleted, or never there). */
@@ -34,7 +34,7 @@ export function matchLabels(doc: DirectoryDoc, typed: string, facetId?: string):
     .filter((l) => !facetId || l.facetId === facetId)
     .map((l) => ({ l, r: rank(l) }))
     .filter(({ r }) => r < 3)
-    .sort((a, b) => a.r - b.r || fold(a.l.name).localeCompare(fold(b.l.name)))
+    .sort((a, b) => a.r - b.r || byFolded(a.l.name, b.l.name))
     .map(({ l }) => l);
 }
 
@@ -49,5 +49,5 @@ export function rarelyUsedLabels(doc: DirectoryDoc): { label: Label; count: numb
   return live(doc.labels)
     .map((label) => ({ label, count: counts.get(label.id) ?? 0 }))
     .filter(({ count }) => count <= 1)
-    .sort((a, b) => a.count - b.count || fold(a.label.name).localeCompare(fold(b.label.name)));
+    .sort((a, b) => a.count - b.count || byFolded(a.label.name, b.label.name));
 }

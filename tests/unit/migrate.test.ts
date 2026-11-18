@@ -116,3 +116,23 @@ describe('stamps in a file', () => {
     expect(read.providers[providers.flashbox]).toBeDefined();
   });
 });
+
+describe('days in a file', () => {
+  it('sets aside a log entry dated on a day the calendar does not have', () => {
+    const { doc, providers } = weddingDirectory();
+    const file = JSON.parse(JSON.stringify(toFile(doc)));
+    const stamp = '2026-11-16T10:00:00.000Z';
+    file.log.bad = {
+      id: 'bad',
+      createdAt: stamp,
+      updatedAt: stamp,
+      updatedBy: OWNER,
+      providerId: providers.bruno,
+      date: '2026-02-31',
+      text: 'x',
+    };
+    const read = readDirectory(file);
+    expect(read.log.bad).toBeUndefined();
+    expect(skippedCount(read)).toBe(1);
+  });
+});
