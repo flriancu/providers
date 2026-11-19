@@ -333,8 +333,8 @@ Language
 | FR-04..09 | Test | `tests/unit/labels.test.ts`, `tests/e2e/labels.spec.ts` |
 | FR-10..13 | Test | `tests/unit/filter.test.ts`, `tests/unit/search.test.ts`, `tests/e2e/browse.spec.ts` |
 | FR-14..20 | Test | `tests/unit/snapshot.test.ts`, `tests/e2e/sharing.spec.ts` (fake Drive: reader, writer, link, revoked) |
-| FR-21..24 | Test | `tests/unit/duplicates.test.ts`, `tests/e2e/import-export.spec.ts` |
-| FR-25 | Inspection | `seed/exhibitors.csv` reviewed against the board photo; owner sign-off recorded in the PLAN |
+| FR-21..24 | Test | `tests/unit/transfer.test.ts`, `tests/unit/duplicates.test.ts`, `tests/e2e/data.spec.ts` (also a 300-provider file and its export); Excel round trips in `tests/interop/excel.test.ts` (needs Excel for Windows; run by hand, not in CI) |
+| FR-25 | Inspection, test | `seed/exhibitors.csv` reviewed against the board photo; owner sign-off recorded in the PLAN; `seed/rehearse-import.test.ts` imports `seed/import.csv` with the app's code |
 | FR-26 | Inspection | `seed/contacts_review.csv` with source URL per value; owner approval recorded in the PLAN |
 | FR-27 | Test | type check: a missing key in either dictionary fails the build |
 | NFR-01 | Test | `tests/e2e/sharing.spec.ts` (a second account reads only what was shared) |
@@ -344,7 +344,7 @@ Language
 | NFR-06 | Test, demonstration | e2e suite at 360 px viewport; owner check on a real phone |
 | NFR-07 | Inspection | accessibility audit output in `evidence/` |
 | NFR-08 | Inspection | stranger-read of the interface text |
-| NFR-09 | Test | `tests/e2e/import-export.spec.ts` (preview shows every change) |
+| NFR-09 | Test | `tests/e2e/data.spec.ts` (preview shows every change) |
 | NFR-11 | Test | `tests/e2e/home.spec.ts` (a browser without a feature the app needs is told the versions); build target in `vite.config.ts` |
 | NFR-10 | Test | `tests/unit/search.perf.test.ts` on 10,000 synthetic providers; `tests/e2e/drive.spec.ts` (a reload with an unchanged file downloads nothing) |
 
@@ -377,3 +377,14 @@ interaction log; language switch; CSV import and export; phone browser.
   and taking the link away both proven against the real Drive
   ([evidence](evidence/phase0b-sharing-test.md)); opening by email through the Picker, and
   editing a shared directory, wait for a second Google account.
+- Q-08 Export for Excel in Romanian Windows settings: open. Excel splits a CSV file at the
+  Windows list separator, a semicolon in Romanian settings; Microsoft documents this for saving
+  ([Import or export text files](https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba),
+  "Change the default list separator for new text files"). For opening,
+  `tests/interop/excel.test.ts` shows it with Excel's own reader: the export (commas) opens as
+  one column, rows broken at line breaks in notes. A `sep=` first line would fix the columns,
+  but Excel then ignores the byte-order mark and the diacritics break (tried with Excel 16).
+  Import is not affected: it reads commas, semicolons and tabs. Saving as "CSV" (not "CSV
+  UTF-8") writes "?" for letters the Windows code page lacks (s and t with a comma below,
+  U+0219 and U+021B, in Romanian settings; also a with a breve, U+0103, in English ones); the
+  import says the file is not UTF-8 and suggests "CSV UTF-8", but cannot restore the letters.

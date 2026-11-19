@@ -1,5 +1,10 @@
+import { toCsv } from '../../src/domain/csv';
+import { labelById } from '../../src/domain/labels';
 import { addRecord, type EditContext, type Fields } from '../../src/domain/records';
-import { FACET_IDS, newDirectory, type DirectoryDoc } from '../../src/domain/schema';
+import { FACET_IDS, live, newDirectory, type DirectoryDoc, type Provider } from '../../src/domain/schema';
+import { applyImport, defaultChoice, exportRows, planImport, type ImportChoice } from '../../src/domain/transfer';
+import { translate } from '../../src/i18n';
+import { FACET_WORDS, facetName } from '../../src/ui/labelText';
 
 export const OWNER = 'sub-owner';
 
@@ -60,4 +65,45 @@ export function weddingDirectory() {
     labels: { photo, video, plumber, bucharest, cluj, fair, shortlist },
     providers: { gradina, bruno, flashbox, plumberAna, lagoo },
   };
+}
+
+/** Every provider of a directory as a CSV file, as the Import and export page writes it in English. */
+export function exportCsv(doc: DirectoryDoc): string {
+  return toCsv(exportRows(doc, live(doc.providers), (f) => facetName(f, (key) => translate('en', key))));
+}
+
+/**
+ * Imports a CSV table with the choices the preview makes without asking; a row that waits for a
+ * choice is added. `lines`: the line each row starts on, as readCsv gives them.
+ */
+export function importAll(doc: DirectoryDoc, rows: readonly (readonly string[])[], lines?: readonly number[], at = Date.UTC(2026, 10, 20)) {
+  const plan = planImport(doc, rows, FACET_WORDS, lines);
+  const choices = plan.rows.map((r): ImportChoice => defaultChoice(r) ?? { kind: 'add' });
+  return { plan, ...applyImport(doc, plan, choices, testContext(OWNER, at)) };
+}
+
+/** A provider as the owner sees it: every field, its labels by group and name, ids left out. */
+function asShown(doc: DirectoryDoc, p: Provider) {
+  const name = (id: string) => {
+    const l = labelById(doc, id)!;
+    return `${l.facetId}: ${l.name}`;
+  };
+  return {
+    name: p.name,
+    contactPerson: p.contactPerson,
+    phones: p.phones,
+    emails: p.emails,
+    links: p.links,
+    address: p.address,
+    notes: p.notes,
+    mainCategory: p.primaryCategoryId ? name(p.primaryCategoryId) : '',
+    labels: p.labelIds.map(name).sort(),
+  };
+}
+
+/** Every provider as the owner sees it, by name: two directories that show the same are equal. */
+export function providersAsShown(doc: DirectoryDoc) {
+  return live(doc.providers)
+    .map((p) => asShown(doc, p))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }

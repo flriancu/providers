@@ -143,3 +143,79 @@ test('"Merge all" leaves out a repeated row that also looks like a row being add
   await expect(preview.getByRole('button', { name: 'Merge 2 rows into the provider with the same name' })).toBeVisible();
   await expect(preview.getByRole('button', { name: /^Merge 3 rows/ })).toHaveCount(0);
 });
+
+/** A CSV value in quotes, its own quotes doubled. */
+const quote = (v: string) => `"${v.replaceAll('"', '""')}"`;
+
+/** A made-up file of `count` providers, each with every field and a label in three groups. */
+function largeFile(count: number) {
+  const categories = [
+    'Fotografie',
+    'Videografie',
+    'Locații',
+    'Muzică',
+    'Flori și decor',
+    'Rochii de mireasă',
+    'Costume miri',
+    'Tort și dulciuri',
+    'Invitații',
+    'Lumini și sunet',
+  ];
+  const areas = ['Sibiu', 'Oradea', 'Constanța', 'Craiova', 'Suceava'];
+  const lines = ['Name,Contact person,Phones,Emails,Links,Address,Notes,Main category,Category,Area,Source'];
+  for (let i = 1; i <= count; i++) {
+    const n = String(i).padStart(3, '0');
+    const category = categories[i % categories.length]!;
+    lines.push(
+      [
+        `Furnizor ${n}`,
+        `Persoană ${n}`,
+        `"0700 000 ${n}; 0711 111 ${n}"`,
+        `furnizor${n}@example.org`,
+        `https://example.org/furnizor-${n}`,
+        quote(`Strada Mare ${i}, ${areas[i % areas.length]}`),
+        // Commas, quotes and a line break inside a value.
+        quote(`Văzut la târg, standul ${i}.\nA spus: "sunați după ora 10".`),
+        category,
+        category,
+        areas[i % areas.length],
+        'Târg 2026',
+      ].join(','),
+    );
+  }
+  return lines.join('\r\n') + '\r\n';
+}
+
+test('imports a file of 300 providers, and its export imports back as 300 look-alikes', async ({ page }) => {
+  await openData(page);
+  // The preview has the expect timeout (5 seconds) to show the whole file.
+  await chooseCsv(page, largeFile(300));
+  const preview = page.getByLabel('What importing vendors.csv would do');
+  await expect(preview).toContainText('300 rows: 300 to add.');
+  // 10 categories, 5 areas, 1 source.
+  await expect(preview).toContainText('The import creates 16 labels:');
+  await preview.getByRole('button', { name: 'Import 300 providers' }).click();
+  await expect(page.getByText('Imported: 300 providers added, 0 providers merged, 0 rows left out; 16 labels created.')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Back to the list' }).click();
+  await expect(page.locator('.provider-list .provider-name')).toHaveCount(301);
+  await page.getByRole('link', { name: /Furnizor 150/ }).click();
+  const detail = page.getByRole('article');
+  await expect(detail.getByRole('link', { name: '0711 111 150' })).toBeVisible();
+  await expect(detail.getByText('A spus: "sunați după ora 10".')).toBeVisible();
+  await expect(detail.getByText('Fotografie', { exact: true }).first()).toBeVisible();
+  await expect(detail.getByText('Sibiu', { exact: true })).toBeVisible();
+  await expect(detail.getByText('Târg 2026', { exact: true })).toBeVisible();
+
+  // The whole directory out and in again: every row is a look-alike, and no label is new. Within
+  // the app: a reload would start the demo afresh.
+  await page.goBack();
+  await page.getByRole('link', { name: 'Import or export' }).click();
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Export all 301 providers' }).click(),
+  ]);
+  await page.getByLabel('Choose a CSV file').setInputFiles(await download.path());
+  await expect(page.getByLabel(/^What importing /)).toContainText('301 rows: 301 to decide');
+  await expect(page.getByText(/^The import creates/)).toHaveCount(0);
+});
