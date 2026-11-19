@@ -31,6 +31,40 @@ test('in the demo, the export makes no claim about Google Drive, and says not to
   await expect(exportSection).toContainText('Do not change the file to update your providers');
 });
 
+test('the second export button names what narrows the list: the search, the filters, or both (FR-22)', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'the filters are a panel on wide screens');
+  await openData(page);
+  await chooseCsv(page, 'Name,Area\nLagoo,Cluj\nFlashbox,Cluj\n');
+  await page.getByRole('button', { name: 'Import 2 providers' }).click();
+  await page.getByRole('link', { name: 'Back to the list' }).click();
+  const search = page.getByRole('searchbox', { name: 'Search providers' });
+  const cluj = page.getByRole('complementary', { name: 'Filters' }).getByRole('checkbox', { name: /^Cluj,/ });
+  const exportButton = async (name: string) => {
+    await page.getByRole('link', { name: 'Import or export' }).click();
+    const button = page.getByRole('region', { name: 'Export to a CSV file' }).getByRole('button', { name, exact: true });
+    await expect(button).toBeVisible();
+    return button;
+  };
+
+  await search.fill('lagoo');
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    (await exportButton('Export the provider that matches your search')).click(),
+  ]);
+  const text = await readFile(await download.path(), 'utf8');
+  expect(text).toContain('Lagoo');
+  expect(text).not.toContain('Flashbox');
+
+  await page.getByRole('link', { name: 'Back to the list' }).click();
+  await search.fill('');
+  await cluj.check();
+  await exportButton('Export the 2 providers that match your filters');
+
+  await page.getByRole('link', { name: 'Back to the list' }).click();
+  await search.fill('flash');
+  await exportButton('Export the provider that matches your search and filters');
+});
+
 test('previews an import, waits for a choice on a possible duplicate, then merges and adds (FR-21, FR-23, FR-24)', async ({ page }) => {
   await openData(page);
   await chooseCsv(

@@ -158,7 +158,7 @@ export const ro: Record<MessageKey, string> = {
   'form.save': 'Salvează furnizorul',
   'form.dupKeeps': '{name} își păstrează valorile pentru {fields}: adăugarea acestor date nu le schimbă.',
   'data.exportOne': 'Exportă furnizorul',
-  'data.exportShownOne': 'Exportă furnizorul afișat în listă',
+  'data.exportMatchingOne': 'Exportă furnizorul care se potrivește {by}',
   'form.dupHeading': 'Furnizorul acesta poate fi deja în catalog.',
   'form.dupMerge': 'Adaugă aceste date la {name}',
   'form.dupOpen': 'Deschide {name}',
@@ -258,7 +258,10 @@ export const ro: Record<MessageKey, string> = {
   'data.exportDontChange':
     'Nu modifica fișierul ca să actualizezi furnizorii: ce schimbi în el nu ajunge singur în catalog, iar secțiunea „Import dintr-un fișier CSV” de mai jos aduce doar o parte din ele. Ca să schimbi ceva la un furnizor, deschide-l din lista „Furnizori” și apasă „Modifică”.',
   'data.exportAll': 'Exportă toți cei {providers}',
-  'data.exportShown': 'Exportă cei {providers} afișați în listă',
+  'data.exportMatching': 'Exportă cei {providers} care se potrivesc {by}',
+  'data.bySearch': 'căutării',
+  'data.byFilters': 'filtrelor',
+  'data.bySearchAndFilters': 'căutării și filtrelor',
   'data.importHeading': 'Import dintr-un fișier CSV',
   'data.importHelp':
     'Coloane: Nume, Persoană de contact, Telefoane, E-mailuri, Linkuri, Adresă, Note, Categoria principală și câte o coloană pentru fiecare grup de etichete. Mai multe valori într-o celulă se despart prin punct și virgulă. Nimic nu se salvează până nu apeși Importă.',

@@ -153,7 +153,7 @@ export const en = {
   'form.save': 'Save the provider',
   'form.dupKeeps': '{name} keeps its own {fields}: adding these details does not change them.',
   'data.exportOne': 'Export the provider',
-  'data.exportShownOne': 'Export the provider shown in the list',
+  'data.exportMatchingOne': 'Export the provider that matches {by}',
   'form.dupHeading': 'This provider may already be in the directory.',
   'form.dupMerge': 'Add these details to {name}',
   'form.dupOpen': 'Open {name}',
@@ -251,7 +251,10 @@ export const en = {
   'data.exportDontChange':
     'Do not change the file to update your providers: changes made in it do not reach the directory on their own, and the section “Import from a CSV file” below brings in only some of them. To change a provider’s details or labels, open the provider from the “Providers” list and press “Edit”.',
   'data.exportAll': 'Export all {providers}',
-  'data.exportShown': 'Export the {providers} shown in the list',
+  'data.exportMatching': 'Export the {providers} that match {by}',
+  'data.bySearch': 'your search',
+  'data.byFilters': 'your filters',
+  'data.bySearchAndFilters': 'your search and filters',
   'data.importHeading': 'Import from a CSV file',
   'data.importHelp':
     'Columns: Name, Contact person, Phones, Emails, Links, Address, Notes, Main category, and one column for each label group. Several values in one cell are separated by semicolons. Nothing is saved until you press Import.',

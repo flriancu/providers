@@ -23,6 +23,7 @@ import { useI18n } from '../i18n';
 import { LabelChip } from './LabelChip';
 import { MergeDiffView } from './MergeDiffView';
 import { FACET_WORDS, facetName } from './labelText';
+import { chosenCount } from './FilterPanel';
 import { href, type Route } from './route';
 import type { Apply } from './types';
 import { useProviderSearch } from './useProviderSearch';
@@ -53,6 +54,10 @@ export function DataPage({ doc, apply, route, savedInDrive }: { doc: DirectoryDo
   const find = useProviderSearch(doc);
   const shown = useMemo(() => visibleProviders(doc, query, find), [doc, query, find]);
   const narrowed = shown.length !== all.length;
+  // What narrows the list, named as on the list page: this page does not show the list.
+  const searched = Boolean(query.q.trim() && find);
+  const filtered = chosenCount(query.selection) > 0;
+  const by = t(searched && filtered ? 'data.bySearchAndFilters' : searched ? 'data.bySearch' : 'data.byFilters');
   const exportCsv = (providers: typeof all) =>
     download(`providers-${today()}.csv`, toCsv(exportRows(doc, providers, (f) => facetName(f, t))));
 
@@ -75,7 +80,9 @@ export function DataPage({ doc, apply, route, savedInDrive }: { doc: DirectoryDo
           </button>
           {narrowed && (
             <button type="button" className="secondary" disabled={!shown.length} onClick={() => exportCsv(shown)}>
-              {shown.length === 1 ? t('data.exportShownOne') : t('data.exportShown', { providers: plural('providers', shown.length) })}
+              {shown.length === 1
+                ? t('data.exportMatchingOne', { by })
+                : t('data.exportMatching', { providers: plural('providers', shown.length), by })}
             </button>
           )}
         </div>
