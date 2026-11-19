@@ -10,10 +10,10 @@ import { FACET_IDS, newDirectory, type DirectoryDoc } from '../../src/domain/sch
 import { exportCsv, importAll, OWNER, providersAsShown, testContext } from '../unit/fixture';
 
 /**
- * The export opened in Excel and saved again, in each CSV format Excel offers, then imported: what
- * the owner does to edit the directory in a spreadsheet. tests/interop/excel.ps1 drives Excel, as
- * set up in English and in Romanian Windows; what this machine's settings cannot give, it
- * emulates and says so.
+ * A sheet saved from Excel in each CSV format Excel offers, then imported: the files people make in
+ * a spreadsheet, such as a list from a fair. The sheet holds what an export holds, so every field
+ * and label group is covered. tests/interop/excel.ps1 drives Excel, as set up in English and in
+ * Romanian Windows; what this machine's settings cannot give, it emulates and says so.
  */
 
 const SCRIPT = fileURLToPath(new URL('excel.ps1', import.meta.url));
@@ -27,8 +27,6 @@ interface Setup {
   setup: 'en' | 'ro';
   separator: string;
   codePage: number;
-  opened: string;
-  openedEmulated: boolean;
   saves: Save[];
 }
 
@@ -93,35 +91,6 @@ beforeAll(() => {
 
 const setupNamed = (name: Setup['setup']) => setups.find((s) => s.setup === name)!;
 const how = (emulated: boolean) => (emulated ? 'emulated' : 'by Excel');
-
-/**
- * Excel's cells after opening the export in these settings, and the export's. An emulated opening
- * reads the letters wrongly (the "sep=" line), so for it only the number of columns per row counts.
- */
-function opened(name: Setup['setup']) {
-  const setup = setupNamed(name);
-  const cells = readJson(join(out, setup.opened)) as string[][];
-  const rows = parseCsv(exported);
-  console.log(
-    `${name}: opened ${how(setup.openedEmulated)}: ${cells.length} rows of ${cells[0]?.length} columns; the export has ${rows.length} of ${rows[0]?.length}.`,
-  );
-  const compared = (table: readonly (readonly string[])[]) => (setup.openedEmulated ? table.map((r) => r.length) : table);
-  return { excel: compared(cells), exported: compared(rows) };
-}
-
-describe('Excel opens the export', () => {
-  it('in English Windows settings, with one column per field, every value as exported', () => {
-    const { excel, exported: rows } = opened('en');
-    expect(excel).toEqual(rows);
-  });
-  // Excel splits a CSV file at the Windows list separator, a semicolon in Romanian settings, so
-  // the export (commas) opens there as one column of text, rows broken at line breaks in
-  // values. Known (REQUIREMENTS.md, Q-08); fails until the export is readable there.
-  it.fails('in Romanian Windows settings, with one column per field', () => {
-    const { excel, exported: rows } = opened('ro');
-    expect(excel).toEqual(rows);
-  });
-});
 
 describe.each(['en', 'ro'] as const)('Excel in %s Windows settings', (name) => {
   it.each(['CSV UTF-8', 'Unicode Text'] as const)('saved as "%s", imports back every value as it was', (format) => {

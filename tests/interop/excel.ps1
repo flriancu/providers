@@ -1,22 +1,17 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-  Opens a CSV file in Excel as a person would, and saves it in Excel's CSV formats, for two
-  Windows settings: English (list separator ",", code page 1252) and Romanian (";", 1250).
+  Saves a CSV file from Excel in each of Excel's CSV formats, as Excel does with two Windows
+  settings: English (list separator ",", code page 1252) and Romanian (";", 1250).
 
 .DESCRIPTION
   Excel takes the list separator and the code page from the Windows settings, which this script
   does not change. Whatever matches this machine's settings comes from Excel itself. The rest is
-  emulated, and marked as emulated in the manifest:
-
-  - Opening with another list separator: a copy of the file with a "sep=" first line, which Excel
-    follows with its own CSV reader. Excel then ignores the byte-order mark, so only the columns
-    of an emulated opening can be compared, not the letters.
-  - Saving with another list separator or code page: Excel saves "Unicode Text" (tab separated,
-    UTF-16, lossless), and ConvertTo-Csv-As-Excel writes that table again with the separator,
-    quoting and code page Excel would use. Before any emulated file is written, the same function
-    must reproduce Excel's own "CSV UTF-8" and "CSV" files from this machine byte for byte;
-    otherwise the script stops.
+  emulated, and marked as emulated in the manifest: Excel saves "Unicode Text" (tab separated,
+  UTF-16, lossless), and ConvertTo-Csv-As-Excel writes that table again with the separator,
+  quoting and code page Excel would use. Before any emulated file is written, the same function
+  must reproduce Excel's own "CSV UTF-8" and "CSV" files from this machine byte for byte;
+  otherwise the script stops.
 
   Writes to OutDir: the files, and manifest.json listing them. Needs Excel for Windows.
 
@@ -83,17 +78,6 @@ function ConvertTo-Csv-As-Excel([object[]] $Rows, [string] $Separator, [int] $Co
   return $encoding.GetBytes($text)
 }
 
-# The cells of the first sheet, as Excel holds them (Formula: the text typed or read).
-function Get-Cells($Workbook) {
-  $sheet = $Workbook.Worksheets.Item(1)
-  $used = $sheet.UsedRange
-  $values = $used.Formula
-  $rows = for ($r = 1; $r -le $used.Rows.Count; $r++) {
-    , @(for ($c = 1; $c -le $used.Columns.Count; $c++) { [string]$values[$r, $c] })
-  }
-  return , @($rows)
-}
-
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $In = (Resolve-Path $In).Path
 $OutDir = (Resolve-Path $OutDir).Path
@@ -105,7 +89,7 @@ try {
   $excel.DisplayAlerts = $false
   $machineSeparator = [string]$excel.International($xlListSeparator)
 
-  # Excel's own files, from opening the file as a double-click does on this machine.
+  # Excel's own files, from the file opened as a double-click does on this machine.
   $book = $excel.Workbooks.Open($In)
   $book.SaveAs((Join-Path $OutDir 'excel-unicode.txt'), $xlUnicodeText)
   $book.SaveAs((Join-Path $OutDir 'excel-csv-utf8.csv'), $xlCSVUTF8)
@@ -124,24 +108,6 @@ try {
 
   $manifest = foreach ($setup in $Setups) {
     $name = $setup.name
-    # Opening: as a double-click does, or emulated with a "sep=" line.
-    $openedEmulated = $setup.separator -ne $machineSeparator
-    $source = $In
-    if ($openedEmulated) {
-      $source = Join-Path $OutDir "$name-sep.csv"
-      # The byte-order mark stays first, the "sep=" line after it.
-      $bytes = [IO.File]::ReadAllBytes($In)
-      $bom = [byte[]]@(0xEF, 0xBB, 0xBF)
-      $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
-      $body = if ($hasBom) { $bytes[3..($bytes.Length - 1)] } else { $bytes }
-      [IO.File]::WriteAllBytes($source, [byte[]]$(if ($hasBom) { $bom } else { @() }) + [Text.Encoding]::ASCII.GetBytes("sep=$($setup.separator)`r`n") + [byte[]]$body)
-    }
-    $book = $excel.Workbooks.Open($source)
-    $cells = Get-Cells $book
-    $book.Close($false)
-    $opened = "$name-opened.json"
-    ConvertTo-Json -InputObject $cells -Depth 4 | Set-Content -Path (Join-Path $OutDir $opened) -Encoding utf8
-
     # Saving, in each CSV format Excel offers.
     $saves = @(
       @{ format = 'Unicode Text'; file = 'excel-unicode.txt'; emulated = $false }
@@ -157,7 +123,7 @@ try {
         $saves += @{ format = $format.format; file = $file; emulated = $true }
       }
     }
-    [ordered]@{ setup = $name; separator = $setup.separator; codePage = $setup.codePage; opened = $opened; openedEmulated = $openedEmulated; saves = $saves }
+    [ordered]@{ setup = $name; separator = $setup.separator; codePage = $setup.codePage; saves = $saves }
   }
   ConvertTo-Json -InputObject @($manifest) -Depth 5 | Set-Content -Path (Join-Path $OutDir 'manifest.json') -Encoding utf8
   Write-Output "Excel $($excel.Version), list separator '$machineSeparator', code page $machineCodePage. Wrote $OutDir\manifest.json."

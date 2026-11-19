@@ -257,3 +257,12 @@ test('while signing out waits for the last save, the page says so and offers not
   await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
   expect(providerNames(drive.content())).toEqual(['Lagoo']);
 });
+
+test('signed in, the export says the whole directory is already in Google Drive, and not to change the file (D-50)', async ({ page }) => {
+  await open(page, new FakeDrive());
+  await expect(saved(page)).toBeVisible();
+  await page.getByRole('link', { name: 'Import or export' }).click();
+  const exportSection = page.getByRole('region', { name: 'Export to a CSV file' });
+  await expect(exportSection).toContainText('Your whole directory is already saved in your Google Drive');
+  await expect(exportSection).toContainText('Do not change the file to update your providers');
+});

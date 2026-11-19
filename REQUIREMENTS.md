@@ -123,6 +123,16 @@ Architecture change of 2026-11-16 (owner's choice: follow the
   device-copy code becomes a shared package used by both apps. Storage and sync are made generic
   first (any document type; merge, migrate and absorb passed in), and vacation_planner moves to
   the package with no change in behaviour. (2026-11-16)
+- D-50 Answers Q-08. The CSV export is for programs and safekeeping, not for people to read or
+  edit: the Import and export page says so, and providers are changed in the app. So Excel
+  opening it by double-click with its columns mixed up, on a laptop whose Windows regional
+  format uses a semicolon as list separator (Romanian formats do), is not a case to serve.
+  Import still takes files people made in a spreadsheet. Export and import stay CSV only (D-09).
+  Values a spreadsheet would run as formulas keep their apostrophe, in case the file is opened in
+  one anyway (OWASP, [CSV Injection](https://owasp.org/www-community/attacks/CSV_Injection)).
+  Formats compared: an Excel file (.xlsx; write-excel-file and read-excel-file were the smallest
+  of four libraries, 38 KB gzip for both); JSON and Markdown, which open as a table in neither
+  Excel nor Google Sheets. (2026-11-19, owner: "it should only serve for machine processing")
 - D-49 What a merge changes shows as a diff, one line per value, in the import preview and in
   the provider form's "Add these details" warning: + and green for a value added, - and red,
   struck through, for one replaced; signs read out as words, so colour is not the only cue (WCAG
@@ -377,14 +387,16 @@ interaction log; language switch; CSV import and export; phone browser.
   and taking the link away both proven against the real Drive
   ([evidence](evidence/phase0b-sharing-test.md)); opening by email through the Picker, and
   editing a shared directory, wait for a second Google account.
-- Q-08 Export for Excel in Romanian Windows settings: open. Excel splits a CSV file at the
-  Windows list separator, a semicolon in Romanian settings; Microsoft documents this for saving
+- Q-08 Closed 2026-11-19 by D-50. Export for Excel in Romanian Windows settings. Excel splits a
+  CSV file at the Windows list separator, a semicolon in Romanian settings; Microsoft documents
+  this for saving
   ([Import or export text files](https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba),
-  "Change the default list separator for new text files"). For opening,
-  `tests/interop/excel.test.ts` shows it with Excel's own reader: the export (commas) opens as
-  one column, rows broken at line breaks in notes. A `sep=` first line would fix the columns,
-  but Excel then ignores the byte-order mark and the diacritics break (tried with Excel 16).
-  Import is not affected: it reads commas, semicolons and tabs. Saving as "CSV" (not "CSV
-  UTF-8") writes "?" for letters the Windows code page lacks (s and t with a comma below,
-  U+0219 and U+021B, in Romanian settings; also a with a breve, U+0103, in English ones); the
-  import says the file is not UTF-8 and suggests "CSV UTF-8", but cannot restore the letters.
+  "Change the default list separator for new text files"). For opening, it was tried with Excel
+  16 and a copy of the export with a `sep=;` first line: the export (commas) opens as one
+  column, rows broken at line breaks in notes. A `sep=` line in the export would fix the
+  columns, but Excel then ignores the byte-order mark and the diacritics break. Import is not
+  affected: it reads commas, semicolons and tabs. A file saved from Excel as "CSV" (not "CSV
+  UTF-8") has "?" for letters the Windows code page lacks (s and t with a comma below, U+0219
+  and U+021B, in Romanian settings; also a with a breve, U+0103, in English ones); the import
+  says the file is not UTF-8 and suggests "CSV UTF-8", but cannot restore the letters
+  (`tests/interop/excel.test.ts`).

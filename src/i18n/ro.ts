@@ -251,7 +251,12 @@ export const ro: Record<MessageKey, string> = {
   'data.heading': 'Import și export',
   'data.exportHeading': 'Export într-un fișier CSV',
   'data.exportHelp':
-    'Un fișier de tabel cu toate câmpurile și grupurile de etichete, câte un rând pentru fiecare furnizor. Poate fi importat din nou.',
+    'Exportul creează un fișier cu datele și etichetele furnizorilor pe care îi exporți. Browserul salvează fișierul împreună cu celelalte descărcări. Fișierul este un tabel în format CSV, pe care alte programe îl pot citi; nu conține „Discuții și note”.',
+  'data.exportKeepDrive':
+    'Tot catalogul este deja salvat în Google Drive-ul tău, așa că acest fișier este o copie în plus a acestor date și etichete, de păstrat sau de folosit în alt program.',
+  'data.exportKeep': 'Poți păstra fișierul sau îl poți folosi în alt program.',
+  'data.exportDontChange':
+    'Nu modifica fișierul ca să actualizezi furnizorii: ce schimbi în el nu ajunge singur în catalog, iar secțiunea „Import dintr-un fișier CSV” de mai jos aduce doar o parte din ele. Ca să schimbi ceva la un furnizor, deschide-l din lista „Furnizori” și apasă „Modifică”.',
   'data.exportAll': 'Exportă toți cei {providers}',
   'data.exportShown': 'Exportă cei {providers} afișați în listă',
   'data.importHeading': 'Import dintr-un fișier CSV',

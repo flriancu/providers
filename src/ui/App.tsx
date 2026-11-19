@@ -173,7 +173,7 @@ function Directory({ connection }: { connection: Connection }) {
             {onLabels ? (
               <LabelsPage doc={doc} apply={apply} />
             ) : route.page === 'data' ? (
-              <DataPage doc={doc} apply={apply} route={route} />
+              <DataPage doc={doc} apply={apply} route={route} savedInDrive={account.kind === 'google'} />
             ) : (
               <ProvidersPage doc={doc} apply={apply} route={route} />
             )}

@@ -243,7 +243,13 @@ export const en = {
   'data.link': 'Import or export',
   'data.heading': 'Import and export',
   'data.exportHeading': 'Export to a CSV file',
-  'data.exportHelp': 'A spreadsheet file with every field and label group, one row per provider. It can be imported again.',
+  'data.exportHelp':
+    'Exporting creates a file with the details and labels of the providers you export. Your browser saves the file with your other downloads. The file is a table in CSV format, which other programs can read; it does not include “Conversations and notes”.',
+  'data.exportKeepDrive':
+    'Your whole directory is already saved in your Google Drive, so this file is an extra copy of those details and labels, to keep or to use in another program.',
+  'data.exportKeep': 'You can keep the file, or use it in another program.',
+  'data.exportDontChange':
+    'Do not change the file to update your providers: changes made in it do not reach the directory on their own, and the section “Import from a CSV file” below brings in only some of them. To change a provider’s details or labels, open the provider from the “Providers” list and press “Edit”.',
   'data.exportAll': 'Export all {providers}',
   'data.exportShown': 'Export the {providers} shown in the list',
   'data.importHeading': 'Import from a CSV file',

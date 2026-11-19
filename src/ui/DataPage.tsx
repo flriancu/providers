@@ -46,7 +46,7 @@ function download(name: string, text: string) {
  * preview of every change; nothing is saved until Import, and every possible duplicate waits for
  * the owner's choice (D-12, NFR-09).
  */
-export function DataPage({ doc, apply, route }: { doc: DirectoryDoc; apply: Apply; route: Route }) {
+export function DataPage({ doc, apply, route, savedInDrive }: { doc: DirectoryDoc; apply: Apply; route: Route; savedInDrive: boolean }) {
   const { t, plural } = useI18n();
   const query = useMemo(() => ({ ...route.query, selection: liveSelection(doc, route.query.selection) }), [doc, route.query]);
   const all = live(doc.providers);
@@ -65,7 +65,10 @@ export function DataPage({ doc, apply, route }: { doc: DirectoryDoc; apply: Appl
 
       <section aria-labelledby="export-heading">
         <h3 id="export-heading">{t('data.exportHeading')}</h3>
-        <p className="help">{t('data.exportHelp')}</p>
+        <p className="help">
+          {t('data.exportHelp')} {savedInDrive ? t('data.exportKeepDrive') : t('data.exportKeep')}
+        </p>
+        <p className="help">{t('data.exportDontChange')}</p>
         <div className="actions">
           <button type="button" disabled={!all.length} onClick={() => exportCsv(all)}>
             {all.length === 1 ? t('data.exportOne') : t('data.exportAll', { providers: plural('providers', all.length) })}

@@ -23,6 +23,14 @@ test('exports every provider to a CSV file with every field and label group (FR-
   expect(text).toContain(`Sample Photo Studio,Ana Example,"'+40 000 000 000"`);
 });
 
+test('in the demo, the export makes no claim about Google Drive, and says not to change the file (D-50)', async ({ page }) => {
+  await openData(page);
+  const exportSection = page.getByRole('region', { name: 'Export to a CSV file' });
+  await expect(exportSection).toContainText('You can keep the file, or use it in another program.');
+  await expect(exportSection).not.toContainText('Google Drive');
+  await expect(exportSection).toContainText('Do not change the file to update your providers');
+});
+
 test('previews an import, waits for a choice on a possible duplicate, then merges and adds (FR-21, FR-23, FR-24)', async ({ page }) => {
   await openData(page);
   await chooseCsv(
